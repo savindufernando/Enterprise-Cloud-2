@@ -1,0 +1,31 @@
+"""Standardized error codes for the AeroLink platform."""
+
+from enum import Enum
+
+
+class ErrorCode(str, Enum):
+    # Standard HTTP mapping
+    INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    UNAUTHORIZED = "UNAUTHORIZED"
+    FORBIDDEN = "FORBIDDEN"
+    NOT_FOUND = "NOT_FOUND"
+    CONFLICT = "CONFLICT"
+    TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS"
+    PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE"
+
+    # Business Logic - Flights
+    FLIGHT_NOT_FOUND = "FLIGHT_NOT_FOUND"
+    FLIGHT_DEPARTED = "FLIGHT_DEPARTED"
+    SEAT_UNAVAILABLE = "SEAT_UNAVAILABLE"
+
+    # Business Logic - Booking
+    BOOKING_NOT_FOUND = "BOOKING_NOT_FOUND"
+    ALREADY_CHECKED_IN = "ALREADY_CHECKED_IN"
+    
+    # Business Logic - Payment
+    PAYMENT_FAILED = "PAYMENT_FAILED"
+    CARD_DECLINED = "CARD_DECLINED"
+    
+    # System
+    RESOURCE_LOCKED = "RESOURCE_LOCKED"
