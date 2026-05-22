@@ -4,7 +4,7 @@ metadata:
   name: api-gateway
   namespace: aerolink
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: api-gateway
