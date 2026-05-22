@@ -18,6 +18,7 @@ spec:
       containers:
       - name: baggage-service
         image: ghcr.io/savindufernando/enterprise-cloud-2-baggage_service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8004
         envFrom:

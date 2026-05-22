@@ -16,6 +16,7 @@ spec:
       containers:
       - name: api-gateway
         image: ghcr.io/savindufernando/enterprise-cloud-2-api_gateway:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         envFrom:

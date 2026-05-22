@@ -21,6 +21,7 @@ spec:
       containers:
       - name: flight-service
         image: ghcr.io/savindufernando/enterprise-cloud-2-flight_service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8001
         envFrom:
@@ -63,6 +64,7 @@ spec:
       containers:
       - name: flight-service
         image: ghcr.io/savindufernando/enterprise-cloud-2-flight_service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8001
         envFrom:
