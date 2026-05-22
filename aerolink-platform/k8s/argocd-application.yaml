@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aerolink-platform
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/savindufernando/Enterprise-Cloud-2.git'
+    path: aerolink-platform/k8s
+    targetRevision: HEAD
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

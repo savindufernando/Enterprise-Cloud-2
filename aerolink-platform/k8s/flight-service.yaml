@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-service-v1
+  namespace: aerolink
+  labels:
+    app: flight-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flight-service
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: flight-service
+        version: v1
+    spec:
+      containers:
+      - name: flight-service
+        image: aerolink/flight-service:v1.0.0
+        ports:
+        - containerPort: 8001
+        envFrom:
+        - configMapRef:
+            name: aerolink-config
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+# Enhancement #24: Canary Deployment (10% Traffic split via Service mesh or replica counts)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-service-v2-canary
+  namespace: aerolink
+  labels:
+    app: flight-service
+    version: v2-canary
+spec:
+  replicas: 1  # 2:1 ratio for simplicity, in reality controlled by Istio/Ingress weights
+  selector:
+    matchLabels:
+      app: flight-service
+      version: v2-canary
+  template:
+    metadata:
+      labels:
+        app: flight-service
+        version: v2-canary
+    spec:
+      containers:
+      - name: flight-service
+        image: aerolink/flight-service:v2.0.0-rc1
+        ports:
+        - containerPort: 8001
+        envFrom:
+        - configMapRef:
+            name: aerolink-config
+        env:
+        - name: FF_EXPERIMENTAL_RECOMMENDATIONS
+          value: "true" # Turn on feature flag for canary
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flight-service
+  namespace: aerolink
+spec:
+  selector:
+    app: flight-service # Hits both v1 and v2-canary automatically
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001
+      name: http
