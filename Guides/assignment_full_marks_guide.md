@@ -748,7 +748,123 @@ Version-controlled schemas, seeds for test data.
 |---|---|
 | **70-79%** | 5+ services, Docker, K8s, Swagger, Kafka, JWT, RBAC, tests |
 | **80-89%** | + Saga, circuit breakers, IaC, CI/CD, performance analysis |
-| **90-100%** | + Frontend, outbox pattern, monitoring dashboards, OpenTelemetry, DLQ, idempotency, feature flags, correlation IDs, audit trail |
+| **90-95%** | + Frontend, outbox pattern, monitoring dashboards, OpenTelemetry, DLQ, idempotency, feature flags, correlation IDs, audit trail (Tier 1 complete) |
+| **95-100%** | + PII masking, distributed locking, webhooks, app-level encryption, Helm charts, canary deployments (Tier 2+3) |
+
+---
+
+### Enhancement 13-15: (Covered Above)
+See Enhancements 13 (Audit Trail), 14 (Consistent Error Format), 15 (Liveness/Readiness Probes) in Tier 1.
+
+---
+
+### 🟡 Tier 2 Enhancements — High Impact (Week 8)
+
+### Enhancement 16: PII Masking in Logs ★
+
+Auto-redact sensitive data (email, passport, card numbers) from all log output.
+
+```python
+import re
+from structlog.types import EventDict
+
+PII_PATTERNS = {
+    "email": re.compile(r'[\w.-]+@[\w.-]+\.\w+'),
+    "card_number": re.compile(r'\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b'),
+    "passport": re.compile(r'\b[A-Z]{1,2}\d{6,9}\b'),
+    "phone": re.compile(r'\b\+?\d{10,15}\b'),
+}
+
+def mask_pii(_, __, event_dict: EventDict) -> EventDict:
+    """structlog processor that masks PII in log output."""
+    for key, value in event_dict.items():
+        if isinstance(value, str):
+            for pii_type, pattern in PII_PATTERNS.items():
+                value = pattern.sub(f"[REDACTED_{pii_type.upper()}]", value)
+            event_dict[key] = value
+    return event_dict
+```
+
+**Why it impresses:** Directly ties to GDPR. Shows you don't just *talk* about compliance — you built it into the logging pipeline.
+
+---
+
+### Enhancement 17: Distributed Locking (Redis) ★
+
+Prevent double-booking race conditions with Redis-based distributed locks.
+
+```python
+import redis.asyncio as redis
+from contextlib import asynccontextmanager
+
+class DistributedLock:
+    def __init__(self, redis_client: redis.Redis):
+        self.redis = redis_client
+
+    @asynccontextmanager
+    async def acquire(self, resource: str, ttl: int = 10):
+        lock_key = f"lock:{resource}"
+        lock_id = str(uuid.uuid4())
+        acquired = await self.redis.set(lock_key, lock_id, nx=True, ex=ttl)
+        if not acquired:
+            raise AppError("RESOURCE_LOCKED", f"{resource} is being modified", 409)
+        try:
+            yield lock_id
+        finally:
+            if await self.redis.get(lock_key) == lock_id.encode():
+                await self.redis.delete(lock_key)
+
+# Usage: async with lock.acquire(f"seat:{flight_id}:{seat_id}"):
+```
+
+**Why it impresses:** Solves a real concurrency problem. 5 lines of logic, massive impact.
+
+---
+
+### Enhancement 22: Webhook Callbacks ★
+
+Send booking status updates to registered external partner systems.
+
+```python
+class WebhookRegistration(BaseModel):
+    url: HttpUrl
+    events: list[str]  # ["booking.confirmed", "booking.cancelled"]
+    secret: str        # For HMAC signature verification
+
+@router.post("/api/v1/webhooks/register")
+async def register_webhook(webhook: WebhookRegistration):
+    await webhook_service.register(db, webhook)
+
+# On event: POST to registered URL with HMAC-signed payload
+# Headers: X-AeroLink-Signature: sha256=...
+```
+
+**Why it impresses:** The assignment mentions "integration with third-party systems." Webhooks prove you thought about outbound integrations, not just inbound.
+
+---
+
+### 🟢 Tier 3 Enhancements — Bonus (Week 8-9, only if ahead of schedule)
+
+### Enhancement 18: API Deprecation Headers ★
+Add `Sunset` and `Deprecation` HTTP headers on old endpoints. Shows API lifecycle maturity.
+
+### Enhancement 19: Request Size Limiting ★
+Reject payloads > 1MB. Prevents DoS via large payloads. Starlette middleware, 10 lines.
+
+### Enhancement 20: Helm Charts ★
+Templated K8s deployments with `values.yaml` overrides for dev/staging/prod. Shows K8s depth.
+
+### Enhancement 21: OpenAPI Client SDK Generation ★
+Auto-generate Python client libraries from FastAPI’s OpenAPI spec using `openapi-python-client`. Include in `clients/` directory.
+
+### Enhancement 23: Application-Level Encryption ★
+Encrypt PII (passport, email) inside database fields using `cryptography.Fernet`. Goes beyond standard "encryption at rest."
+
+### Enhancement 24: Canary Deployment Config ★
+K8s manifests with canary rollout strategy — route 10% traffic to new version via nginx ingress annotations.
+
+### Enhancement 25: Dependency Health Matrix ★
+Visual map showing which services depend on which, and cascade failure analysis. Great for the report and admin dashboard.
 
 ---
 
@@ -761,6 +877,7 @@ Version-controlled schemas, seeds for test data.
 - [ ] ER diagrams per service
 - [ ] Technology justification table
 - [ ] Multi-region + HA + scalability documented
+- [ ] Dependency health matrix diagram ★
 
 #### Implementation (40%)
 - [ ] 7+ services implemented (FastAPI)
@@ -780,6 +897,15 @@ Version-controlled schemas, seeds for test data.
 - [ ] GDPR endpoints (delete, export)
 - [ ] PCI-DSS audit logging
 - [ ] Clean typed code (ruff + mypy clean)
+- [ ] **Tier 1 enhancements** (15 items — all integrated)
+- [ ] PII masking in logs ★ (Tier 2)
+- [ ] Distributed locking for seat reservation ★ (Tier 2)
+- [ ] Webhook callbacks to external systems ★ (Tier 2)
+- [ ] Request size limiting ★ (Tier 3)
+- [ ] Application-level field encryption ★ (Tier 3)
+- [ ] API deprecation headers ★ (Tier 3)
+- [ ] Helm charts ★ (Tier 3)
+- [ ] Canary deployment manifests ★ (Tier 3)
 
 #### Testing & Results (20%)
 - [ ] pytest unit tests (80%+ coverage)
@@ -787,6 +913,7 @@ Version-controlled schemas, seeds for test data.
 - [ ] Postman collection + Newman results
 - [ ] Locust load/stress tests with graphs
 - [ ] Performance analysis (latency, throughput, errors)
+- [ ] Distributed lock prevents double-booking (test evidence)
 
 #### Presentation & Viva (20%)
 - [ ] 15-min slides (professional)
@@ -794,6 +921,7 @@ Version-controlled schemas, seeds for test data.
 - [ ] Backup demo recording
 - [ ] Prepared for "why" questions
 - [ ] Know your numbers
+- [ ] Can explain all 25 enhancements and their purpose
 
 #### Report Quality
 - [ ] Executive summary
@@ -802,8 +930,9 @@ Version-controlled schemas, seeds for test data.
 - [ ] 20-30+ references
 - [ ] No spelling/grammar errors
 - [ ] Appendices with full test results
+- [ ] Enhancement tiers documented with justification
 
 ---
 
 > [!NOTE]
-> **Final Word:** For **100%**, every section must be excellent simultaneously. A stunning implementation with a weak report caps you at ~75%. A beautiful report with weak code caps you at ~60%. Everything must be consistently top-tier. Quality AND breadth — every diagram present, every test evidenced, every viva question answered with confidence.
+> **Final Word:** With 25 enhancements across 3 tiers, this project goes far beyond what any examiner expects from a student submission. **Tier 1 (15 items) is guaranteed.** Tier 2 (3 items) is very likely. Tier 3 (7 items) is attempted only if ahead of schedule. A flawless Tier 1+2 (18 enhancements) scores 95-100%. The plan shows ambition; the execution shows discipline. Both impress examiners.

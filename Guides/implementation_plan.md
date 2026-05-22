@@ -1180,6 +1180,7 @@ aerolink.notification.email-failed.dlq
 - Bulkhead pattern ★
 - Graceful shutdown ★
 - Kubernetes HPA, PDB, Network Policies
+- **Request size limiting** ★ — reject payloads > 1MB to prevent abuse
 
 ---
 
@@ -1188,6 +1189,8 @@ aerolink.notification.email-failed.dlq
 - prometheus-client → Prometheus → Grafana dashboards
 - OpenTelemetry → Jaeger distributed tracing ★
 - Alerting rules for error rate, latency, consumer lag
+- **PII Masking in logs** ★ — auto-redact email, passport, card numbers from structured logs
+- **Dependency health matrix** ★ — visual map of service dependencies and cascade failure paths
 
 ---
 
@@ -1316,12 +1319,236 @@ FastAPI mock services for airport API, immigration API, payment gateway.
 ### Phase 15: CI/CD (Week 2, refined)
 GitHub Actions: lint (ruff) → type check (mypy) → test (pytest) → build Docker → push.
 
-### Phase 16: Report + Presentation (Weeks 9-10)
+### Phase 16: Tier 2 & 3 Enhancements (Week 8, if ahead of schedule)
+
+#### Tier 2 — High-Impact Additions
+
+##### [NEW] shared/utils/pii_masker.py ★ (#16 PII Masking in Logs)
+```python
+import re
+from structlog.types import EventDict
+
+PII_PATTERNS = {
+    "email": re.compile(r'[\w.-]+@[\w.-]+\.\w+'),
+    "card_number": re.compile(r'\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b'),
+    "passport": re.compile(r'\b[A-Z]{1,2}\d{6,9}\b'),
+    "phone": re.compile(r'\b\+?\d{10,15}\b'),
+}
+
+def mask_pii(_, __, event_dict: EventDict) -> EventDict:
+    """structlog processor that masks PII in log output."""
+    for key, value in event_dict.items():
+        if isinstance(value, str):
+            for pii_type, pattern in PII_PATTERNS.items():
+                value = pattern.sub(f"[REDACTED_{pii_type.upper()}]", value)
+            event_dict[key] = value
+    return event_dict
+
+# Usage in structlog config:
+# structlog.configure(processors=[..., mask_pii, ...])
+```
+
+##### [NEW] shared/utils/distributed_lock.py ★ (#17 Distributed Locking)
+```python
+import redis.asyncio as redis
+from contextlib import asynccontextmanager
+
+class DistributedLock:
+    """Redis-based distributed lock to prevent race conditions (e.g., double-booking)."""
+
+    def __init__(self, redis_client: redis.Redis):
+        self.redis = redis_client
+
+    @asynccontextmanager
+    async def acquire(self, resource: str, ttl: int = 10):
+        lock_key = f"lock:{resource}"
+        lock_id = str(uuid.uuid4())
+        acquired = await self.redis.set(lock_key, lock_id, nx=True, ex=ttl)
+        if not acquired:
+            raise AppError("RESOURCE_LOCKED", f"{resource} is currently being modified", 409)
+        try:
+            yield lock_id
+        finally:
+            # Only release if we still own the lock
+            if await self.redis.get(lock_key) == lock_id.encode():
+                await self.redis.delete(lock_key)
+
+# Usage in booking service:
+# async with distributed_lock.acquire(f"seat:{flight_id}:{seat_id}"):
+#     await reserve_seat(flight_id, seat_id)
+```
+
+##### [NEW] services/booking_service/app/api/webhooks.py ★ (#22 Webhook Callbacks)
+```python
+from fastapi import APIRouter
+from pydantic import BaseModel, HttpUrl
+
+router = APIRouter(prefix="/api/v1/webhooks")
+
+class WebhookRegistration(BaseModel):
+    url: HttpUrl
+    events: list[str]  # e.g., ["booking.confirmed", "booking.cancelled"]
+    secret: str        # For HMAC signature verification
+
+@router.post("/register")
+async def register_webhook(webhook: WebhookRegistration, db=Depends(get_db)):
+    """Register an external system to receive booking event callbacks."""
+    await webhook_service.register(db, webhook)
+    return {"status": "registered"}
+
+# When events fire, the notification service sends signed HTTP POST to registered URLs:
+# POST https://partner-airline.com/api/webhooks/aerolink
+# Headers: X-AeroLink-Signature: sha256=...
+# Body: { "event": "booking.confirmed", "data": { ... } }
+```
+
+#### Tier 3 — Bonus Enhancements (only if ahead of schedule)
+
+##### [NEW] shared/middleware/deprecation.py ★ (#18 API Deprecation Headers)
+```python
+from starlette.middleware.base import BaseHTTPMiddleware
+from datetime import date
+
+class DeprecationMiddleware(BaseHTTPMiddleware):
+    """Adds Sunset and Deprecation headers to deprecated API versions."""
+
+    DEPRECATED_PATHS = {
+        "/api/v1/flights/search": {  # Old search endpoint
+            "sunset": "2027-01-01",
+            "link": "/api/v1/flights",
+        }
+    }
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.url.path in self.DEPRECATED_PATHS:
+            info = self.DEPRECATED_PATHS[request.url.path]
+            response.headers["Sunset"] = info["sunset"]
+            response.headers["Deprecation"] = "true"
+            response.headers["Link"] = f'<{info["link"]}>; rel="successor-version"'
+        return response
+```
+
+##### [NEW] shared/middleware/request_size_limit.py ★ (#19 Request Size Limiting)
+```python
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    MAX_SIZE = 1 * 1024 * 1024  # 1MB
+
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.MAX_SIZE:
+            return JSONResponse(
+                status_code=413,
+                content={"error": {"code": "PAYLOAD_TOO_LARGE", "message": f"Max size: {self.MAX_SIZE} bytes"}}
+            )
+        return await call_next(request)
+```
+
+##### (#20 Helm Charts)
+```
+helm/
+├── aerolink/
+│   ├── Chart.yaml
+│   ├── values.yaml                # Default values
+│   ├── values-dev.yaml            # Dev overrides
+│   ├── values-prod.yaml           # Prod overrides
+│   └── templates/
+│       ├── deployment.yaml        # Templated deployment
+│       ├── service.yaml
+│       ├── hpa.yaml
+│       ├── ingress.yaml
+│       └── _helpers.tpl
+```
+Templated K8s deployments with `{{ .Values.service.name }}`, `{{ .Values.replicas }}`, etc.
+
+##### (#21 OpenAPI Client SDK Generation)
+```bash
+# Auto-generate Python client from FastAPI's OpenAPI spec
+openapi-python-client generate --url http://localhost:8001/openapi.json --output-path clients/flight-client
+```
+Include generated client in `clients/` directory.
+
+##### [NEW] shared/utils/field_encryption.py ★ (#23 Application-Level Encryption)
+```python
+from cryptography.fernet import Fernet
+
+class FieldEncryptor:
+    """Encrypt PII fields before storing in database."""
+
+    def __init__(self, key: str):
+        self.fernet = Fernet(key.encode())
+
+    def encrypt(self, plaintext: str) -> str:
+        return self.fernet.encrypt(plaintext.encode()).decode()
+
+    def decrypt(self, ciphertext: str) -> str:
+        return self.fernet.decrypt(ciphertext.encode()).decode()
+
+# Usage: encrypt passport numbers, emails in DB
+# passenger.passport_number = encryptor.encrypt("AB1234567")
+# Stored as: gAAAAABh... (encrypted blob)
+# Decrypted on read: encryptor.decrypt(passenger.passport_number)
+```
+
+##### (#24 Canary Deployment in K8s)
+```yaml
+# k8s/deployments/flight-service-canary.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-service-canary
+  labels:
+    app: flight-service
+    track: canary
+spec:
+  replicas: 1  # Only 1 replica for canary (vs 3 for stable)
+  template:
+    spec:
+      containers:
+        - name: flight-service
+          image: aerolink/flight-service:v2.0.0-canary
+---
+# Ingress routes 10% traffic to canary via annotations:
+# nginx.ingress.kubernetes.io/canary: "true"
+# nginx.ingress.kubernetes.io/canary-weight: "10"
+```
+
+##### [NEW] shared/health/dependency_matrix.py ★ (#25 Dependency Health Matrix)
+```python
+DEPENDENCY_MAP = {
+    "api-gateway": ["flight-service", "booking-service", "passenger-service", "baggage-service", "payment-service"],
+    "booking-service": ["flight-service", "payment-service", "notification-service"],
+    "notification-service": ["kafka"],
+    "realtime-service": ["kafka"],
+    "flight-service": ["postgres", "kafka", "redis"],
+    "baggage-service": ["dynamodb", "kafka"],
+    "payment-service": ["postgres", "kafka", "payment-gateway-mock"],
+    "passenger-service": ["postgres", "kafka", "redis"],
+}
+
+async def get_dependency_matrix(health_results: dict) -> dict:
+    """Returns which services would be affected if a dependency goes down."""
+    impact = {}
+    for service, deps in DEPENDENCY_MAP.items():
+        for dep in deps:
+            if dep not in impact:
+                impact[dep] = []
+            impact[dep].append(service)
+    return {"dependencies": DEPENDENCY_MAP, "impact_analysis": impact, "health": health_results}
+```
+
+### Phase 17: Report + Presentation (Weeks 9-10)
 Report PDF (35-45 pages), diagrams, test evidence, 15-min presentation + viva prep.
 
 ---
 
-## Beyond-Rubric Enhancements Summary
+## Beyond-Rubric Enhancements Summary (25 Total — 3 Tiers)
+
+### 🔴 Tier 1 — Must Have (Weeks 1-7) — Built into every service
 
 | # | Enhancement | Implementation | Status |
 |---|---|---|---|
@@ -1341,13 +1568,28 @@ Report PDF (35-45 pages), diagrams, test evidence, 15-min presentation + viva pr
 | 14 | Consistent Error Format | `shared/middleware/error_handler.py` | Planned |
 | 15 | Liveness vs Readiness Probes | `shared/health/` | Planned |
 
----
+### 🟡 Tier 2 — High Impact (Week 8) — Adds significant depth
 
-## Open Questions
+| # | Enhancement | Implementation | Status |
+|---|---|---|---|
+| 16 | PII Masking in Logs | `shared/utils/pii_masker.py` | Planned |
+| 17 | Distributed Locking (Redis) | `shared/utils/distributed_lock.py` | Planned |
+| 22 | Webhook Callbacks | `booking_service/api/webhooks.py` | Planned |
+
+### 🟢 Tier 3 — Bonus (Week 8-9, only if ahead of schedule)
+
+| # | Enhancement | Implementation | Status |
+|---|---|---|---|
+| 18 | API Deprecation Headers | `shared/middleware/deprecation.py` | Planned |
+| 19 | Request Size Limiting | `shared/middleware/request_size_limit.py` | Planned |
+| 20 | Helm Charts | `helm/aerolink/` | Planned |
+| 21 | OpenAPI Client SDK Generation | `clients/` auto-generated | Planned |
+| 23 | Application-Level Encryption | `shared/utils/field_encryption.py` | Planned |
+| 24 | Canary Deployment Config | `k8s/deployments/*-canary.yaml` | Planned |
+| 25 | Dependency Health Matrix | `shared/health/dependency_matrix.py` | Planned |
 
 > [!IMPORTANT]
-> 1. **AWS Account**: Do you have an AWS account, or should everything run purely local with Docker?
-> 2. **Semester 1**: Did you build anything last semester that we should carry forward?
+> **Build strategy:** Tier 1 is non-negotiable — built into every service from day 1. Tier 2 is added in Week 8. Tier 3 is attempted only if Tiers 1-2 are complete and stable. A flawless Tier 1+2 (18 enhancements) beats a buggy attempt at all 25.
 
 ---
 
@@ -1370,3 +1612,6 @@ Report PDF (35-45 pages), diagrams, test evidence, 15-min presentation + viva pr
 - Grafana dashboard showing live metrics
 - Admin dashboard with RBAC (different views per role)
 - Jaeger showing distributed traces across services
+- Distributed lock prevents double-booking (Tier 2)
+- PII masked in log output (Tier 2)
+- Webhook fires to external endpoint on booking (Tier 2)
