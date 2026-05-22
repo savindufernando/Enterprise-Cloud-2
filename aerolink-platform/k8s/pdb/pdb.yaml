@@ -1,0 +1,34 @@
+# PodDisruptionBudget: Ensures at least 1 pod of each critical service
+# remains available during voluntary disruptions (node drain, upgrades)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: aerolink
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: flight-service-pdb
+  namespace: aerolink
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: flight-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: baggage-service-pdb
+  namespace: aerolink
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: baggage-service
