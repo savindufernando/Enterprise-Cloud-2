@@ -14,6 +14,9 @@ def setup_logging(service_name: str, log_level: str = "INFO") -> None:
         service_name: Name of the microservice (e.g., 'flight-service').
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
     """
+    # Import locally to avoid circular dependency in some setups
+    from shared.utils.pii_masker import mask_pii
+
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
@@ -22,6 +25,7 @@ def setup_logging(service_name: str, log_level: str = "INFO") -> None:
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.dict_tracebacks,
             _add_service_name(service_name),
+            mask_pii,
             structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(

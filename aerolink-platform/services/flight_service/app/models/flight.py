@@ -1,17 +1,18 @@
 """SQLAlchemy database models for Flights."""
 
+import enum
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import Column, DateTime, Enum, Integer, Numeric, String
+from sqlalchemy import Column, DateTime, Enum as SQLEnum, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
 
-class FlightStatus(str, Enum):
+class FlightStatus(str, enum.Enum):
     SCHEDULED = "SCHEDULED"
     BOARDING = "BOARDING"
     DEPARTED = "DEPARTED"
@@ -35,7 +36,7 @@ class Flight(Base):
     base_price = Column(Numeric(10, 2), nullable=False)
     
     status = Column(
-        Enum("SCHEDULED", "BOARDING", "DEPARTED", "ARRIVED", "CANCELLED", name="flight_status_enum"),
+        SQLEnum("SCHEDULED", "BOARDING", "DEPARTED", "ARRIVED", "CANCELLED", name="flight_status_enum"),
         default="SCHEDULED",
         nullable=False
     )

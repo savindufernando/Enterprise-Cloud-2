@@ -40,6 +40,10 @@ dev = [
     "mypy>=1.10.0",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["db*", "auth*", "kafka*", "health*", "schemas*", "constants*", "middleware*", "utils*", "events*"]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 120

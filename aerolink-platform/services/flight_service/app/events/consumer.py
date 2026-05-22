@@ -11,7 +11,7 @@ from shared.kafka.dlq_handler import DLQHandler
 from shared.constants.events import BOOKING_CONFIRMED, BOOKING_CANCELLED
 # In a real scenario, we'd reuse the global producer from main,
 # but for DLQ we can instantiate a lightweight producer or pass it.
-from app.main import kafka_producer
+import app.main
 
 logger = structlog.get_logger()
 
@@ -36,7 +36,7 @@ async def handle_booking_cancelled(payload: dict[str, Any], correlation_id: str 
 
 async def start_consumer() -> KafkaEventConsumer:
     """Initialize and start the flight service consumer."""
-    dlq = DLQHandler(dlq_producer=kafka_producer.producer)
+    dlq = DLQHandler(dlq_producer=await app.main.kafka_producer.publishroducer)
     
     consumer = KafkaEventConsumer(
         bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,

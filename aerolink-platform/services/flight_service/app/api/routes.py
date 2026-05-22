@@ -17,7 +17,7 @@ from shared.constants.events import FLIGHT_CREATED, FLIGHT_UPDATED, FLIGHT_STATU
 
 # To avoid circular imports, get kafka producer from request state or import global
 # Here we'll import it from main when executing, or better, inject it
-from app.main import kafka_producer
+import app.main
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -81,7 +81,7 @@ async def create_flight(
     
     # Publish Kafka Event
     correlation_id = getattr(request.state, "correlation_id", None)
-    await kafka_producer.publish(
+    await app.main.kafka_producer.publish(
         topic=FLIGHT_CREATED,
         event={"flight_id": str(flight.id), **jsonable_encoder(response_data)},
         correlation_id=correlation_id,
@@ -106,7 +106,7 @@ async def update_flight_status(
     
     # Publish Kafka Event
     correlation_id = getattr(request.state, "correlation_id", None)
-    await kafka_producer.publish(
+    await app.main.kafka_producer.publish(
         topic=FLIGHT_STATUS_CHANGED,
         event={"flight_id": str(flight.id), "status": data.status},
         correlation_id=correlation_id,
