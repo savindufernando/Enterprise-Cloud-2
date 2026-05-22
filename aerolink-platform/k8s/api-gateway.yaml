@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: api-gateway
-        image: aerolink/api-gateway:latest
+        image: ghcr.io/savindufernando/enterprise-cloud-2-api_gateway:latest
         ports:
         - containerPort: 8000
         envFrom:

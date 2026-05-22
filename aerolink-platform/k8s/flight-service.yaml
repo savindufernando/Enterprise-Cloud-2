@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: flight-service
-        image: aerolink/flight-service:v1.0.0
+        image: ghcr.io/savindufernando/enterprise-cloud-2-flight_service:latest
         ports:
         - containerPort: 8001
         envFrom:
@@ -62,7 +62,7 @@ spec:
     spec:
       containers:
       - name: flight-service
-        image: aerolink/flight-service:v2.0.0-rc1
+        image: ghcr.io/savindufernando/enterprise-cloud-2-flight_service:latest
         ports:
         - containerPort: 8001
         envFrom:
