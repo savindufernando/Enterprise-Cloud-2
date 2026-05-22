@@ -1,0 +1,69 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: aerolink-gateway
+  namespace: aerolink
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-gateway-routing
+  namespace: aerolink
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - aerolink-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api
+    route:
+    - destination:
+        host: api-gateway.aerolink.svc.cluster.local
+        port:
+          number: 8000
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: flight-service-canary-routing
+  namespace: aerolink
+spec:
+  hosts:
+  - flight-service.aerolink.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: flight-service.aerolink.svc.cluster.local
+        subset: v1
+      weight: 90
+    - destination:
+        host: flight-service.aerolink.svc.cluster.local
+        subset: v2-canary
+      weight: 10
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: flight-service-subsets
+  namespace: aerolink
+spec:
+  host: flight-service.aerolink.svc.cluster.local
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2-canary
+    labels:
+      version: v2-canary
