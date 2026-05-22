@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aerolink
+---
+# ConfigMap for Shared Envs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aerolink-config
+  namespace: aerolink
+data:
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  DATABASE_URL: "postgresql+asyncpg://aerolink_admin:c%2AOrsC7%2Afc6T%5B%21n.b7%7C6TiQ4g%3Ctj@aerolink-postgres.czkqg6maoa2o.eu-west-1.rds.amazonaws.com:5432/aerolink_db"
+  REDIS_URL: "redis://redis:6379/0"
+  FLIGHT_SERVICE_URL: "http://flight-service:8001"
+  BOOKING_SERVICE_URL: "http://booking-service:8002"
+  PASSENGER_SERVICE_URL: "http://passenger-service:8003"
+  BAGGAGE_SERVICE_URL: "http://baggage-service:8004"
+  PAYMENT_SERVICE_URL: "http://payment-service:8005"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:8006"
+  API_V1_STR: "/api/v1"
