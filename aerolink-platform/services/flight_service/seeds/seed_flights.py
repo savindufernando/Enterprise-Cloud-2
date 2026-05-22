@@ -38,13 +38,13 @@ async def seed_flights(db: AsyncSession):
 # Execute directly if needed via `python -m services.flight_service.seeds.seed_flights`
 if __name__ == "__main__":
     import asyncio
-    from shared.db.session import init_db, async_session_maker
+    from shared.db import session
     from app.core.config import settings
     
     async def run_seeder():
-        init_db(settings.DATABASE_URL)
-        if async_session_maker:
-            async with async_session_maker() as session:
-                await seed_flights(session)
+        session.init_db(settings.DATABASE_URL)
+        if session.async_session_maker:
+            async with session.async_session_maker() as s:
+                await seed_flights(s)
                 
     asyncio.run(run_seeder())
