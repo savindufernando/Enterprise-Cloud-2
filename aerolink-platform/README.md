@@ -89,6 +89,23 @@ kubectl apply -f k8s/network-policies/
 kubectl apply -f k8s/pdb/
 ```
 
+### 7. Custom Domain & Frontend Deployment (Route 53 & S3)
+To build and deploy the React frontend (`aerolink-web`) to AWS serverless static website hosting and link Route 53 DNS record aliases:
+```powershell
+powershell -File scripts/deploy-frontend.ps1
+```
+This script:
+1. Dynamically resolves the `transnova.shop` hosted zone ID (`Z06984463U2P4ENND0IT9`).
+2. Creates and configures an S3 static hosting bucket named `aerolink.transnova.shop` in `eu-west-1` with public read access.
+3. Automatically registers and maps `aerolink.transnova.shop` (Frontend Alias) and `api.aerolink.transnova.shop` (API Gateway Ingress ALB Alias) in Route 53.
+4. Compiles the production assets with `VITE_API_URL` pointing to `http://api.aerolink.transnova.shop` and synchronizes them to S3.
+
+### 🔗 Live Production Access Points
+* **Frontend Web Application**: [http://aerolink.transnova.shop](http://aerolink.transnova.shop)
+* **Unified API Gateway**: [http://api.aerolink.transnova.shop](http://api.aerolink.transnova.shop)
+* **API Documentation (Swagger)**: [http://api.aerolink.transnova.shop/docs](http://api.aerolink.transnova.shop/docs)
+* **Health Dashboard**: [http://api.aerolink.transnova.shop/health/aggregated](http://api.aerolink.transnova.shop/health/aggregated)
+
 ---
 
 ## 🔒 Security Features
