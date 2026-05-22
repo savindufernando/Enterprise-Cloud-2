@@ -21,18 +21,9 @@ class GracefulShutdown:
     def __init__(self) -> None:
         self.shutdown_requested = False
         self._cleanup_tasks: list[Callable[[], Coroutine[Any, Any, None]]] = []
-        self._setup_signal_handlers()
-
-    def _setup_signal_handlers(self) -> None:
-        """Register signal handlers for SIGINT and SIGTERM."""
-        if sys.platform != "win32":
-            loop = asyncio.get_running_loop()
-            for sig in (signal.SIGINT, signal.SIGTERM):
-                loop.add_signal_handler(sig, self._signal_handler)
-        else:
-            # Fallback for Windows
-            signal.signal(signal.SIGINT, self._sync_signal_handler)
-            signal.signal(signal.SIGTERM, self._sync_signal_handler)
+        # Uvicorn already handles SIGINT/SIGTERM and correctly triggers the 
+        # FastAPI lifespan context manager. We no longer need to hijack signals here.
+        # This fixes 'RuntimeError: no running event loop' at import time.
 
     def _signal_handler(self) -> None:
         """Handle incoming signals asynchronously."""
