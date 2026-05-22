@@ -20,3 +20,4 @@ data:
   PAYMENT_SERVICE_URL: "http://payment-service:8005"
   NOTIFICATION_SERVICE_URL: "http://notification-service:8006"
   API_V1_STR: "/api/v1"
+  DYNAMODB_BAGGAGE_TABLE: "aerolink-baggage-prod"
