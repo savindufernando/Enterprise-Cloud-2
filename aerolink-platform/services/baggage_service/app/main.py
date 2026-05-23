@@ -88,6 +88,10 @@ async def liveness_probe():
     from shared.health.liveness import check_liveness
     return await check_liveness()
 
+@app.get("/health/ready", tags=["Health"])
+async def readiness_probe():
+    return {"status": "ready"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=settings.PORT, reload=True)
