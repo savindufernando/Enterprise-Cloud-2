@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'aerolink-services'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+        - 'api-gateway:8000'
+        - 'flight-service:8001'
+        - 'booking-service:8002'
+        - 'passenger-service:8003'
+        - 'baggage-service:8004'
+        - 'payment-service:8005'
+        - 'notification-service:8006'
+        - 'realtime-service:8007'

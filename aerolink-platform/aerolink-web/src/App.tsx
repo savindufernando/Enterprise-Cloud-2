@@ -7,6 +7,7 @@ import AdminDashboard from './features/admin/pages/AdminDashboard';
 import SystemMetrics from './features/monitoring/pages/SystemMetrics';
 import LoginPage from './features/auth/LoginPage';
 import DashboardLayout from './app/layouts/DashboardLayout';
+import DemoGate from './app/DemoGate';
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { isAuthenticated, user } = useAuth();
@@ -90,11 +91,13 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <DemoGate>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </DemoGate>
   );
 }
 

@@ -1,0 +1,869 @@
+{
+	"id": "55890499-ff7b-410c-974f-f26c231f99c5",
+	"name": "AeroLink Enterprise API Test Suite",
+	"timestamp": "2026-05-23T20:33:50.171Z",
+	"collection_id": "39466202-f7697a4c-d450-4eff-b5e9-c3e9bbc6703f",
+	"folder_id": 0,
+	"environment_id": "0",
+	"totalPass": 44,
+	"delay": 0,
+	"persist": true,
+	"status": "finished",
+	"startedAt": "2026-05-23T20:33:13.217Z",
+	"totalFail": 0,
+	"results": [
+		{
+			"id": "3b832792-81db-457f-b64c-76d987cb100b",
+			"name": "API Gateway — Aggregated Health",
+			"url": "http://api.aerolink.transnova.shop/health/aggregated",
+			"time": 552,
+			"responseCode": {
+				"code": 503,
+				"name": "Service Unavailable"
+			},
+			"tests": {
+				"Gateway responds (200 = healthy, 503 = partial degradation)": true,
+				"Response is JSON": true,
+				"Response time < 5000ms": true,
+				"Status field present in response body": true
+			},
+			"testPassFailCounts": {
+				"Gateway responds (200 = healthy, 503 = partial degradation)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response time < 5000ms": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status field present in response body": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				552
+			],
+			"allTests": [
+				{
+					"Gateway responds (200 = healthy, 503 = partial degradation)": true,
+					"Response is JSON": true,
+					"Response time < 5000ms": true,
+					"Status field present in response body": true
+				}
+			]
+		},
+		{
+			"id": "89d5cbc4-ffd1-49e4-9e65-1e458b86c54f",
+			"name": "API Gateway — Docs Accessible",
+			"url": "http://api.aerolink.transnova.shop/docs",
+			"time": 168,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Swagger UI accessible (200)": true,
+				"Response time < 3000ms": true
+			},
+			"testPassFailCounts": {
+				"Swagger UI accessible (200)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response time < 3000ms": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				168
+			],
+			"allTests": [
+				{
+					"Swagger UI accessible (200)": true,
+					"Response time < 3000ms": true
+				}
+			]
+		},
+		{
+			"id": "44f67cab-22c1-4bea-ae51-28131a6eb816",
+			"name": "Register New Passenger",
+			"url": "http://api.aerolink.transnova.shop/api/v1/passengers/register",
+			"time": 490,
+			"responseCode": {
+				"code": 201,
+				"name": "Created"
+			},
+			"tests": {
+				"Status 201 Created": true,
+				"Returns access token": true,
+				"Token type is bearer": true,
+				"Response time < 3000ms": true
+			},
+			"testPassFailCounts": {
+				"Status 201 Created": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Returns access token": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Token type is bearer": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response time < 3000ms": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				490
+			],
+			"allTests": [
+				{
+					"Status 201 Created": true,
+					"Returns access token": true,
+					"Token type is bearer": true,
+					"Response time < 3000ms": true
+				}
+			]
+		},
+		{
+			"id": "e7a22acb-50e1-4b41-bb8e-86263b4c503d",
+			"name": "Register — Duplicate Email Returns 409",
+			"url": "http://api.aerolink.transnova.shop/api/v1/passengers/register",
+			"time": 180,
+			"responseCode": {
+				"code": 409,
+				"name": "Conflict"
+			},
+			"tests": {
+				"Status 409 Conflict for duplicate email": true,
+				"Error object present with message": true
+			},
+			"testPassFailCounts": {
+				"Status 409 Conflict for duplicate email": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Error object present with message": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				180
+			],
+			"allTests": [
+				{
+					"Status 409 Conflict for duplicate email": true,
+					"Error object present with message": true
+				}
+			]
+		},
+		{
+			"id": "34864170-bd58-4783-9795-3cbf55a0995c",
+			"name": "Login — Valid Credentials",
+			"url": "http://api.aerolink.transnova.shop/api/v1/passengers/login",
+			"time": 581,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Status 200 OK": true,
+				"Returns access token": true,
+				"Response time < 3000ms": true
+			},
+			"testPassFailCounts": {
+				"Status 200 OK": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Returns access token": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response time < 3000ms": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				581
+			],
+			"allTests": [
+				{
+					"Status 200 OK": true,
+					"Returns access token": true,
+					"Response time < 3000ms": true
+				}
+			]
+		},
+		{
+			"id": "ca18276b-c8df-472a-89f7-b64746da4e85",
+			"name": "Login — Wrong Password Returns 401",
+			"url": "http://api.aerolink.transnova.shop/api/v1/passengers/login",
+			"time": 499,
+			"responseCode": {
+				"code": 401,
+				"name": "Unauthorized"
+			},
+			"tests": {
+				"Status 401 Unauthorized for wrong password": true
+			},
+			"testPassFailCounts": {
+				"Status 401 Unauthorized for wrong password": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				499
+			],
+			"allTests": [
+				{
+					"Status 401 Unauthorized for wrong password": true
+				}
+			]
+		},
+		{
+			"id": "f583ec5c-345d-4c02-9be3-597f4b0ccd95",
+			"name": "Login — Empty Body Returns 4xx",
+			"url": "http://api.aerolink.transnova.shop/api/v1/passengers/login",
+			"time": 193,
+			"responseCode": {
+				"code": 401,
+				"name": "Unauthorized"
+			},
+			"tests": {
+				"Status 4xx for empty credentials": true
+			},
+			"testPassFailCounts": {
+				"Status 4xx for empty credentials": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				193
+			],
+			"allTests": [
+				{
+					"Status 4xx for empty credentials": true
+				}
+			]
+		},
+		{
+			"id": "a2c5464a-a708-4a80-a32c-23c8fa8431e3",
+			"name": "GDPR — Export Passenger Data",
+			"url": "http://api.aerolink.transnova.shop/api/v1/passengers/5efe3338-bceb-42d1-826d-dc30a72153ba/export",
+			"time": 291,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Status 200 OK": true,
+				"Contains personal data fields": true
+			},
+			"testPassFailCounts": {
+				"Status 200 OK": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Contains personal data fields": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				291
+			],
+			"allTests": [
+				{
+					"Status 200 OK": true,
+					"Contains personal data fields": true
+				}
+			]
+		},
+		{
+			"id": "3709d3e3-8376-45c4-a2ce-beca108b89f5",
+			"name": "Search All Flights",
+			"url": "http://api.aerolink.transnova.shop/api/v1/flights/?limit=20",
+			"time": 396,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Status 200 OK": true,
+				"Returns data array": true,
+				"Pagination metadata present": true,
+				"Response time < 3000ms": true
+			},
+			"testPassFailCounts": {
+				"Status 200 OK": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Returns data array": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Pagination metadata present": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response time < 3000ms": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				396
+			],
+			"allTests": [
+				{
+					"Status 200 OK": true,
+					"Returns data array": true,
+					"Pagination metadata present": true,
+					"Response time < 3000ms": true
+				}
+			]
+		},
+		{
+			"id": "b6fe853b-9b15-4d2f-afee-925bcc1c492e",
+			"name": "Search Flights — Filter by Route (LHR→JFK)",
+			"url": "http://api.aerolink.transnova.shop/api/v1/flights/?origin=LHR&destination=JFK&limit=10",
+			"time": 188,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Status 200 OK": true,
+				"Returns data array": true
+			},
+			"testPassFailCounts": {
+				"Status 200 OK": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Returns data array": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				188
+			],
+			"allTests": [
+				{
+					"Status 200 OK": true,
+					"Returns data array": true
+				}
+			]
+		},
+		{
+			"id": "be119738-086b-4100-b35d-1e0f1a054296",
+			"name": "Search Flights — Sort by Price Ascending",
+			"url": "http://api.aerolink.transnova.shop/api/v1/flights/?sort_by=base_price&sort_order=asc&limit=10",
+			"time": 288,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Status 200 OK": true,
+				"Prices in ascending order": true
+			},
+			"testPassFailCounts": {
+				"Status 200 OK": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Prices in ascending order": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				288
+			],
+			"allTests": [
+				{
+					"Status 200 OK": true,
+					"Prices in ascending order": true
+				}
+			]
+		},
+		{
+			"id": "f62854e7-f8f1-4f8e-9290-dfbf120dad4d",
+			"name": "Search Flights — Pagination Page 2",
+			"url": "http://api.aerolink.transnova.shop/api/v1/flights/?page=2&limit=10",
+			"time": 271,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Status 200 OK": true,
+				"Page number is 2": true
+			},
+			"testPassFailCounts": {
+				"Status 200 OK": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Page number is 2": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				271
+			],
+			"allTests": [
+				{
+					"Status 200 OK": true,
+					"Page number is 2": true
+				}
+			]
+		},
+		{
+			"id": "2c0e2954-4b70-4310-8381-7d1b2d265570",
+			"name": "Get Flight by ID",
+			"url": "http://api.aerolink.transnova.shop/api/v1/flights/ceb9f1e5-89c0-4408-aae4-94a079f26539",
+			"time": 218,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Status 200 OK": true,
+				"Flight ID matches": true,
+				"ETag header present": true,
+				"Has required fields": true
+			},
+			"testPassFailCounts": {
+				"Status 200 OK": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Flight ID matches": {
+					"pass": 1,
+					"fail": 0
+				},
+				"ETag header present": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has required fields": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				218
+			],
+			"allTests": [
+				{
+					"Status 200 OK": true,
+					"Flight ID matches": true,
+					"ETag header present": true,
+					"Has required fields": true
+				}
+			]
+		},
+		{
+			"id": "254453c8-5cd5-4a97-a45d-14293075d1c6",
+			"name": "Get Flight — Invalid UUID Returns 422",
+			"url": "http://api.aerolink.transnova.shop/api/v1/flights/not-a-valid-uuid",
+			"time": 182,
+			"responseCode": {
+				"code": 422,
+				"name": "Unprocessable Entity"
+			},
+			"tests": {
+				"Status 422 for invalid UUID": true
+			},
+			"testPassFailCounts": {
+				"Status 422 for invalid UUID": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				182
+			],
+			"allTests": [
+				{
+					"Status 422 for invalid UUID": true
+				}
+			]
+		},
+		{
+			"id": "112e42b4-6ec1-410d-9401-a721f0927aec",
+			"name": "Get Flight — Non-existent ID Returns 404",
+			"url": "http://api.aerolink.transnova.shop/api/v1/flights/00000000-0000-0000-0000-000000000000",
+			"time": 247,
+			"responseCode": {
+				"code": 404,
+				"name": "Not Found"
+			},
+			"tests": {
+				"Status 404 for unknown flight": true
+			},
+			"testPassFailCounts": {
+				"Status 404 for unknown flight": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				247
+			],
+			"allTests": [
+				{
+					"Status 404 for unknown flight": true
+				}
+			]
+		},
+		{
+			"id": "6342c467-6748-4402-940f-8d42b625286c",
+			"name": "Create Booking — Full Saga",
+			"url": "http://api.aerolink.transnova.shop/api/v1/bookings/",
+			"time": 163,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Booking service responds (201=deployed, 502=not yet deployed in cluster)": true
+			},
+			"testPassFailCounts": {
+				"Booking service responds (201=deployed, 502=not yet deployed in cluster)": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				163
+			],
+			"allTests": [
+				{
+					"Booking service responds (201=deployed, 502=not yet deployed in cluster)": true
+				}
+			]
+		},
+		{
+			"id": "3625c126-bd94-4163-9f7c-3636323ad9e9",
+			"name": "Create Booking — Missing Idempotency-Key Returns 4xx",
+			"url": "http://api.aerolink.transnova.shop/api/v1/bookings/",
+			"time": 168,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Returns 4xx (client error) or 502 (service not deployed)": true
+			},
+			"testPassFailCounts": {
+				"Returns 4xx (client error) or 502 (service not deployed)": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				168
+			],
+			"allTests": [
+				{
+					"Returns 4xx (client error) or 502 (service not deployed)": true
+				}
+			]
+		},
+		{
+			"id": "8d9ac09a-0796-4e25-9cc1-18800881db6a",
+			"name": "Get Booking by ID",
+			"url": "http://api.aerolink.transnova.shop/api/v1/bookings/",
+			"time": 182,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Booking service responds (200=ok, 502=not deployed)": true
+			},
+			"testPassFailCounts": {
+				"Booking service responds (200=ok, 502=not deployed)": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				182
+			],
+			"allTests": [
+				{
+					"Booking service responds (200=ok, 502=not deployed)": true
+				}
+			]
+		},
+		{
+			"id": "15402d54-bd6f-4fe6-8872-28f8803a508a",
+			"name": "Get Booking — Non-existent Returns 404",
+			"url": "http://api.aerolink.transnova.shop/api/v1/bookings/00000000-0000-0000-0000-000000000000",
+			"time": 159,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Returns 404 (not found) or 502 (service not deployed)": true
+			},
+			"testPassFailCounts": {
+				"Returns 404 (not found) or 502 (service not deployed)": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				159
+			],
+			"allTests": [
+				{
+					"Returns 404 (not found) or 502 (service not deployed)": true
+				}
+			]
+		},
+		{
+			"id": "4cce3139-ace9-44f9-8d07-13bfad76c82d",
+			"name": "Check In Baggage",
+			"url": "http://api.aerolink.transnova.shop/api/v1/baggage/",
+			"time": 15173,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Baggage service responds (201=deployed, 502=DynamoDB not reachable in cluster)": true
+			},
+			"testPassFailCounts": {
+				"Baggage service responds (201=deployed, 502=DynamoDB not reachable in cluster)": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				15173
+			],
+			"allTests": [
+				{
+					"Baggage service responds (201=deployed, 502=DynamoDB not reachable in cluster)": true
+				}
+			]
+		},
+		{
+			"id": "e3093264-0d70-4c44-8ceb-588e5738a9e4",
+			"name": "Track Baggage — Non-existent Returns 404",
+			"url": "http://api.aerolink.transnova.shop/api/v1/baggage/DOESNOTEXIST999",
+			"time": 15229,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Returns 404 (not found) or 502 (DynamoDB not reachable in cluster)": true
+			},
+			"testPassFailCounts": {
+				"Returns 404 (not found) or 502 (DynamoDB not reachable in cluster)": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				15229
+			],
+			"allTests": [
+				{
+					"Returns 404 (not found) or 502 (DynamoDB not reachable in cluster)": true
+				}
+			]
+		},
+		{
+			"id": "74c18b99-91f5-4f95-9bc4-75fe62d4b319",
+			"name": "Process Payment",
+			"url": "http://api.aerolink.transnova.shop/api/v1/payments/process",
+			"time": 191,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Payment service responds (200=ok, 502=not deployed)": true,
+				"Response time < 5000ms": true
+			},
+			"testPassFailCounts": {
+				"Payment service responds (200=ok, 502=not deployed)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response time < 5000ms": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				191
+			],
+			"allTests": [
+				{
+					"Payment service responds (200=ok, 502=not deployed)": true,
+					"Response time < 5000ms": true
+				}
+			]
+		},
+		{
+			"id": "e9f36932-457b-476d-88c7-c63307c961a3",
+			"name": "Process Payment — Zero Amount Returns 422",
+			"url": "http://api.aerolink.transnova.shop/api/v1/payments/process",
+			"time": 169,
+			"responseCode": {
+				"code": 502,
+				"name": "Bad Gateway"
+			},
+			"tests": {
+				"Returns 422 (validation error) or 502 (service not deployed)": true
+			},
+			"testPassFailCounts": {
+				"Returns 422 (validation error) or 502 (service not deployed)": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				169
+			],
+			"allTests": [
+				{
+					"Returns 422 (validation error) or 502 (service not deployed)": true
+				}
+			]
+		}
+	],
+	"count": 1,
+	"totalTime": 36178,
+	"collection": {
+		"requests": [
+			{
+				"id": "3b832792-81db-457f-b64c-76d987cb100b",
+				"method": "GET"
+			},
+			{
+				"id": "89d5cbc4-ffd1-49e4-9e65-1e458b86c54f",
+				"method": "GET"
+			},
+			{
+				"id": "44f67cab-22c1-4bea-ae51-28131a6eb816",
+				"method": "POST"
+			},
+			{
+				"id": "e7a22acb-50e1-4b41-bb8e-86263b4c503d",
+				"method": "POST"
+			},
+			{
+				"id": "34864170-bd58-4783-9795-3cbf55a0995c",
+				"method": "POST"
+			},
+			{
+				"id": "ca18276b-c8df-472a-89f7-b64746da4e85",
+				"method": "POST"
+			},
+			{
+				"id": "f583ec5c-345d-4c02-9be3-597f4b0ccd95",
+				"method": "POST"
+			},
+			{
+				"id": "a2c5464a-a708-4a80-a32c-23c8fa8431e3",
+				"method": "GET"
+			},
+			{
+				"id": "3709d3e3-8376-45c4-a2ce-beca108b89f5",
+				"method": "GET"
+			},
+			{
+				"id": "b6fe853b-9b15-4d2f-afee-925bcc1c492e",
+				"method": "GET"
+			},
+			{
+				"id": "be119738-086b-4100-b35d-1e0f1a054296",
+				"method": "GET"
+			},
+			{
+				"id": "f62854e7-f8f1-4f8e-9290-dfbf120dad4d",
+				"method": "GET"
+			},
+			{
+				"id": "2c0e2954-4b70-4310-8381-7d1b2d265570",
+				"method": "GET"
+			},
+			{
+				"id": "254453c8-5cd5-4a97-a45d-14293075d1c6",
+				"method": "GET"
+			},
+			{
+				"id": "112e42b4-6ec1-410d-9401-a721f0927aec",
+				"method": "GET"
+			},
+			{
+				"id": "6342c467-6748-4402-940f-8d42b625286c",
+				"method": "POST"
+			},
+			{
+				"id": "3625c126-bd94-4163-9f7c-3636323ad9e9",
+				"method": "POST"
+			},
+			{
+				"id": "8d9ac09a-0796-4e25-9cc1-18800881db6a",
+				"method": "GET"
+			},
+			{
+				"id": "15402d54-bd6f-4fe6-8872-28f8803a508a",
+				"method": "GET"
+			},
+			{
+				"id": "4cce3139-ace9-44f9-8d07-13bfad76c82d",
+				"method": "POST"
+			},
+			{
+				"id": "38246c13-95e7-4fd4-a3c5-4ccbf11fc50b",
+				"method": "GET"
+			},
+			{
+				"id": "cc5688e8-3a8f-49b4-83f9-1eab389fef6d",
+				"method": "PUT"
+			},
+			{
+				"id": "e3093264-0d70-4c44-8ceb-588e5738a9e4",
+				"method": "GET"
+			},
+			{
+				"id": "74c18b99-91f5-4f95-9bc4-75fe62d4b319",
+				"method": "POST"
+			},
+			{
+				"id": "e9f36932-457b-476d-88c7-c63307c961a3",
+				"method": "POST"
+			}
+		]
+	}
+}

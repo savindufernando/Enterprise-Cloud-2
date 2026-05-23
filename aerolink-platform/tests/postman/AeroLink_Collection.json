@@ -1,0 +1,73 @@
+{
+  "info": {
+    "name": "AeroLink Platform API",
+    "description": "Comprehensive Postman collection testing the microservices architecture, idempotency, and Saga patterns.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health / Liveness / Readiness",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{api_gateway_url}}/health/aggregated",
+          "host": [
+            "{{api_gateway_url}}"
+          ],
+          "path": [
+            "health",
+            "aggregated"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Flights",
+      "item": [
+        {
+          "name": "Search Flights (Pagination/Sorting)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_gateway_url}}/api/v1/flights/?sort_by=base_price&sort_order=asc&page=1&limit=20",
+              "host": ["{{api_gateway_url}}"],
+              "path": ["api", "v1", "flights", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking (Saga Trigger)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "uniq-idempotency-key-12345",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway_url}}/api/v1/bookings/",
+              "host": ["{{api_gateway_url}}"],
+              "path": ["api", "v1", "bookings", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flight_id\": \"{{flight_uuid}}\",\n  \"passenger_id\": \"{{passenger_uuid}}\",\n  \"seat_number\": \"14B\",\n  \"price\": 299.99,\n  \"payment_token\": \"tok_visa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -21,8 +21,8 @@ class MockProducer:
     async def publish(self, *args, **kwargs):
         pass
 
-import app.services.saga_orchestrator
-app.services.saga_orchestrator.kafka_producer = MockProducer()
+import app.main
+app.main.kafka_producer = MockProducer()
 
 
 @pytest.mark.asyncio

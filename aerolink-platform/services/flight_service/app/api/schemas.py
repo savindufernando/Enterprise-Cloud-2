@@ -10,9 +10,9 @@ from app.models.flight import FlightStatus
 
 class FlightBase(BaseModel):
     """Base schema for Flight properties."""
-    flight_number: str = Field(..., pattern=r"^AL\d{3,4}$", example="AL1234")
-    origin_airport: str = Field(..., min_length=3, max_length=3, example="LHR")
-    destination_airport: str = Field(..., min_length=3, max_length=3, example="JFK")
+    flight_number: str = Field(..., pattern=r"^AL\d{3,4}$", json_schema_extra={"example": "AL1234"})
+    origin_airport: str = Field(..., min_length=3, max_length=3, json_schema_extra={"example": "LHR"})
+    destination_airport: str = Field(..., min_length=3, max_length=3, json_schema_extra={"example": "JFK"})
     departure_time: datetime
     arrival_time: datetime
     total_seats: int = Field(..., gt=0, le=500)

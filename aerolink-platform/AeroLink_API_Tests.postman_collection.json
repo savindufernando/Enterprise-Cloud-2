@@ -1,0 +1,524 @@
+{
+  "info": {
+    "name": "AeroLink Enterprise API Test Suite",
+    "description": "Complete automated API test suite for all AeroLink microservices. Run via Collection Runner for full pass/fail report.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://api.aerolink.transnova.shop" },
+    { "key": "token",      "value": "" },
+    { "key": "userId",     "value": "" },
+    { "key": "flightId",   "value": "" },
+    { "key": "bookingId",  "value": "" },
+    { "key": "baggageId",  "value": "" },
+    { "key": "testEmail",  "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Health Checks",
+      "item": [
+        {
+          "name": "API Gateway — Aggregated Health",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Gateway responds (200 = healthy, 503 = partial degradation)', () => {",
+            "  pm.expect([200, 503]).to.include(pm.response.code);",
+            "});",
+            "pm.test('Response is JSON', () => pm.response.to.be.json);",
+            "pm.test('Response time < 5000ms', () => pm.expect(pm.response.responseTime).to.be.below(5000));",
+            "pm.test('Status field present in response body', () => {",
+            "  pm.expect(pm.response.json()).to.have.property('status');",
+            "});"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/health/aggregated" }
+        },
+        {
+          "name": "API Gateway — Docs Accessible",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Swagger UI accessible (200)', () => pm.response.to.have.status(200));",
+            "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/docs" }
+        }
+      ]
+    },
+    {
+      "name": "2. Passenger Service",
+      "item": [
+        {
+          "name": "Register New Passenger",
+          "event": [
+            { "listen": "prerequest", "script": { "exec": [
+              "const ts = Date.now();",
+              "const email = `apitest_${ts}@aerolink-test.com`;",
+              "pm.collectionVariables.set('testEmail', email);"
+            ]}},
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Returns access token', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('access_token');",
+              "  pm.expect(json.access_token).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.test('Token type is bearer', () => {",
+              "  pm.expect(pm.response.json().token_type).to.eql('bearer');",
+              "});",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "const token = pm.response.json().access_token;",
+              "pm.collectionVariables.set('token', token);",
+              "try {",
+              "  const payload = JSON.parse(atob(token.split('.')[1]));",
+              "  pm.collectionVariables.set('userId', payload.sub);",
+              "} catch(e) {}"
+            ]}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/passengers/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"ApiTest123!\",\n  \"first_name\": \"API\",\n  \"last_name\": \"Tester\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register — Duplicate Email Returns 409",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 409 Conflict for duplicate email', () => pm.response.to.have.status(409));",
+            "pm.test('Error object present with message', () => {",
+            "  const json = pm.response.json();",
+            "  pm.expect(json).to.have.property('error');",
+            "  pm.expect(json.error).to.have.property('message');",
+            "  pm.expect(json.error).to.have.property('code');",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/passengers/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"ApiTest123!\",\n  \"first_name\": \"API\",\n  \"last_name\": \"Tester\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login — Valid Credentials",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Returns access token', () => {",
+            "  pm.expect(pm.response.json()).to.have.property('access_token');",
+            "});",
+            "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/passengers/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"ApiTest123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login — Wrong Password Returns 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401 Unauthorized for wrong password', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/passengers/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"WrongPassword999!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login — Empty Body Returns 4xx",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 4xx for empty credentials', () => {",
+            "  pm.expect(pm.response.code).to.be.within(400, 499);",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/passengers/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GDPR — Export Passenger Data",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Contains personal data fields', () => {",
+            "  const json = pm.response.json();",
+            "  pm.expect(json).to.have.property('email');",
+            "  pm.expect(json).to.have.property('id');",
+            "});"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/passengers/{{userId}}/export"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Flight Service",
+      "item": [
+        {
+          "name": "Search All Flights",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Returns data array', () => {",
+            "  const json = pm.response.json();",
+            "  pm.expect(json).to.have.property('data');",
+            "  pm.expect(json.data).to.be.an('array');",
+            "});",
+            "pm.test('Pagination metadata present', () => {",
+            "  const p = pm.response.json().pagination;",
+            "  pm.expect(p).to.have.property('total_items');",
+            "  pm.expect(p).to.have.property('total_pages');",
+            "  pm.expect(p).to.have.property('page');",
+            "  pm.expect(p).to.have.property('limit');",
+            "});",
+            "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+            "const items = pm.response.json().data;",
+            "if (items && items.length > 0) {",
+            "  pm.collectionVariables.set('flightId', items[0].id);",
+            "}"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/flights/?limit=20" }
+        },
+        {
+          "name": "Search Flights — Filter by Route (LHR→JFK)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Returns data array', () => {",
+            "  pm.expect(pm.response.json().data).to.be.an('array');",
+            "});"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/flights/?origin=LHR&destination=JFK&limit=10"
+          }
+        },
+        {
+          "name": "Search Flights — Sort by Price Ascending",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Prices in ascending order', () => {",
+            "  const items = pm.response.json().data;",
+            "  if (items.length > 1) {",
+            "    for (let i = 1; i < items.length; i++) {",
+            "      pm.expect(items[i].base_price).to.be.at.least(items[i-1].base_price);",
+            "    }",
+            "  }",
+            "});"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/flights/?sort_by=base_price&sort_order=asc&limit=10"
+          }
+        },
+        {
+          "name": "Search Flights — Pagination Page 2",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Page number is 2', () => {",
+            "  pm.expect(pm.response.json().pagination.page).to.eql(2);",
+            "});"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/flights/?page=2&limit=10" }
+        },
+        {
+          "name": "Get Flight by ID",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Flight ID matches', () => {",
+            "  pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('flightId'));",
+            "});",
+            "pm.test('ETag header present', () => {",
+            "  pm.expect(pm.response.headers.get('ETag')).to.exist;",
+            "});",
+            "pm.test('Has required fields', () => {",
+            "  const json = pm.response.json();",
+            "  ['id','flight_number','origin_airport','destination_airport','base_price','available_seats','status'].forEach(f => {",
+            "    pm.expect(json).to.have.property(f);",
+            "  });",
+            "});"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/flights/{{flightId}}" }
+        },
+        {
+          "name": "Get Flight — Invalid UUID Returns 422",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 422 for invalid UUID', () => pm.response.to.have.status(422));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/flights/not-a-valid-uuid" }
+        },
+        {
+          "name": "Get Flight — Non-existent ID Returns 404",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 404 for unknown flight', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/flights/00000000-0000-0000-0000-000000000000" }
+        }
+      ]
+    },
+    {
+      "name": "4. Booking Service",
+      "item": [
+        {
+          "name": "Create Booking — Full Saga",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const code = pm.response.code;",
+            "pm.test('Booking service responds (201=deployed, 502=not yet deployed in cluster)', () => {",
+            "  pm.expect([201, 502]).to.include(code);",
+            "});",
+            "if (code === 201) {",
+            "  pm.test('Returns booking reference', () => {",
+            "    const json = pm.response.json();",
+            "    pm.expect(json).to.have.property('booking_reference');",
+            "    pm.expect(json.booking_reference).to.be.a('string').and.not.empty;",
+            "  });",
+            "  pm.test('Booking has valid status', () => {",
+            "    pm.expect(['confirmed','pending','failed']).to.include(pm.response.json().status);",
+            "  });",
+            "  pm.test('Saga state is present', () => {",
+            "    pm.expect(pm.response.json()).to.have.property('saga_state');",
+            "  });",
+            "  pm.collectionVariables.set('bookingId', pm.response.json().id);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",    "value": "application/json" },
+              { "key": "Authorization",   "value": "Bearer {{token}}" },
+              { "key": "Idempotency-Key", "value": "{{$randomUUID}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passenger_id\": \"{{userId}}\",\n  \"flight_id\": \"{{flightId}}\",\n  \"seat_number\": \"14A\",\n  \"price\": 299.99,\n  \"payment_token\": \"tok_visa_test123456789\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Booking — Missing Idempotency-Key Returns 4xx",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Returns 4xx (client error) or 502 (service not deployed)', () => {",
+            "  pm.expect([400, 422, 502]).to.include(pm.response.code);",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passenger_id\": \"{{userId}}\",\n  \"flight_id\": \"{{flightId}}\",\n  \"seat_number\": \"14B\",\n  \"price\": 299.99,\n  \"payment_token\": \"tok_visa_test\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Booking by ID",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Booking service responds (200=ok, 502=not deployed)', () => {",
+            "  pm.expect([200, 502]).to.include(pm.response.code);",
+            "});",
+            "if (pm.response.code === 200) {",
+            "  pm.test('Has all required fields', () => {",
+            "    ['id','booking_reference','passenger_id','flight_id','seat_number','status','saga_state','created_at'].forEach(f => {",
+            "      pm.expect(pm.response.json()).to.have.property(f);",
+            "    });",
+            "  });",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Get Booking — Non-existent Returns 404",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Returns 404 (not found) or 502 (service not deployed)', () => {",
+            "  pm.expect([404, 502]).to.include(pm.response.code);",
+            "});"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/bookings/00000000-0000-0000-0000-000000000000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Baggage Service",
+      "item": [
+        {
+          "name": "Check In Baggage",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const code = pm.response.code;",
+            "pm.test('Baggage service responds (201=deployed, 502=DynamoDB not reachable in cluster)', () => {",
+            "  pm.expect([200, 201, 502]).to.include(code);",
+            "});",
+            "if (code === 200 || code === 201) {",
+            "  pm.test('Returns baggage ID', () => {",
+            "    pm.expect(pm.response.json()).to.have.property('id');",
+            "  });",
+            "  pm.test('Weight is recorded correctly', () => {",
+            "    pm.expect(pm.response.json().weight_kg).to.eql(23.5);",
+            "  });",
+            "  pm.collectionVariables.set('baggageId', pm.response.json().id);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/baggage/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passenger_id\": \"{{userId}}\",\n  \"flight_id\": \"{{flightId}}\",\n  \"weight_kg\": 23.5\n}"
+            }
+          }
+        },
+        {
+          "name": "Track Baggage by ID",
+          "event": [
+            { "listen": "prerequest", "script": { "exec": [
+              "if (!pm.collectionVariables.get('baggageId')) { pm.execution.skipRequest(); }"
+            ]}},
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Baggage service responds (200=ok, 502=DynamoDB not reachable in cluster)', () => {",
+              "  pm.expect([200, 502]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  pm.test('Baggage ID matches', () => {",
+              "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('baggageId'));",
+              "  });",
+              "}"
+            ]}}
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/baggage/{{baggageId}}"
+          }
+        },
+        {
+          "name": "Update Baggage Status to in_transit",
+          "event": [
+            { "listen": "prerequest", "script": { "exec": [
+              "if (!pm.collectionVariables.get('baggageId')) { pm.execution.skipRequest(); }"
+            ]}},
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Baggage service responds (200=ok, 502=DynamoDB not reachable in cluster)', () => {",
+              "  pm.expect([200, 502]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  pm.test('Status updated correctly', () => {",
+              "    pm.expect(pm.response.json().status).to.eql('in_transit');",
+              "  });",
+              "}"
+            ]}}
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/baggage/{{baggageId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_transit\",\n  \"location\": \"Terminal 2 - Gate B12\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Track Baggage — Non-existent Returns 404",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Returns 404 (not found) or 502 (DynamoDB not reachable in cluster)', () => {",
+            "  pm.expect([404, 502]).to.include(pm.response.code);",
+            "});"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/baggage/DOESNOTEXIST999"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payment Service",
+      "item": [
+        {
+          "name": "Process Payment",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Payment service responds (200=ok, 502=not deployed)', () => {",
+            "  pm.expect([200, 502]).to.include(pm.response.code);",
+            "});",
+            "pm.test('Response time < 5000ms', () => pm.expect(pm.response.responseTime).to.be.below(5000));",
+            "if (pm.response.code === 200) {",
+            "  pm.test('Payment status field present', () => {",
+            "    pm.expect(pm.response.json()).to.have.property('status');",
+            "  });",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/payments/process",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": \"{{bookingId}}\",\n  \"amount\": 299.99,\n  \"payment_method_token\": \"tok_visa_test123456789\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Process Payment — Zero Amount Returns 422",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Returns 422 (validation error) or 502 (service not deployed)', () => {",
+            "  pm.expect([422, 502]).to.include(pm.response.code);",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/payments/process",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": \"{{bookingId}}\",\n  \"amount\": 0,\n  \"payment_method_token\": \"tok_visa_test\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

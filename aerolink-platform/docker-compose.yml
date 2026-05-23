@@ -1,0 +1,128 @@
+version: "3.8"
+
+services:
+  # The unified entrypoint
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api_gateway/Dockerfile
+    container_name: aerolink-api-gateway
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - FLIGHT_SERVICE_URL=http://flight-service:8001
+      - BOOKING_SERVICE_URL=http://booking-service:8002
+      - PASSENGER_SERVICE_URL=http://passenger-service:8003
+      - BAGGAGE_SERVICE_URL=http://baggage-service:8004
+      - PAYMENT_SERVICE_URL=http://payment-service:8005
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8006
+    depends_on:
+      - flight-service
+      - booking-service
+
+  flight-service:
+    build:
+      context: .
+      dockerfile: services/flight_service/Dockerfile
+    container_name: aerolink-flight-service
+    restart: on-failure
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://aerolink:aerolink_dev@postgres:5432/aerolink_db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379/0
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: services/booking_service/Dockerfile
+    container_name: aerolink-booking-service
+    restart: on-failure
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://aerolink:aerolink_dev@postgres:5432/aerolink_db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379/0
+
+  passenger-service:
+    build:
+      context: .
+      dockerfile: services/passenger_service/Dockerfile
+    container_name: aerolink-passenger-service
+    restart: on-failure
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://aerolink:aerolink_dev@postgres:5432/aerolink_db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379/0
+
+  baggage-service:
+    build:
+      context: .
+      dockerfile: services/baggage_service/Dockerfile
+    container_name: aerolink-baggage-service
+    restart: on-failure
+    ports:
+      - "8004:8004"
+    environment:
+      - DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - AWS_REGION=eu-west-1
+      - AWS_ACCESS_KEY_ID=mock
+      - AWS_SECRET_ACCESS_KEY=mock
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment_service/Dockerfile
+    container_name: aerolink-payment-service
+    restart: on-failure
+    ports:
+      - "8005:8005"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://aerolink:aerolink_dev@postgres:5432/aerolink_db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379/0
+      - PAYMENT_GATEWAY_URL=http://payment-gateway-mock:8093/api/charge
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification_service/Dockerfile
+    container_name: aerolink-notification-service
+    restart: on-failure
+    ports:
+      - "8006:8006"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
+  realtime-service:
+    build:
+      context: .
+      dockerfile: services/realtime_service/Dockerfile
+    container_name: aerolink-realtime-service
+    restart: on-failure
+    ports:
+      - "8007:8007"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
+  payment-gateway-mock:
+    build:
+      context: .
+      dockerfile: external_mocks/payment_gateway_mock/Dockerfile
+    container_name: aerolink-payment-mock
+    ports:
+      - "8093:8093"
+
+# Networking configuration: We run this docker-compose stack on the SAME
+# external network created by `docker-compose.infra.yml`, so services can talk to Kafka/DB.
+networks:
+  default:
+    name: aerolink_network
+    external: true

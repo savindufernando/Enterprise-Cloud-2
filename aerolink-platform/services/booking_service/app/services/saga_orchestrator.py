@@ -14,7 +14,6 @@ from shared.constants.events import (
     BOOKING_FAILED,
 )
 # Assuming a global producer for simplicity in this file, or we pass it in.
-import app.main
 
 logger = structlog.get_logger()
 
@@ -73,6 +72,7 @@ class BookingSaga:
             await self.db.commit()
 
             # 5. Publish Success Event
+            import app.main
             await app.main.kafka_producer.publish(BOOKING_CONFIRMED, {"booking_id": str(booking.id)}, key=str(booking.id))
             
             logger.info("Saga completed successfully", saga_id=saga_id)
@@ -90,6 +90,7 @@ class BookingSaga:
             await self.db.commit()
             
             # Publish Failure Event
+            import app.main
             await app.main.kafka_producer.publish(BOOKING_FAILED, {"booking_id": str(booking.id), "error": str(e)}, key=str(booking.id))
             
             raise

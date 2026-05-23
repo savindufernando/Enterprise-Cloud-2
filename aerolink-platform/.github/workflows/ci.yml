@@ -1,0 +1,47 @@
+name: AeroLink CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: 'pip'
+        
+    - name: Install Linting & Check Tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruff mypy pytest pytest-asyncio httpx
+        
+    - name: Lint with Ruff (Enhancement #22)
+      run: |
+        ruff check .
+        ruff format --check .
+        
+    - name: Type checking with mypy
+      run: |
+        mypy . --ignore-missing-imports
+        
+    - name: Set up dependencies for Testing
+      run: |
+        # In a real job we'd pip install each service's deps
+        # For assignment, we pip install the shared/ and run flights
+        pip install -e shared/
+        pip install -e services/flight_service/  
+        pip install -e services/booking_service/  
+
+    - name: Run Unit Tests
+      run: |
+        pytest services/flight_service/tests/
+        pytest services/booking_service/tests/

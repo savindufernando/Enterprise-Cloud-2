@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(kubectl patch *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl delete *)",
+      "Bash(kubectl logs *)",
+      "Bash(grep -v \"^$\")"
+    ]
+  }
+}
