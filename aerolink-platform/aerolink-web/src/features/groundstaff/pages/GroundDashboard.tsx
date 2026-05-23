@@ -196,41 +196,41 @@ export default function GroundDashboard() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto animate-fade-in space-y-8 pb-16">
+        <div className="max-w-6xl mx-auto animate-fade-in space-y-8 pb-16 text-slate-800">
             <div className="text-center mb-12">
-                <div className="inline-flex items-center space-x-2 bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-4">
+                <div className="inline-flex items-center space-x-2 bg-emerald-50 border border-emerald-200/50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-4">
                     <Shield className="w-3.5 h-3.5" />
                     <span>Ground Staff Gate Terminal</span>
                 </div>
                 <h1 className="text-4xl font-extrabold tracking-tight mb-2">Gate Control Terminal</h1>
-                <p className="text-sm text-slate-400 max-w-lg mx-auto">Validate passenger ticket manifests and coordinate high-frequency baggage scanning drops directly to DynamoDB.</p>
+                <p className="text-sm text-slate-500 max-w-lg mx-auto">Validate passenger ticket manifests and coordinate high-frequency baggage scanning drops directly to DynamoDB.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left Side: Ticket Validation & Drop */}
                 <div className="lg:col-span-7 space-y-8">
-                    <div className="glass-panel p-6 sm:p-8 rounded-xl border border-slate-800 bg-[#111827]/40 relative overflow-hidden">
+                    <div className="glass-panel p-6 sm:p-8 rounded-xl border border-slate-200 bg-white relative overflow-hidden shadow-sm">
                         <div className="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
                         
                         <div className="flex items-center space-x-3 mb-6">
-                            <div className="w-10 h-10 bg-emerald-950/40 border border-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400">
+                            <div className="w-10 h-10 bg-emerald-50 border border-emerald-200/55 rounded-lg flex items-center justify-center text-emerald-600">
                                 <UserCheck className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="text-base font-bold text-slate-200">Manifest Validation</h2>
-                                <p className="text-xs text-slate-500">Query EKS passenger database for itinerary audits.</p>
+                                <h2 className="text-base font-bold text-slate-800">Manifest Validation</h2>
+                                <p className="text-xs text-slate-400 font-semibold">Query EKS passenger database for itinerary audits.</p>
                             </div>
                         </div>
                         
                         <form onSubmit={handleSearch} className="flex gap-4">
                             <div className="relative flex-1">
-                                <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
+                                <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
                                 <input 
                                     type="text" 
                                     placeholder="Enter Booking ID or Reference (e.g. AL-Z992)..." 
                                     value={bookingId}
                                     onChange={(e) => setBookingId(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-sm bg-slate-950/60 text-slate-200 placeholder-slate-600"
+                                    className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono text-sm bg-white text-slate-800 placeholder-slate-400 shadow-sm"
                                 />
                             </div>
                             <button type="submit" disabled={status === 'loading' || !bookingId} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 rounded-lg transition-colors flex items-center space-x-2 text-xs uppercase tracking-wider cursor-pointer">
@@ -240,53 +240,53 @@ export default function GroundDashboard() {
                         </form>
 
                         {status === 'not_found' && (
-                            <div className="mt-4 flex items-center text-red-400 bg-red-950/20 border border-red-900/30 px-4 py-2.5 rounded-lg text-xs font-mono">
-                                <AlertCircle className="w-4 h-4 mr-2" />
+                            <div className="mt-4 flex items-center text-red-650 bg-red-50 border border-red-200 px-4 py-2.5 rounded-lg text-xs font-mono font-semibold animate-shake">
+                                <AlertCircle className="w-4 h-4 mr-2 text-red-500" />
                                 <span>Ticket PNR not detected in EKS Booking-Service.</span>
                             </div>
                         )}
 
                         {status === 'error' && (
-                            <div className="mt-4 flex items-center text-red-400 bg-red-950/20 border border-red-900/30 px-4 py-2.5 rounded-lg text-xs font-mono">
-                                <AlertCircle className="w-4 h-4 mr-2" />
+                            <div className="mt-4 flex items-center text-red-655 bg-red-50 border border-red-200 px-4 py-2.5 rounded-lg text-xs font-mono font-semibold">
+                                <AlertCircle className="w-4 h-4 mr-2 text-red-500" />
                                 <span>Mesh Communication error connecting to Booking Gateway.</span>
                             </div>
                         )}
 
                         {status === 'found' && bookingDetails && (
-                            <div className="mt-6 border border-slate-800/80 bg-slate-950/40 rounded-xl p-5 space-y-4 animate-slide-up">
-                                <div className="flex justify-between items-center border-b border-slate-800/60 pb-3">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono flex items-center">
-                                        <Barcode className="w-4 h-4 mr-1 text-emerald-400" />
+                            <div className="mt-6 border border-slate-200 bg-slate-55 rounded-xl p-5 space-y-4 animate-slide-up">
+                                <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono flex items-center">
+                                        <Barcode className="w-4 h-4 mr-1 text-emerald-600" />
                                         Verified Itinerary Stub
                                     </span>
-                                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${bookingDetails.booking_status === 'CONFIRMED' ? 'border border-emerald-500/20 text-emerald-400 bg-emerald-950/20' : 'border border-amber-500/20 text-amber-400 bg-amber-950/20'}`}>
+                                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${bookingDetails.booking_status === 'CONFIRMED' ? 'border border-emerald-250 text-emerald-700 bg-emerald-50' : 'border border-amber-250 text-amber-700 bg-amber-50'}`}>
                                         {bookingDetails.booking_status}
                                     </span>
                                 </div>
                                 
-                                <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+                                <div className="grid grid-cols-2 gap-4 text-xs font-mono text-slate-800">
                                     <div>
-                                        <span className="text-slate-500 block uppercase">Booking Reference</span>
-                                        <span className="text-slate-200 font-bold">{bookingDetails.booking_reference || bookingDetails.id}</span>
+                                        <span className="text-slate-400 block uppercase font-bold text-[10px]">Booking Reference</span>
+                                        <span className="text-slate-800 font-bold">{bookingDetails.booking_reference || bookingDetails.id}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-500 block uppercase">Assigned Cabin Seat</span>
-                                        <span className="text-cyan-400 font-black text-sm">{bookingDetails.seat_number}</span>
+                                        <span className="text-slate-400 block uppercase font-bold text-[10px]">Assigned Cabin Seat</span>
+                                        <span className="text-cyan-600 font-black text-sm">{bookingDetails.seat_number}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-500 block uppercase">Passenger UUID</span>
-                                        <span className="text-slate-400 truncate block max-w-[200px]">{bookingDetails.passenger_id}</span>
+                                        <span className="text-slate-400 block uppercase font-bold text-[10px]">Passenger UUID</span>
+                                        <span className="text-slate-700 truncate block max-w-[200px] font-semibold">{bookingDetails.passenger_id}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-500 block uppercase">Flight Route ID</span>
-                                        <span className="text-slate-400 truncate block max-w-[200px]">{bookingDetails.flight_id}</span>
+                                        <span className="text-slate-400 block uppercase font-bold text-[10px]">Flight Route ID</span>
+                                        <span className="text-slate-700 truncate block max-w-[200px] font-semibold">{bookingDetails.flight_id}</span>
                                     </div>
                                 </div>
 
-                                <div className="border-t border-slate-800 pt-4 mt-2">
-                                    <h4 className="text-xs font-bold text-slate-300 mb-3 flex items-center">
-                                        <Luggage className="w-4 h-4 mr-1.5 text-emerald-400" />
+                                <div className="border-t border-slate-200 pt-4 mt-2">
+                                    <h4 className="text-xs font-bold text-slate-800 mb-3 flex items-center">
+                                        <Luggage className="w-4 h-4 mr-1.5 text-emerald-600" />
                                         Fast Baggage Drop (Post to DynamoDB)
                                     </h4>
                                     <form onSubmit={handleBaggageDrop} className="flex gap-4">
@@ -297,32 +297,32 @@ export default function GroundDashboard() {
                                                 placeholder="Weight in kg (e.g. 23.5)"
                                                 value={weight}
                                                 onChange={e => setWeight(e.target.value)}
-                                                className="w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-950/60 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono font-bold"
+                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono font-bold shadow-sm"
                                             />
                                         </div>
-                                        <button type="submit" disabled={baggageLoading} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer">
+                                        <button type="submit" disabled={baggageLoading} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer uppercase tracking-wider shadow-sm">
                                             {baggageLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                                             <span>Register Bag</span>
                                         </button>
                                     </form>
 
                                     {baggageDetails && (
-                                        <div className="mt-4 border border-emerald-900/30 bg-emerald-950/10 rounded-lg p-3 text-xs font-mono space-y-2 animate-slide-up text-slate-300">
-                                            <div className="flex items-center text-emerald-400 font-bold border-b border-slate-900 pb-1">
-                                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                        <div className="mt-4 border border-emerald-200 bg-emerald-55 rounded-lg p-3 text-xs font-mono space-y-2 animate-slide-up text-slate-700">
+                                            <div className="flex items-center text-emerald-700 font-bold border-b border-emerald-200 pb-1">
+                                                <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
                                                 DYNAMODB INGESTION COMPLETED!
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-slate-500">BAG REFERENCE ID:</span> 
-                                                <span className="text-cyan-400 font-bold">{baggageDetails.id}</span>
+                                                <span className="text-slate-400 font-bold">BAG REFERENCE ID:</span> 
+                                                <span className="text-cyan-600 font-black">{baggageDetails.id}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-slate-500">WEIGHT COORD:</span> 
-                                                <span className="text-slate-200 font-bold">{baggageDetails.weight_kg} kg</span>
+                                                <span className="text-slate-400 font-bold">WEIGHT COORD:</span> 
+                                                <span className="text-slate-800 font-bold">{baggageDetails.weight_kg} kg</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-slate-500">INITIAL FLOW:</span> 
-                                                <span className="text-slate-200 font-bold uppercase">{baggageDetails.status} / COUNTER</span>
+                                                <span className="text-slate-400 font-bold">INITIAL FLOW:</span> 
+                                                <span className="text-slate-800 font-bold uppercase">{baggageDetails.status} / COUNTER</span>
                                             </div>
                                         </div>
                                     )}
@@ -334,40 +334,40 @@ export default function GroundDashboard() {
 
                 {/* Right Side: Baggage scanner updating location */}
                 <div className="lg:col-span-5">
-                    <div className="glass-panel p-6 sm:p-8 rounded-xl border border-slate-800 bg-[#111827]/40 h-full relative overflow-hidden flex flex-col justify-between">
+                    <div className="glass-panel p-6 sm:p-8 rounded-xl border border-slate-200 bg-white h-full relative overflow-hidden flex flex-col justify-between shadow-sm">
                         <div className="absolute right-0 top-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
                         
                         <div>
                             <div className="flex items-center space-x-3 mb-6">
-                                <div className="w-10 h-10 bg-cyan-950/40 border border-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400">
+                                <div className="w-10 h-10 bg-cyan-50 border border-cyan-200/50 rounded-lg flex items-center justify-center text-cyan-600">
                                     <QrCode className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-base font-bold text-slate-200">Track & Update (Kafka Broker)</h2>
-                                    <p className="text-xs text-slate-500">Publish high-frequency luggage logs.</p>
+                                    <h2 className="text-base font-bold text-slate-800">Track & Update (Kafka Broker)</h2>
+                                    <p className="text-xs text-slate-400 font-semibold">Publish high-frequency luggage logs.</p>
                                 </div>
                             </div>
 
                             <form onSubmit={handleUpdateStatus} className="space-y-4 font-mono text-xs">
                                 <div>
-                                    <label className="block text-slate-400 mb-1 font-bold">Baggage Reference ID</label>
+                                    <label className="block text-slate-500 mb-1 font-bold">Baggage Reference ID</label>
                                     <input 
                                         type="text" 
                                         required
                                         placeholder="Enter Baggage ID..." 
                                         value={baggageId}
                                         onChange={(e) => setBaggageId(e.target.value)}
-                                        className="w-full px-3 py-2.5 border border-slate-800 rounded-lg bg-slate-950/60 text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-bold"
+                                        className="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-bold shadow-sm"
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-slate-400 mb-1 font-bold">Scanning Node</label>
+                                        <label className="block text-slate-500 mb-1 font-bold">Scanning Node</label>
                                         <select 
                                             value={updateLocation} 
                                             onChange={e => setUpdateLocation(e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-950/60 text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-bold"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-bold shadow-sm"
                                         >
                                             <option value="Counter">Counter Desk</option>
                                             <option value="Security">Security screening</option>
@@ -376,11 +376,11 @@ export default function GroundDashboard() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-slate-400 mb-1 font-bold">Flow Status</label>
+                                        <label className="block text-slate-500 mb-1 font-bold">Flow Status</label>
                                         <select 
                                             value={updateStatus} 
                                             onChange={e => setUpdateStatus(e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-950/60 text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-bold"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-bold shadow-sm"
                                         >
                                             <option value="Checked">Checked</option>
                                             <option value="In Transit">In Transit</option>
@@ -392,7 +392,7 @@ export default function GroundDashboard() {
                                     </div>
                                 </div>
 
-                                <button type="submit" disabled={updateLoading || !baggageId} className="w-full mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg flex items-center justify-center space-x-2 transition-all cursor-pointer uppercase tracking-wider">
+                                <button type="submit" disabled={updateLoading || !baggageId} className="w-full mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg flex items-center justify-center space-x-2 transition-all cursor-pointer uppercase tracking-wider shadow-sm">
                                     {updateLoading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -409,8 +409,8 @@ export default function GroundDashboard() {
                         </div>
 
                         {updateSuccess && (
-                            <div className="mt-6 flex items-center text-cyan-400 bg-cyan-950/20 border border-cyan-900/30 px-4 py-3 rounded-lg font-mono text-[10px] font-bold animate-slide-up">
-                                <Terminal className="w-4 h-4 mr-2" />
+                            <div className="mt-6 flex items-center text-cyan-700 bg-cyan-50 border border-cyan-200/50 px-4 py-3 rounded-lg font-mono text-[10px] font-bold animate-slide-up">
+                                <Terminal className="w-4 h-4 mr-2 text-cyan-600" />
                                 <span>KAFKA EVENT PROCESSED. REDIRECTED TO OPERATIONS STREAM.</span>
                             </div>
                         )}

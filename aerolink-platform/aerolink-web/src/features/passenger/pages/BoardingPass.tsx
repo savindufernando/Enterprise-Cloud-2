@@ -24,19 +24,19 @@ export default function BoardingPass({
   onReset
 }: BoardingPassProps) {
   return (
-    <div className="max-w-xl mx-auto space-y-6 animate-fade-in">
-      <div className="glass-panel p-8 rounded-xl border border-slate-800 text-center space-y-4">
-        <div className="w-12 h-12 bg-emerald-950/40 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-400 animate-bounce">
+    <div className="max-w-xl mx-auto space-y-6 animate-fade-in text-slate-800">
+      <div className="glass-panel p-8 rounded-xl border border-slate-200 bg-white text-center space-y-4 shadow-sm">
+        <div className="w-12 h-12 bg-emerald-50 border border-emerald-200/60 rounded-full flex items-center justify-center mx-auto text-emerald-600 animate-bounce">
           <CheckCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-xl font-bold text-slate-100">Saga Transaction Authorized!</h2>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+        <h2 className="text-xl font-bold text-slate-800">Saga Transaction Authorized!</h2>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed font-medium">
           Ticketing data has been synchronized. A mock seat lock payload was dispatched to your operators websocket console in real-time.
         </p>
       </div>
 
       {/* Digital Boarding Pass */}
-      <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col md:flex-row relative">
+      <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-xl flex flex-col md:flex-row relative">
         <div className="p-6 md:p-8 flex-1 bg-gradient-to-br from-blue-950 via-slate-900 to-cyan-950 text-white space-y-6 relative">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-800/10 via-transparent to-transparent pointer-events-none" />
           

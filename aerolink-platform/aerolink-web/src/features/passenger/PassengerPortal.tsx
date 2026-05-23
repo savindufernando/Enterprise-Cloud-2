@@ -189,17 +189,17 @@ export default function PassengerPortal() {
         <div className="space-y-8 animate-fade-in pb-16">
             {/* High-tech Navigation Tabs */}
             {bookingStep === 'search' && (
-                <div className="flex border-b border-slate-800 space-x-6 mb-6">
+                <div className="flex border-b border-slate-200 space-x-6 mb-6">
                     <button 
                         onClick={() => setActiveTab('booking')}
-                        className={`pb-3 font-semibold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'booking' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'booking' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         <Ticket className="w-4 h-4" />
                         <span>Book Passenger Ticket</span>
                     </button>
                     <button 
                         onClick={() => setActiveTab('gdpr')}
-                        className={`pb-3 font-semibold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'gdpr' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'gdpr' ? 'border-cyan-600 text-cyan-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         <Shield className="w-4 h-4" />
                         <span>Data Privacy & GDPR Dashboard</span>
@@ -211,8 +211,8 @@ export default function PassengerPortal() {
                 <>
                     {/* Hero Branding Section */}
                     {bookingStep === 'search' && (
-                        <div className="relative rounded-2xl overflow-hidden shadow-2xl mb-12 glass-panel border border-slate-800">
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-950 via-slate-950 to-cyan-950 opacity-90 z-10"></div>
+                        <div className="relative rounded-2xl overflow-hidden shadow-xl mb-12 glass-panel border border-slate-200">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 opacity-95 z-10"></div>
                             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540962351504-03099e0a754b?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-30 z-0"></div>
                             
                             <div className="relative z-20 px-8 py-14 lg:p-16 text-[#f9fafb] flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -281,12 +281,12 @@ export default function PassengerPortal() {
             {activeTab === 'gdpr' && (
                 <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
                     <div className="text-center">
-                        <div className="inline-flex items-center space-x-2 bg-cyan-950/40 border border-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-4">
+                        <div className="inline-flex items-center space-x-2 bg-cyan-50 border border-cyan-200/50 text-cyan-700 text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-4">
                             <Shield className="w-3.5 h-3.5" />
                             <span>GDPR Compliance Officer Gate</span>
                         </div>
-                        <h2 className="text-3xl font-extrabold text-slate-100 tracking-tight">Compliance & Data Portability</h2>
-                        <p className="text-sm text-slate-400 mt-1.5 max-w-lg mx-auto">Review account metadata security properties, download portability logs under Article 20, or execute profiles erasure under Article 17.</p>
+                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Compliance & Data Portability</h2>
+                        <p className="text-sm text-slate-500 mt-1.5 max-w-lg mx-auto">Review account metadata security properties, download portability logs under Article 20, or execute profiles erasure under Article 17.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
