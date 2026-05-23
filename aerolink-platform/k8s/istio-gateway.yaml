@@ -28,6 +28,12 @@ spec:
   - match:
     - uri:
         prefix: /api
+    - uri:
+        prefix: /docs
+    - uri:
+        prefix: /openapi.json
+    - uri:
+        prefix: /health/aggregated
     route:
     - destination:
         host: api-gateway.aerolink.svc.cluster.local
