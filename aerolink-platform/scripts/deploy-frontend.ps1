@@ -120,7 +120,13 @@ Write-Host "[7/7] Compiling frontend React app for production..." -ForegroundCol
 
 # Store current location and change to frontend directory
 $parentDir = Get-Location
-Set-Location "$parentDir\aerolink-web"
+if (Test-Path "$parentDir\aerolink-platform\aerolink-web") {
+    Set-Location "$parentDir\aerolink-platform\aerolink-web"
+} elseif (Test-Path "$parentDir\aerolink-web") {
+    Set-Location "$parentDir\aerolink-web"
+} else {
+    Write-Error "Could not find aerolink-web directory!"
+}
 
 # Set environment variables for Vite build process
 $env:VITE_API_URL = "http://api.$domain"
