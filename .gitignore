@@ -20,6 +20,14 @@ __pycache__/
 # Istio binary
 aerolink-platform/istio-1.22.0/
 
+# Generated documentation HTML/MD
+frontend_architecture.html
+frontend_architecture.md
+system_documentation.html
+system_documentation.md
+walkthrough.html
+walkthrough.md
+
 # OS
 .DS_Store
 Thumbs.db
