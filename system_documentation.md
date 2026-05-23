@@ -67,6 +67,21 @@ graph TD
 | **Notification Service**| Event Delivery | Outbound email templates (booking confirmation, flight delay alerts, boarding passes) | *Stateless* | Asynchronous Kafka Consumer |
 | **Realtime Service** | WebSockets | Real-time seat updates and baggage status broadcasts to front-end clients | Redis (In-Memory Pub/Sub) | Asynchronous Kafka Consumer / WebSockets |
 
+### 1.2 Enterprise React Frontend & Glassmorphic Light Theme Overhaul
+
+The frontend of **AeroLink** is engineered as a high-concurrency, responsive, single-page application (SPA) built using **React 19**, **TypeScript**, and **Tailwind CSS v4** bundled via **Vite**. 
+
+To deliver a state-of-the-art grading presentation, the web application features a custom **Premium Glassmorphic White Theme (Light Mode)** designed for visual clarity, extreme contrast, and seamless navigation across administrative and operational roles:
+
+*   **Sleek Light Backdrops & Slate Typography:** Legacy dark canvases have been replaced with a high-contrast slate-white canvas (`#f1f5f9` / `#ffffff`) paired with curated dark-slate typography (`text-slate-900`/`text-slate-800`), eliminating any white-on-white visual artifacts or text visibility glitches in flight route schedules.
+*   **High-Contrast Form Fields:** Inputs and selector dropdowns are styled with clean white backdrops (`bg-white`), strong grey boundaries (`border-slate-300`), and dark zinc-800 input fonts to guarantee maximum legibility.
+*   **Role-Based Dynamic Dashboards:**
+    *   *Passenger Portal:* Includes a **Cabin Fuselage Map** with real-time seat lock state coordinators (glowing business class coords in amber and economy class in light slate), digital boarding passes, and a **GDPR Exporter & Wiper** (Article 20 Portability & Article 17 Erasure compliance).
+    *   *Ground Staff Gate:* Query passenger manifests, execute **DynamoDB Luggage Drops** (calculating baggage weights), and broadcast cargo status scans directly to **Apache Kafka**.
+    *   *System Admin Controller:* Controls GitOps synchronisation loops (ArgoCD), Horizontal Pod Autoscale (HPA) CPU thresholds, and auditable PII log masking checkers.
+    *   *Observability Dashboard:* Renders live-pulsing Grafana node status meters and a scrolling green-on-black **Kafka Event Firehose terminal** (preserving an authentic console dashboard aesthetic).
+*   **Serverless S3 Delivery & DNS Aliasing:** Bundled and synced directly to an **Amazon S3 static website hosting bucket** in the `eu-west-1` region, mapped via **AWS Route 53 A-Alias** records to the subdomain `aerolink.transnova.shop`.
+
 ---
 
 ## 2. Core Python Technology Stack & Justification
