@@ -36,7 +36,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // Redirect based on selected role
     if (role === 'passenger') navigate('/');
     else if (role === 'ground_staff') navigate('/agent');
-    else if (role === 'airline_operator' || role === 'admin') navigate('/operations');
+    else if (role === 'airline_operator') navigate('/operations');
+    else if (role === 'admin') navigate('/admin');
   };
 
   const getRoleLabel = (role?: string) => {
@@ -129,7 +130,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           )}
 
-          {/* C. Flight Operations & Telemetry */}
+          {/* C. Flight Operations */}
           {(user?.role === 'airline_operator' || user?.role === 'admin') && (
             <div>
               <div className="text-[10px] font-bold text-slate-500 tracking-widest uppercase px-3 mb-2">Mission Control</div>
@@ -138,8 +139,40 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   to="/operations" 
                   className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/operations' ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-300 glow-cyan' : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'}`}
                 >
+                  <Radio className="w-4 h-4 shrink-0" />
+                  <span className="font-medium">Operations & Calibrations</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* D. System Administration Console */}
+          {user?.role === 'admin' && (
+            <div>
+              <div className="text-[10px] font-bold text-slate-500 tracking-widest uppercase px-3 mb-2">Administration</div>
+              <div className="space-y-1">
+                <Link 
+                  to="/admin" 
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/admin' ? 'bg-blue-950/30 border-blue-500/40 text-cyan-400 glow-blue' : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'}`}
+                >
+                  <Shield className="w-4 h-4 shrink-0" />
+                  <span className="font-medium">Cluster Config & HPA</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* E. Real-time Cluster Observability */}
+          {(user?.role === 'admin' || user?.role === 'airline_operator' || user?.role === 'ground_staff') && (
+            <div>
+              <div className="text-[10px] font-bold text-slate-500 tracking-widest uppercase px-3 mb-2">Observability</div>
+              <div className="space-y-1">
+                <Link 
+                  to="/monitoring" 
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/monitoring' ? 'bg-purple-950/30 border-purple-500/40 text-purple-300 glow-blue' : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'}`}
+                >
                   <Activity className="w-4 h-4 shrink-0" />
-                  <span className="font-medium">Operations, Sliders & HPA</span>
+                  <span className="font-medium">Grafana Telemetry & Latency</span>
                 </Link>
               </div>
             </div>

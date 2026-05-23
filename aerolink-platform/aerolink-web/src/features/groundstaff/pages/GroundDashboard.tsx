@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { UserCheck, Luggage, QrCode, Search, AlertCircle, CheckCircle2, Shield, Loader2, Barcode, Terminal } from 'lucide-react';
 
-export default function AgentPortal() {
+export default function GroundDashboard() {
     const [bookingId, setBookingId] = useState('');
     const [status, setStatus] = useState<'idle' | 'loading' | 'found' | 'not_found' | 'error'>('idle');
     const [bookingDetails, setBookingDetails] = useState<any | null>(null);
@@ -45,7 +45,7 @@ export default function AgentPortal() {
                 setBookingDetails(data);
                 setStatus('found');
             } else {
-                // Return beautiful mock coordinates if EKS endpoint is unreachable (offline grace)
+                // Mock fallback for presentation
                 setBookingDetails({
                     id: bookingId.length === 36 ? bookingId : "bk_prof_998a72",
                     booking_reference: bookingId.toUpperCase(),
@@ -89,7 +89,6 @@ export default function AgentPortal() {
                 const data = await res.json();
                 setBaggageDetails(data);
                 
-                // Dispatch event locally for WebSocket simulator
                 const bagEvent = {
                     event: 'BAGGAGE_DYNAMODB_INGEST',
                     payload: {
@@ -118,7 +117,6 @@ export default function AgentPortal() {
             };
             setBaggageDetails(mockBag);
             
-            // Dispatch event locally for WebSocket simulator
             const bagEvent = {
                 event: 'BAGGAGE_DYNAMODB_INGEST',
                 payload: {
@@ -161,7 +159,6 @@ export default function AgentPortal() {
             if (res.ok) {
                 setUpdateSuccess(true);
                 
-                // Dispatch event locally for WebSocket simulator
                 const kafkaEvent = {
                     event: 'BAGGAGE_KAFKA_STREAM_SUCCESS',
                     payload: {
@@ -179,7 +176,6 @@ export default function AgentPortal() {
                 alert("Failed to update baggage status in DynamoDB.");
             }
         } catch (err) {
-            // Elegant mock update fallback for demonstration if API is offline
             setUpdateSuccess(true);
             const kafkaEvent = {
                 event: 'BAGGAGE_KAFKA_STREAM_SUCCESS',
@@ -213,7 +209,6 @@ export default function AgentPortal() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left Side: Ticket Validation & Drop */}
                 <div className="lg:col-span-7 space-y-8">
-                    {/* Check In Action */}
                     <div className="glass-panel p-6 sm:p-8 rounded-xl border border-slate-800 bg-[#111827]/40 relative overflow-hidden">
                         <div className="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
                         
@@ -289,7 +284,6 @@ export default function AgentPortal() {
                                     </div>
                                 </div>
 
-                                {/* Baggage Drop Form within Itinerary Card */}
                                 <div className="border-t border-slate-800 pt-4 mt-2">
                                     <h4 className="text-xs font-bold text-slate-300 mb-3 flex items-center">
                                         <Luggage className="w-4 h-4 mr-1.5 text-emerald-400" />
@@ -338,7 +332,7 @@ export default function AgentPortal() {
                     </div>
                 </div>
 
-                {/* Right Side: Baggage scanner updating location via Kafka streams */}
+                {/* Right Side: Baggage scanner updating location */}
                 <div className="lg:col-span-5">
                     <div className="glass-panel p-6 sm:p-8 rounded-xl border border-slate-800 bg-[#111827]/40 h-full relative overflow-hidden flex flex-col justify-between">
                         <div className="absolute right-0 top-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />

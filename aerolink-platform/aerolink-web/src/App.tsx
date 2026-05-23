@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PassengerPortal from './features/passenger/PassengerPortal';
-import OperationsDashboard from './features/operations/OperationsDashboard';
-import AgentPortal from './features/agent/AgentPortal';
+import OperationsDashboard from './features/operations/pages/OperationsDashboard';
+import GroundDashboard from './features/groundstaff/pages/GroundDashboard';
+import AdminDashboard from './features/admin/pages/AdminDashboard';
+import SystemMetrics from './features/monitoring/pages/SystemMetrics';
 import LoginPage from './features/auth/LoginPage';
 import DashboardLayout from './app/layouts/DashboardLayout';
 
@@ -40,7 +42,17 @@ function AppRoutes() {
           } 
         />
 
-        {/* Operations — admin + airline_operator */}
+        {/* Ground Staff Desk — admin + ground_staff */}
+        <Route
+          path="/agent"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'ground_staff']}>
+              <GroundDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Flight Operations — admin + airline_operator */}
         <Route
           path="/operations"
           element={
@@ -50,12 +62,22 @@ function AppRoutes() {
           }
         />
 
-        {/* Agent — admin + ground_staff */}
+        {/* System Administration Console — admin only */}
         <Route
-          path="/agent"
+          path="/admin"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'ground_staff']}>
-              <AgentPortal />
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Real-time Observability & Telemetry — admin + airline_operator + ground_staff */}
+        <Route
+          path="/monitoring"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'airline_operator', 'ground_staff']}>
+              <SystemMetrics />
             </ProtectedRoute>
           }
         />
