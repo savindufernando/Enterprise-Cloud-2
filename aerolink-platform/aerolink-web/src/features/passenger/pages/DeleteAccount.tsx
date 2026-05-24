@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 
 interface DeleteAccountProps {
   deleteConfirm: boolean;
@@ -11,45 +11,45 @@ export default function DeleteAccount({
   deleteConfirm,
   gdprLoading,
   setDeleteConfirm,
-  onDelete
+  onDelete,
 }: DeleteAccountProps) {
   return (
-    <div className="glass-panel p-6 rounded-xl border border-red-200 bg-red-50/30 flex flex-col space-y-4 shadow-sm">
-      <div className="flex justify-between items-start space-x-6">
-        <div className="space-y-2 flex-1">
-          <h4 className="text-sm font-bold text-red-600 flex items-center">
-            <Trash2 className="w-4.5 h-4.5 mr-2 text-red-600" />
-            GDPR Article 17: Right to Erasure
-          </h4>
-          <p className="text-red-700/80 text-xs leading-relaxed font-medium">
-            Wipe your personal details (email, name, passport ID) permanently from EKS databases. This operation anonymizes payment histories and terminates authentication.
-          </p>
-        </div>
-        {!deleteConfirm && (
-          <button 
-            onClick={() => setDeleteConfirm(true)} 
-            className="bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 text-red-600 font-bold text-xs px-4 py-2.5 rounded-lg transition-all cursor-pointer whitespace-nowrap uppercase tracking-wider"
-          >
-            <Trash2 className="w-3.5 h-3.5 mr-1 inline" />
-            <span>Wipe Profile</span>
-          </button>
-        )}
+    <div className="p-6 rounded-xl border border-red-200 bg-red-50/40 space-y-4 shadow-sm">
+      <div>
+        <h4 className="text-sm font-bold text-red-600 flex items-center gap-2 mb-2">
+          <Trash2 className="w-4 h-4" />
+          Delete Account
+        </h4>
+        <p className="text-red-700/80 text-xs leading-relaxed">
+          Permanently delete your account and all associated personal information. This action cannot be undone.
+        </p>
       </div>
 
-      {deleteConfirm && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3 animate-slide-up">
-          <p className="text-red-700 text-xs font-semibold font-mono">⚠️ WARNING: Erasure is absolute and immediate. All flight itineraries and bag tokens will be permanently scrubbed.</p>
-          <div className="flex space-x-3 text-xs">
-            <button 
-              onClick={onDelete} 
-              disabled={gdprLoading} 
-              className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded cursor-pointer uppercase tracking-wider"
+      {!deleteConfirm ? (
+        <button
+          onClick={() => setDeleteConfirm(true)}
+          className="bg-white hover:bg-red-50 border border-red-200 hover:border-red-300 text-red-600 font-semibold text-xs px-4 py-2.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Delete My Account
+        </button>
+      ) : (
+        <div className="bg-white border border-red-200 rounded-lg p-4 space-y-3">
+          <p className="text-red-700 text-xs font-semibold">
+            Are you sure? This will permanently delete your account and all your booking history.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onDelete}
+              disabled={gdprLoading}
+              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer transition-colors"
             >
-              {gdprLoading ? "Wiping Database..." : "Yes, Delete Accounts"}
+              {gdprLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              <span>{gdprLoading ? 'Deleting...' : 'Yes, Delete'}</span>
             </button>
-            <button 
-              onClick={() => setDeleteConfirm(false)} 
-              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-1.5 rounded cursor-pointer uppercase tracking-wider"
+            <button
+              onClick={() => setDeleteConfirm(false)}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer transition-colors"
             >
               Cancel
             </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Ticket, Shield, Sparkles } from 'lucide-react';
+import { Ticket, User, ClipboardList } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 // Import modular pages
@@ -8,12 +8,13 @@ import SeatSelection from './pages/SeatSelection';
 import BoardingPass from './pages/BoardingPass';
 import GDPRExport from './pages/GDPRExport';
 import DeleteAccount from './pages/DeleteAccount';
+import MyBookings, { saveBooking } from './pages/MyBookings';
 
 export default function PassengerPortal() {
     const { user, logout } = useAuth();
     const [flights, setFlights] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'booking' | 'gdpr'>('booking');
+    const [activeTab, setActiveTab] = useState<'booking' | 'mybookings' | 'profile'>('booking');
     
     // Booking states
     const [bookingStep, setBookingStep] = useState<'search' | 'seat-selection' | 'confirmed'>('search');
@@ -55,7 +56,11 @@ export default function PassengerPortal() {
     const handleInitiateBooking = (flight: any) => {
         setSelectedFlight(flight);
         setSelectedSeat(null);
-        setPassengerName('');
+        setPassengerName(
+            user?.firstName || user?.lastName
+                ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                : ''
+        );
         setPassportNumber('');
         
         const allPossibleSeats = [];
@@ -79,22 +84,28 @@ export default function PassengerPortal() {
 
         setIsSubmitting(true);
 
-        // Simulate secure API Gateway distributed Saga pattern execution
         setTimeout(() => {
             setIsSubmitting(false);
             setBookingStep('confirmed');
-            
-            const newLock = {
-                event: 'SEAT_LOCK_SUCCESS',
-                payload: {
-                    flight_number: selectedFlight.flight_number,
-                    seat_number: selectedSeat,
-                    passenger_name: passengerName,
-                    status: 'LOCKED',
-                    locked_at: new Date().toISOString()
+
+            // Persist booking so "My Bookings" tab can display it
+            saveBooking({
+                flight_number: selectedFlight.flight_number,
+                origin_airport: selectedFlight.origin_airport,
+                destination_airport: selectedFlight.destination_airport,
+                departure_time: selectedFlight.departure_time,
+                base_price: selectedFlight.base_price,
+                seat: selectedSeat!,
+                passenger_name: passengerName,
+                passport_number: passportNumber,
+            }, user?.email || 'guest');
+
+            window.dispatchEvent(new CustomEvent('aerolink_new_event', {
+                detail: {
+                    event: 'SEAT_LOCK_SUCCESS',
+                    payload: { flight_number: selectedFlight.flight_number, seat_number: selectedSeat, passenger_name: passengerName, status: 'LOCKED', locked_at: new Date().toISOString() }
                 }
-            };
-            window.dispatchEvent(new CustomEvent('aerolink_new_event', { detail: newLock }));
+            }));
         }, 1500);
     };
 
@@ -190,46 +201,43 @@ export default function PassengerPortal() {
             {/* High-tech Navigation Tabs */}
             {bookingStep === 'search' && (
                 <div className="flex border-b border-slate-200 space-x-6 mb-6">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('booking')}
                         className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'booking' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         <Ticket className="w-4 h-4" />
-                        <span>Book Passenger Ticket</span>
+                        <span>Book a Flight</span>
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('gdpr')}
-                        className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'gdpr' ? 'border-cyan-600 text-cyan-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    <button
+                        onClick={() => setActiveTab('mybookings')}
+                        className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'mybookings' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
-                        <Shield className="w-4 h-4" />
-                        <span>Data Privacy & GDPR Dashboard</span>
+                        <ClipboardList className="w-4 h-4" />
+                        <span>My Bookings</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('profile')}
+                        className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === 'profile' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <User className="w-4 h-4" />
+                        <span>My Profile</span>
                     </button>
                 </div>
             )}
 
             {activeTab === 'booking' && (
+
                 <>
-                    {/* Hero Branding Section */}
+                    {/* Welcome banner */}
                     {bookingStep === 'search' && (
-                        <div className="relative rounded-2xl overflow-hidden shadow-xl mb-12 glass-panel border border-slate-200">
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 opacity-95 z-10"></div>
-                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540962351504-03099e0a754b?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-30 z-0"></div>
-                            
-                            <div className="relative z-20 px-8 py-14 lg:p-16 text-[#f9fafb] flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                <div className="space-y-3">
-                                    <div className="inline-flex items-center space-x-2 bg-blue-900/30 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-bold text-blue-400">
-                                        <Sparkles className="w-3.5 h-3.5" />
-                                        <span>REST-API CLOUD GATEWAY ENABLED</span>
-                                    </div>
-                                    <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight">The Sky is Yours.</h1>
-                                    <p className="text-sm text-slate-400 max-w-lg leading-relaxed">
-                                        Experience the gold standard in modern aviation. Book and lock cabin coordinates instantly across our distributed cloud cluster network.
-                                    </p>
-                                </div>
-                                <div className="font-mono text-xs text-right bg-slate-950/60 p-4 border border-slate-800 rounded-xl space-y-1">
-                                    <div className="text-slate-500">API GATEWAY URL:</div>
-                                    <div className="text-cyan-400 font-bold select-all">http://api.aerolink.transnova.shop</div>
-                                </div>
+                        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-600 to-blue-500 px-8 py-8 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div>
+                                <h1 className="text-2xl font-extrabold text-white">Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!</h1>
+                                <p className="text-blue-100 text-sm mt-1">Where would you like to fly today?</p>
+                            </div>
+                            <div className="text-right text-blue-100 text-sm">
+                                <div className="font-semibold">{user?.email}</div>
+                                <div className="text-blue-200 text-xs mt-0.5 capitalize">Passenger account</div>
                             </div>
                         </div>
                     )}
@@ -262,31 +270,38 @@ export default function PassengerPortal() {
 
                     {/* Step 3: Confirmation digital pass */}
                     {bookingStep === 'confirmed' && selectedFlight && (
-                        <BoardingPass 
+                        <BoardingPass
                           selectedFlight={selectedFlight}
                           selectedSeat={selectedSeat}
                           passengerName={passengerName}
                           passportNumber={passportNumber}
+                          userEmail={user?.email}
                           onReset={() => {
                             setBookingStep('search');
                             setSelectedFlight(null);
                             setSelectedSeat(null);
+                            setActiveTab('mybookings');
                           }}
                         />
                     )}
                 </>
             )}
 
-            {/* TAB B: GDPR PRIVACY SYSTEM */}
-            {activeTab === 'gdpr' && (
+            {/* TAB B: MY BOOKINGS */}
+            {activeTab === 'mybookings' && (
+                <MyBookings
+                  onBookAgain={() => setActiveTab('booking')}
+                  userId={user?.email || 'guest'}
+                  userEmail={user?.email}
+                />
+            )}
+
+            {/* TAB C: MY PROFILE */}
+            {activeTab === 'profile' && (
                 <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
-                    <div className="text-center">
-                        <div className="inline-flex items-center space-x-2 bg-cyan-50 border border-cyan-200/50 text-cyan-700 text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-4">
-                            <Shield className="w-3.5 h-3.5" />
-                            <span>GDPR Compliance Officer Gate</span>
-                        </div>
-                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Compliance & Data Portability</h2>
-                        <p className="text-sm text-slate-500 mt-1.5 max-w-lg mx-auto">Review account metadata security properties, download portability logs under Article 20, or execute profiles erasure under Article 17.</p>
+                    <div>
+                        <h2 className="text-2xl font-extrabold text-slate-800">My Profile</h2>
+                        <p className="text-sm text-slate-500 mt-1">Manage your account details and preferences.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

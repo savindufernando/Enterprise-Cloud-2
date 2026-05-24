@@ -21,8 +21,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://api.aerolink.transnova.shop';
 const API = `${API_BASE}/api/v1/passengers`;
+
+const ALL_USERS_KEY = 'aerolink_all_users';
+
+function saveUserRecord(u: User) {
+  try {
+    const existing: User[] = JSON.parse(localStorage.getItem(ALL_USERS_KEY) || '[]');
+    const idx = existing.findIndex((x: User) => x.email === u.email);
+    if (idx >= 0) {
+      existing[idx] = {
+        ...existing[idx],
+        ...u,
+        firstName: u.firstName || existing[idx].firstName,
+        lastName: u.lastName || existing[idx].lastName,
+      };
+      localStorage.setItem(ALL_USERS_KEY, JSON.stringify(existing));
+    } else {
+      localStorage.setItem(ALL_USERS_KEY, JSON.stringify([u, ...existing]));
+    }
+  } catch {}
+}
+
+function getExistingUserRecord(email: string): User | undefined {
+  try {
+    const all: User[] = JSON.parse(localStorage.getItem(ALL_USERS_KEY) || '[]');
+    return all.find((x: User) => x.email === email);
+  } catch {
+    return undefined;
+  }
+}
 
 function decodeJwt(token: string): any {
   try {
@@ -66,11 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const data = await res.json();
     const decoded = decodeJwt(data.access_token);
+    const existing = getExistingUserRecord(email);
     const u: User = {
       id: decoded?.sub || '',
       email,
       role: decoded?.role || 'passenger',
+      firstName: data.first_name || existing?.firstName,
+      lastName: data.last_name || existing?.lastName,
     };
+    saveUserRecord(u);
     persistSession(data.access_token, u);
   };
 
@@ -93,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName,
       lastName,
     };
+    saveUserRecord(u);
     persistSession(data.access_token, u);
   };
 

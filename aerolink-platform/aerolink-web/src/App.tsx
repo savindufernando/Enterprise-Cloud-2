@@ -1,17 +1,36 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import LandingPage from './features/landing/LandingPage';
 import PassengerPortal from './features/passenger/PassengerPortal';
 import OperationsDashboard from './features/operations/pages/OperationsDashboard';
 import GroundDashboard from './features/groundstaff/pages/GroundDashboard';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import SystemMetrics from './features/monitoring/pages/SystemMetrics';
-import LoginPage from './features/auth/LoginPage';
 import DashboardLayout from './app/layouts/DashboardLayout';
-import DemoGate from './app/DemoGate';
+
+// Scroll to top on every route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
+
+// Staff roles cannot visit "/" while logged in — redirect to their dashboard
+function LandingRoute() {
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated) {
+    if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user?.role === 'airline_operator') return <Navigate to="/operations" replace />;
+    if (user?.role === 'ground_staff') return <Navigate to="/agent" replace />;
+    // passenger → allowed on landing page
+  }
+  return <LandingPage />;
+}
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { isAuthenticated, user } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
@@ -19,85 +38,86 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 }
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
-  }
-
   return (
-    <DashboardLayout>
+    <>
+      <ScrollToTop />
       <Routes>
-        {/* Passenger — any authenticated user */}
-        <Route 
-          path="/" 
+        {/* Landing page — blocked for logged-in staff, open for all others */}
+        <Route path="/" element={<LandingRoute />} />
+
+        {/* Passenger booking portal */}
+        <Route
+          path="/passenger"
           element={
             <ProtectedRoute>
-              <PassengerPortal />
+              <DashboardLayout>
+                <PassengerPortal />
+              </DashboardLayout>
             </ProtectedRoute>
-          } 
+          }
         />
 
-        {/* Ground Staff Desk — admin + ground_staff */}
+        {/* Ground Staff Desk */}
         <Route
           path="/agent"
           element={
             <ProtectedRoute allowedRoles={['admin', 'ground_staff']}>
-              <GroundDashboard />
+              <DashboardLayout>
+                <GroundDashboard />
+              </DashboardLayout>
             </ProtectedRoute>
           }
         />
 
-        {/* Flight Operations — admin + airline_operator */}
+        {/* Flight Operations */}
         <Route
           path="/operations"
           element={
             <ProtectedRoute allowedRoles={['admin', 'airline_operator']}>
-              <OperationsDashboard />
+              <DashboardLayout>
+                <OperationsDashboard />
+              </DashboardLayout>
             </ProtectedRoute>
           }
         />
 
-        {/* System Administration Console — admin only */}
+        {/* System Administration Console */}
         <Route
           path="/admin"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
+              <DashboardLayout>
+                <AdminDashboard />
+              </DashboardLayout>
             </ProtectedRoute>
           }
         />
 
-        {/* Real-time Observability & Telemetry — admin + airline_operator + ground_staff */}
+        {/* Real-time Observability */}
         <Route
           path="/monitoring"
           element={
             <ProtectedRoute allowedRoles={['admin', 'airline_operator', 'ground_staff']}>
-              <SystemMetrics />
+              <DashboardLayout>
+                <SystemMetrics />
+              </DashboardLayout>
             </ProtectedRoute>
           }
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </DashboardLayout>
+    </>
   );
 }
 
 function App() {
   return (
-    <DemoGate>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </DemoGate>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

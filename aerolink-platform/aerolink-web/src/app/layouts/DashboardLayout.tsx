@@ -32,9 +32,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const handleRoleSwitch = (role: 'passenger' | 'airline_operator' | 'ground_staff' | 'admin') => {
     loginAs(role);
     setIsSwitcherOpen(false);
-    
-    // Redirect based on selected role
-    if (role === 'passenger') navigate('/');
+
+    if (role === 'passenger') navigate('/passenger');
     else if (role === 'ground_staff') navigate('/agent');
     else if (role === 'airline_operator') navigate('/operations');
     else if (role === 'admin') navigate('/admin');
@@ -104,9 +103,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div>
             <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase px-3 mb-2">Passenger Actions</div>
             <div className="space-y-1">
-              <Link 
-                to="/" 
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/' ? 'bg-blue-50 border-blue-500/20 text-blue-600 glow-blue font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}`}
+              <Link
+                to="/passenger"
+                className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/passenger' ? 'bg-blue-50 border-blue-500/20 text-blue-600 glow-blue font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}`}
               >
                 <Plane className="w-4 h-4 shrink-0" />
                 <span className="font-medium">Book Tickets & Cabin Lock</span>
@@ -269,8 +268,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             {/* Logout trigger */}
-            <button 
-              onClick={logout}
+            <button
+              onClick={() => { logout(); navigate('/'); }}
               className="p-2 border border-slate-200 hover:border-red-500/20 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-lg transition-all cursor-pointer"
               title="Terminate Secure Session"
             >
