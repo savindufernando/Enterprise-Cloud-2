@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [flight_service, api_gateway, baggage_service, passenger_service]
+        service: [flight_service, api_gateway, baggage_service, passenger_service, booking_service, payment_service, notification_service, realtime_service]
 
     steps:
       - name: Checkout repository
