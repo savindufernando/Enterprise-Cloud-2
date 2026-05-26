@@ -30,6 +30,13 @@ kafka_producer = KafkaEventProducer(
 async def lifespan(app: FastAPI):
     logger.info("Initializing booking service...")
     init_db(settings.DATABASE_URL)
+    
+    # Auto-create tables if they don't exist
+    from shared.db.session import engine
+    from app.models.booking import Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        
     await kafka_producer.start()
     
     shutdown_manager.register_cleanup_task(kafka_producer.stop)
