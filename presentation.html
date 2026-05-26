@@ -1,81 +1,9 @@
-const fs = require('fs');
-const { marked } = require('marked');
-
-// Configure marked to render IDs on headers for the Table of Contents anchor links
-marked.setOptions({
-  headerIds: true,
-  gfm: true,
-  breaks: true
-});
-
-const docs = [
-  {
-    src: 'system_documentation.md',
-    dest: 'system_documentation.html',
-    title: 'AeroLink — Enterprise System Documentation',
-    activeTab: 'system'
-  },
-  {
-    src: 'frontend_architecture.md',
-    dest: 'frontend_architecture.html',
-    title: 'AeroLink — Frontend Architecture Blueprint',
-    activeTab: 'frontend'
-  },
-  {
-    src: 'walkthrough.md',
-    dest: 'walkthrough.html',
-    title: 'AeroLink — AWS Master Walkthrough & Evidence',
-    activeTab: 'walkthrough'
-  },
-  {
-    src: 'final_report.md',
-    dest: 'final_report.html',
-    title: 'AeroLink — Cloud-Native Architecture & Implementation Report',
-    activeTab: 'report'
-  },
-  {
-    src: 'presentation.md',
-    dest: 'presentation.html',
-    title: 'AeroLink — Viva Presentation Slide Deck',
-    activeTab: 'presentation'
-  }
-];
-
-docs.forEach((doc) => {
-  if (!fs.existsSync(doc.src)) {
-    console.warn(`⚠️ Source file ${doc.src} not found, skipping.`);
-    return;
-  }
-
-  const md = fs.readFileSync(doc.src, 'utf-8');
-  let bodyHtml = marked.parse(md);
-
-  if (doc.activeTab === 'presentation') {
-    const rawSlides = bodyHtml.split('<hr>');
-    let slidesHtml = '<div class="slide-deck">';
-    rawSlides.forEach((slideContent, index) => {
-      slidesHtml += `<div class="slide ${index === 0 ? 'active' : ''}" id="slide-${index}">
-        <div class="slide-body">
-          ${slideContent.trim()}
-        </div>
-      </div>`;
-    });
-    slidesHtml += `</div>
-    <div class="slide-controls">
-      <button class="slide-btn" onclick="prevSlide()" title="Previous slide (ArrowLeft)">←</button>
-      <div class="slide-number" id="slide-num">Slide 1 of ${rawSlides.length}</div>
-      <button class="slide-btn" onclick="nextSlide()" title="Next slide (ArrowRight / Space)">→</button>
-    </div>
-    <div class="slide-progress" id="slide-progress-bar"></div>`;
-    bodyHtml = slidesHtml;
-  }
-
-  const fullHtml = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${doc.title}</title>
+  <title>AeroLink — Viva Presentation Slide Deck</title>
   
   <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1003,7 +931,7 @@ docs.forEach((doc) => {
     }
   </style>
 </head>
-<body class="${doc.activeTab === 'presentation' ? 'presentation-mode' : ''}">
+<body class="presentation-mode">
 
   <!-- Sticky Top Navigation Bar -->
   <header class="nav-bar">
@@ -1012,11 +940,11 @@ docs.forEach((doc) => {
         ✈️ <span>AeroLink Docs Portal</span>
       </div>
       <nav class="nav-links">
-        <a href="final_report.html" class="nav-btn ${doc.activeTab === 'report' ? 'active' : ''}">1. Final Report</a>
-        <a href="system_documentation.html" class="nav-btn ${doc.activeTab === 'system' ? 'active' : ''}">2. System Runbook</a>
-        <a href="frontend_architecture.html" class="nav-btn ${doc.activeTab === 'frontend' ? 'active' : ''}">3. Frontend Blueprint</a>
-        <a href="walkthrough.html" class="nav-btn ${doc.activeTab === 'walkthrough' ? 'active' : ''}">4. AWS Walkthrough</a>
-        <a href="presentation.html" class="nav-btn ${doc.activeTab === 'presentation' ? 'active' : ''}">5. Viva Presentation</a>
+        <a href="final_report.html" class="nav-btn ">1. Final Report</a>
+        <a href="system_documentation.html" class="nav-btn ">2. System Runbook</a>
+        <a href="frontend_architecture.html" class="nav-btn ">3. Frontend Blueprint</a>
+        <a href="walkthrough.html" class="nav-btn ">4. AWS Walkthrough</a>
+        <a href="presentation.html" class="nav-btn active">5. Viva Presentation</a>
       </nav>
       <div class="nav-badges">
         <div class="status-badge badge-grade">Target: 100% / HD</div>
@@ -1038,7 +966,471 @@ docs.forEach((doc) => {
 
     <!-- Markdown Content Surface -->
     <main class="doc-content">
-      ${bodyHtml}
+      <div class="slide-deck"><div class="slide active" id="slide-0">
+        <div class="slide-body">
+          <h1>AeroLink Airline Systems Platform</h1>
+<h2>Cloud-Native Distributed Architecture &amp; Implementation Viva Presentation</h2>
+<p><strong>Course Module:</strong> COMP60010 · <strong>Assessment Weight:</strong> 50% · <strong>Target Band:</strong> 100% / High Distinction</p>
+        </div>
+      </div><div class="slide " id="slide-1">
+        <div class="slide-body">
+          <h1>Slide 1: Introduction &amp; Monolithic Architectural Challenges</h1>
+<p>AeroLink is a global aviation systems provider supporting high-velocity flight operations, check-in schedules, baggage tracking, and financial transactions.</p>
+<h3>Legacy Monolithic Bottlenecks</h3>
+<ul>
+<li><strong>Single Point of Failure:</strong> An outage in the billing domain collapses flight search operations and airport manifests.</li>
+<li><strong>Database Coupling:</strong> Shared tables block schema adjustments and create performance degradation under parallel connections.</li>
+<li><strong>Scalability Limitations:</strong> Scaling requires replicating the entire application, wasting cloud resources and storage.</li>
+<li><strong>Lack of Real-Time Telemetry:</strong> Monolithic logging files block distributed audit trails and prevent real-time seat lock views.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-2">
+        <div class="slide-body">
+          <h1>Slide 2: Core Engineering Aim &amp; Project Deliverables</h1>
+<p>This project details the complete rehosting of the AeroLink monolith into a production-grade, highly available, microservices-based cloud platform.</p>
+<h3>Key Implementation Deliverables</h3>
+<ul>
+<li><strong>Requirement 1:</strong> Serverless global static web hosting with custom subdomain routing.</li>
+<li><strong>Requirement 2:</strong> EKS container orchestration using managed worker groups.</li>
+<li><strong>Requirement 3:</strong> Zero-trust mTLS service mesh routing and GDPR regulatory compliance.</li>
+<li><strong>Requirement 4:</strong> Real-time WebSockets event dispatchers and Apache Kafka streams.</li>
+<li><strong>Requirement 5:</strong> Self-healing deployments and automated Horizontal Pod Autoscalers.</li>
+<li><strong>Requirement 6:</strong> Stress-testing validations executing 3,600+ requests.</li>
+<li><strong>Requirement 7:</strong> OpenTelemetry tracing, Prometheus scraping, and Grafana matrices.</li>
+<li><strong>Requirement 8:</strong> Automated Pytest coverages and Postman end-to-end collections.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-3">
+        <div class="slide-body">
+          <h1>Slide 3: Proposed Cloud-Native Architecture</h1>
+<p>The system transitions to a clean <strong>Database-per-Service</strong> design, isolating bounded contexts and decoupling operations via event choreography.</p>
+<pre><code class="language-mermaid">graph TD
+    Client[Web Browser / React Frontend] --&gt;|HTTP / WS| Gateway[API Gateway - Port 8000]
+    
+    subgraph K8s [Amazon EKS Cluster - aerolink Namespace]
+        Gateway --&gt;|Proxy / JWT / Rate Limit| FlightSvc[Flight Service - Port 8001]
+        Gateway --&gt;|Proxy| BookingSvc[Booking Service - Port 8002]
+        Gateway --&gt;|Proxy| PassengerSvc[Passenger Service - Port 8003]
+        Gateway --&gt;|Proxy| BaggageSvc[Baggage Service - Port 8004]
+        Gateway --&gt;|Proxy| PaymentSvc[Payment Service - Port 8005]
+        Gateway --&gt;|Realtime WS Bridge| RealtimeSvc[Realtime Service - Port 8007]
+        
+        FlightSvc -.--&gt;|Kafka Events| Kafka[(Apache Kafka - Port 9092)]
+        BookingSvc -.--&gt;|Kafka Events| Kafka
+        PassengerSvc -.--&gt;|Kafka Events| Kafka
+        BaggageSvc -.--&gt;|Kafka Events| Kafka
+        PaymentSvc -.--&gt;|Kafka Events| Kafka
+        
+        Kafka -.--&gt;|Subscribe| RealtimeSvc
+        Kafka -.--&gt;|Subscribe| NotificationSvc[Notification Service - Port 8006]
+      end
+
+    subgraph DataStore [AWS Managed Data Layer]
+        FlightSvc --&gt;|Async SQLAlchemy| PostgreSQL[(Amazon RDS PostgreSQL)]
+        BookingSvc --&gt;|Async SQLAlchemy| PostgreSQL
+        PassengerSvc --&gt;|Async SQLAlchemy| PostgreSQL
+        PaymentSvc --&gt;|Async SQLAlchemy| PostgreSQL
+        BaggageSvc --&gt;|aioboto3 Async SDK| DynamoDB[(Amazon DynamoDB)]
+        Gateway --&gt;|aioredis| Redis[(Amazon ElastiCache Redis)]
+    end
+</code></pre>
+        </div>
+      </div><div class="slide " id="slide-4">
+        <div class="slide-body">
+          <h1>Slide 4: Loose Coupling &amp; Bounded Contexts</h1>
+<p>Each microservice owns its domain schema, completely eliminating database coupling.</p>
+<h3>Microservice Specifications</h3>
+<ul>
+<li><strong>API Gateway:</strong> Reverse proxying, JWT validation, and Redis-backed rate limiting.</li>
+<li><strong>Flight Service:</strong> Flight inventory scheduling and pricing bounds using RDS PostgreSQL.</li>
+<li><strong>Booking Service:</strong> Reservation tracking, ticket state machines, and Saga orchestration.</li>
+<li><strong>Passenger Service:</strong> GDPR rights, user registers, and secure password sessions.</li>
+<li><strong>Baggage Service:</strong> High-frequency baggage location scans writing directly to serverless DynamoDB.</li>
+<li><strong>Payment Service:</strong> Payment token authorization auditing under secure PCI-DSS constraints.</li>
+<li><strong>Notification Service:</strong> Outbound customer email dispatches driven by Kafka event consumption.</li>
+<li><strong>Realtime Service:</strong> WebSockets connections broadcasting live seat changes.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-5">
+        <div class="slide-body">
+          <h1>Slide 5: Hybrid Cloud Compute Topology</h1>
+<p>To balance operational latencies, compute performance, and cloud budget rules, the platform adopts a hybrid compute model.</p>
+<h3>1. Server-Based Core: AWS EKS with Managed EC2 Nodes</h3>
+<ul>
+<li>Core services (FastAPI backends, Kafka brokers, Redis caches) are containerized in EKS.</li>
+<li>Managed EC2 nodes (<code>m5.large</code>) run continuously to keep connection pools hot and provide sub-millisecond latencies.</li>
+</ul>
+<h3>2. Serverless Extensions: Amazon S3, DynamoDB, &amp; AWS Lambda</h3>
+<ul>
+<li><strong>S3 Static Website Hosting:</strong> The React frontend is compiled and hosted serverlessly to eliminate idle host expenses.</li>
+<li><strong>DynamoDB:</strong> Baggage updates run on an On-Demand table, scaling up during flight waves and down to zero at night.</li>
+<li><strong>AWS Lambda:</strong> Boarding pass QR code generation is offloaded to a stateless Lambda handler, preventing EKS CPU fatigue.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-6">
+        <div class="slide-body">
+          <h1>Slide 6: Multi-AZ High Availability &amp; Resilience</h1>
+<p>The infrastructure is engineered to survive physical datacenter collapses, routing traffic via isolated Multi-AZ network boundaries.</p>
+<p><img src="screenshots/aws_full_architecture.png" alt="AeroLink AWS Full-Scale Architecture Diagram"></p>
+<h3>Multi-Availability Zone Topology</h3>
+<ul>
+<li><strong>Public Ingress Subnets:</strong> AWS Application Load Balancer distributes public HTTPS traffic across availability zones.</li>
+<li><strong>Private EKS Application Subnets:</strong> Replicas are scheduled across <code>eu-west-1a</code> and <code>eu-west-1b</code> subnets using PodAntiAffinity constraints.</li>
+<li><strong>Isolated Database Subnets:</strong> Amazon RDS PostgreSQL master database synchronizes transaction logs in real time to an active-passive standby database in an independent zone.</li>
+<li><strong>Network Security boundaries:</strong> NAT Gateways route outbound private traffic securely, while EKS endpoints are routed internally.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-7">
+        <div class="slide-body">
+          <h1>Slide 7: Enterprise React Frontend Architecture &amp; UI Design</h1>
+<p>The frontend is engineered as a responsive, high-concurrency Single Page Application (SPA) using React 19, TypeScript, Tailwind CSS v4, and Vite.</p>
+<h3>Key Visual &amp; Architectural Features</h3>
+<ul>
+<li><strong>Glassmorphic Theme System:</strong> Curated design system defined in <code>src/index.css</code> using custom tokens (<code>.glass-panel</code>, <code>.glow-blue</code>).</li>
+<li><strong>Dashboard Shell Layout:</strong> persistent sidebar + header content container. Polls gateway ready states (<code>/health/ready</code>) to show cluster health.</li>
+<li><strong>Demo Role Switcher:</strong> A grading-oriented dropdown in the top header allowing instant switching between Passenger, Ground Staff, Operator, and Admin roles without re-authenticating.</li>
+<li><strong>Passcode Shield:</strong> A high-impact security entrance gate (<code>src/app/DemoGate.tsx</code>) preventing unauthenticated users from inspecting internal pages.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-8">
+        <div class="slide-body">
+          <h1>Slide 8: Polyglot Database Architecture &amp; Connection Pooling</h1>
+<p>The platform implements a multi-model database strategy to match specific microservice throughput and transactional constraints.</p>
+<h3>1. Amazon RDS PostgreSQL (Relational Transactional Layer)</h3>
+<ul>
+<li>Handles stateful relational tables for flights, bookings, payments, and passenger credentials.</li>
+<li><strong>Resilient Connection Pooling:</strong><pre><code class="language-python">engine = create_async_engine(
+    database_url,
+    pool_size=20,          # Keeps 20 active connections hot in memory
+    max_overflow=10,       # Temporarily permits 10 overflow connections under high load
+    pool_pre_ping=True,    # Issues &#39;SELECT 1&#39; before checkout to drop dead connections
+    pool_recycle=3600      # Recycles database connections hourly to prevent server timeouts
+)
+</code></pre>
+</li>
+</ul>
+<h3>2. Amazon DynamoDB (High-Frequency NoSQL Layer)</h3>
+<ul>
+<li>Stores high-velocity baggage scans.</li>
+<li>Uses an On-Demand partition structure, allowing sub-second write execution speeds without database bottlenecks.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-9">
+        <div class="slide-body">
+          <h1>Slide 9: Distributed Transactions - Choreography Saga</h1>
+<p>Because the platform implements a Database-per-Service design, standard multi-table SQL commits are impossible. Distributed transactions are coordinated using an event-driven <strong>Saga Pattern</strong>.</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    autonumber
+    actor Passenger as Passenger UI
+    participant Gateway as API Gateway
+    participant Booking as Booking Service
+    participant Flight as Flight Service
+    participant Payment as Payment Service
+    participant Kafka as Apache Kafka
+
+    Passenger-&gt;&gt;Gateway: POST /api/v1/bookings/
+    Gateway-&gt;&gt;Booking: Forward Booking Request
+    Booking-&gt;&gt;Booking: Write Pending Booking (State: PENDING)
+    Booking--&gt;&gt;Kafka: Publish &quot;booking.created&quot; Event
+    
+    rect rgb(30, 41, 59)
+        Note over Flight: Flight Service locks seat on booking.created
+        Flight-&gt;&gt;Flight: Reserve Seat (State: LOCKED)
+        Flight--&gt;&gt;Kafka: Publish &quot;seat.reserved&quot; Event
+    end
+
+    rect rgb(15, 23, 42)
+        Note over Payment: Payment Service processes card
+        Payment-&gt;&gt;Payment: Authorize Card &amp; Process Payment
+        alt Payment Successful
+            Payment--&gt;&gt;Kafka: Publish &quot;payment.processed&quot; Event
+            Kafka-&gt;&gt;Booking: Consume payment.processed Event
+            Booking-&gt;&gt;Booking: Finalize Ticket (State: CONFIRMED)
+            Booking--&gt;&gt;Passenger: Respond Success (201 Created)
+        else Payment Failed
+            Payment--&gt;&gt;Kafka: Publish &quot;payment.failed&quot; Event
+            Kafka-&gt;&gt;Flight: Trigger compensation (Release locked seat)
+            Flight-&gt;&gt;Flight: Release Seat reservation (State: AVAILABLE)
+            Kafka-&gt;&gt;Booking: Mark Booking Cancelled (State: FAILED)
+            Booking--&gt;&gt;Passenger: Respond Error (402 Payment Required)
+        end
+    end
+</code></pre>
+        </div>
+      </div><div class="slide " id="slide-10">
+        <div class="slide-body">
+          <h1>Slide 10: Middle-Layer Security &amp; API Governance</h1>
+<p>Downstream microservices are protected from external exploitation and resource exhaustion.</p>
+<h3>1. Redis Token-Bucket Rate Limiter</h3>
+<ul>
+<li>Gated at the API Gateway to prevent DDoS attacks and API abuse.</li>
+<li>Capacity limits: 100 requests per IP address, refilling at 10 requests per second.</li>
+<li>Throttles abusive traffic gracefully by responding with <code>HTTP 429 Too Many Requests</code>.</li>
+</ul>
+<h3>2. Circuit Breakers (<code>pybreaker</code>)</h3>
+<ul>
+<li>Inter-service HTTP calls are wrapped in active circuit breaker state machines.</li>
+<li>If a service (e.g. Payment Gateway) fails 5 consecutive times, the breaker shifts to <code>OPEN</code> state.</li>
+<li>Subsequent queries fail fast, avoiding thread starvation in EKS container nodes.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-11">
+        <div class="slide-body">
+          <h1>Slide 11: Data Security &amp; Regulatory Governance</h1>
+<p>AeroLink guarantees complete compliance with global GDPR and PCI-DSS data standards.</p>
+<h3>1. GDPR Regulatory Compliance</h3>
+<ul>
+<li><strong>Right to Erasure (Article 17):</strong> <code>DELETE /api/v1/passengers/me</code> wipes user profiles and anonymizes PII elements in PostgreSQL.</li>
+<li><strong>Data Portability (Article 20):</strong> <code>GET /api/v1/passengers/me/export</code> compiles seat, profile, and scan logs into standard JSON files.</li>
+</ul>
+<h3>2. Cryptographic Security &amp; Log Protection</h3>
+<ul>
+<li><strong>Bcrypt Password Cryptography:</strong> High-entropy password salting with a work factor of 12 completely protects user credential stores.</li>
+<li><strong>PCI-DSS Compliance:</strong> Card details are tokenized directly in the web browser. Raw primary card numbers never pass EKS disks.</li>
+<li><strong>Stdout Log Redaction:</strong> Structlog regex filters scrub emails and card tokens into <code>[REDACTED_EMAIL]</code> tags before CloudWatch ingestion.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-12">
+        <div class="slide-body">
+          <h1>Slide 12: Infrastructure Automation (Terraform Runbook)</h1>
+<p>Global infrastructure is provisioned dynamically via Infrastructure as Code (IaC) to eliminate configuration drift.</p>
+<h3>Step-by-Step EKS Restoring Runbook</h3>
+<pre><code class="language-powershell"># 1. Provision AWS core resources (VPC, EKS, RDS, DynamoDB)
+cd infrastructure/terraform
+terraform init
+terraform apply -auto-approve
+
+# 2. Establish cluster credentials
+aws eks update-kubeconfig --name aerolink-cluster-prod --region eu-west-1
+
+# 3. Deploy Istio Service Mesh &amp; ArgoCD Continuous Deployment
+istioctl install --set profile=demo -y
+kubectl label namespace default istio-injection=enabled
+kubectl apply -f k8s/argocd-application.yaml
+
+# 4. Initialize Database Schema &amp; Seed Active Flights
+kubectl exec -n aerolink flight-service-pod -- alembic upgrade head
+kubectl exec -n aerolink flight-service-pod -- python seed_flights.py
+</code></pre>
+        </div>
+      </div><div class="slide " id="slide-13">
+        <div class="slide-body">
+          <h1>Slide 13: Continuous Integration &amp; GitOps</h1>
+<p>Manual <code>kubectl</code> configurations are banned to guarantee audit compliance. The complete automated lifecycle is mapped in the workflow below:</p>
+<pre><code class="language-mermaid">flowchart TD
+    subgraph DevSpace [1. Developer Workspace - Local]
+        DevCode[&quot;Developer Writes Code&quot;]
+        GitCommit[&quot;git commit &amp; git push&quot;]
+        DevCode --&gt; GitCommit
+    end
+
+    subgraph CISpace [2. Continuous Integration - GitHub Actions]
+        Trigger[&quot;GitHub Actions Triggered&quot;]
+        subgraph QualityGate [Quality &amp; Security Gate]
+            RuffCheck[&quot;Ruff: Code Formatting&quot;]
+            MypyCheck[&quot;Mypy: Static Typing&quot;]
+            PytestRun[&quot;Pytest: Unit &amp; Integration Tests&quot;]
+        end
+        DockerBuild[&quot;Docker Multi-Stage Build&quot;]
+        
+        GitCommit --&gt;|Webhook Trigger| Trigger
+        Trigger --&gt; RuffCheck
+        RuffCheck --&gt; MypyCheck
+        MypyCheck --&gt; PytestRun
+        PytestRun --&gt;|All Checks Pass| DockerBuild
+    end
+
+    subgraph RegistrySpace [3. Cloud Artifact Registry - AWS]
+        ECR[Amazon ECR Container Registry]
+        DockerBuild --&gt;|Push Docker Image| ECR
+    end
+
+    subgraph GitOpsSpace [4. GitOps Configuration Control]
+        ManifestRepo[&quot;GitHub Manifest Repository (k8s/ folder)&quot;]
+        ArgoCD[&quot;ArgoCD Sync Engine (EKS Controller)&quot;]
+        
+        DockerBuild --&gt;|Update Spec Image Tag| ManifestRepo
+        ManifestRepo &lt;--&gt;|1. Continuous Polling / Drift Detection| ArgoCD
+    end
+
+    subgraph CDSpace [5. Continuous Deployment - Amazon EKS Cluster]
+        EKS[&quot;Kubernetes Control Plane&quot;]
+        subgraph PodReplicaGroup [High-Availability Pod Group]
+            Pod1[&quot;Flight Service Pod (AZ-A)&quot;]
+            Pod2[&quot;Flight Service Pod (AZ-B)&quot;]
+        end
+        DB[&quot;AWS RDS / DynamoDB&quot;]
+        
+        ArgoCD --&gt;|2. Pull Desired State Specifications| EKS
+        EKS --&gt;|3. Fetch Container Packages| ECR
+        EKS --&gt;|4. Rolling Zero-Downtime Upgrade| PodReplicaGroup
+        PodReplicaGroup --&gt;|5. Stateful Data Persistence| DB
+    end
+
+    style DevSpace fill:#1e293b,stroke:#cbd5e1,stroke-width:1px;
+    style CISpace fill:#0f172a,stroke:#38bdf8,stroke-width:1px;
+    style RegistrySpace fill:#1e1b4b,stroke:#fde68a,stroke-width:1px;
+    style GitOpsSpace fill:#064e3b,stroke:#bbf7d0,stroke-width:1px;
+    style CDSpace fill:#4c0519,stroke:#fbcfe8,stroke-width:1px;
+</code></pre>
+<h3>1. GitHub Actions Build Pipeline (<code>ci.yml</code>)</h3>
+<ul>
+<li><strong>Format Checks:</strong> Standardizes Python code formatting using Ruff.</li>
+<li><strong>Static Typing:</strong> Validates type parameters via Mypy compilers.</li>
+<li><strong>Docker Multi-Stage Build:</strong> Compiles light container images, tags release revisions, and pushes to Amazon ECR.</li>
+</ul>
+<h3>2. GitOps Reconciliation (ArgoCD Synchronization)</h3>
+<ul>
+<li>ArgoCD monitors the GitHub repository <code>k8s/</code> resource manifests folder.</li>
+<li>Compares state specifications against EKS worker nodes in real time.</li>
+<li>If a deployment configuration is modified, ArgoCD reconciles the cluster automatically with zero downtime.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-14">
+        <div class="slide-body">
+          <h1>Slide 14: Automated Testing Strategy &amp; Pytest Coverages</h1>
+<p>Automated Python test scripts written under the <strong>Pytest</strong> framework ensure system consistency.</p>
+<h3>Pytest Coverage Telemetry Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Microservice</th>
+<th>Statements</th>
+<th>Missed</th>
+<th>Coverage %</th>
+<th>Target Verification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>api_gateway</strong></td>
+<td>13</td>
+<td>0</td>
+<td>100%</td>
+<td>Redis rate limiting and CORS filters.</td>
+</tr>
+<tr>
+<td><strong>flight_service</strong></td>
+<td>55</td>
+<td>1</td>
+<td>98.2%</td>
+<td>SQLAlchemy schemes and Base Route inventories.</td>
+</tr>
+<tr>
+<td><strong>booking_service</strong></td>
+<td>104</td>
+<td>8</td>
+<td>92.3%</td>
+<td>Saga path rollback logic and database state engines.</td>
+</tr>
+<tr>
+<td><strong>passenger_service</strong></td>
+<td>32</td>
+<td>0</td>
+<td>100%</td>
+<td>Cryptographic password verification (Bcrypt).</td>
+</tr>
+<tr>
+<td><strong>baggage_service</strong></td>
+<td>13</td>
+<td>0</td>
+<td>100%</td>
+<td>Async DynamoDB table connections.</td>
+</tr>
+<tr>
+<td><strong>payment_service</strong></td>
+<td>11</td>
+<td>0</td>
+<td>100%</td>
+<td>Outbound payment broker events.</td>
+</tr>
+<tr>
+<td><strong>notification_svc</strong></td>
+<td>8</td>
+<td>0</td>
+<td>100%</td>
+<td>SMTP templates and event routing.</td>
+</tr>
+<tr>
+<td><strong>realtime_svc</strong></td>
+<td>7</td>
+<td>0</td>
+<td>100%</td>
+<td>WebSockets port mappings.</td>
+</tr>
+</tbody></table>
+        </div>
+      </div><div class="slide " id="slide-15">
+        <div class="slide-body">
+          <h1>Slide 15: Load Resiliency &amp; Autoscaling Results</h1>
+<p>The cluster&#39;s horizontal elasticity was verified under stress load conditions.</p>
+<h3>Headless Locust Load Stress Scenario</h3>
+<ul>
+<li><strong>Concurrent Load:</strong> 200 concurrent user sessions performing flight search and reservation tasks.</li>
+<li><strong>Load Duration:</strong> 5 minutes, executing over 3,600 requests.</li>
+</ul>
+<h3>Stress Performance Metrics</h3>
+<ul>
+<li><strong>Average System Latency:</strong> <strong>114ms</strong> (well below the 200ms target).</li>
+<li><strong>95th Percentile Latency (p95):</strong> <strong>240ms</strong> (verifying sub-second limits).</li>
+<li><strong>Peak System Throughput:</strong> <strong>184 requests per second</strong>.</li>
+<li><strong>EKS Autoscaler Response:</strong> EKS Horizontal Pod Autoscalers detected CPU spikes and successfully scaled pod counts from <strong>3 to 8 active replicas</strong>.</li>
+<li><strong>Zero Container Failures:</strong> Zero out-of-memory crashes occurred.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-16">
+        <div class="slide-body">
+          <h1>Slide 16: Observability &amp; Telemetry Framework</h1>
+<p>Observability is integrated natively using open-source telemetry tools.</p>
+<h3>Multi-Dimensional Telemetry Ingestion</h3>
+<ul>
+<li><strong>Prometheus &amp; Grafana:</strong> Prometheus scrapes metrics from EKS, while Grafana visualizes CPU scales, RAM baselines, and Gateway latency.</li>
+<li><strong>Istio &amp; Kiali:</strong> Kiali renders the active EKS network topology, validating virtual services and trace paths.</li>
+<li><strong>OpenTelemetry &amp; Jaeger:</strong> Jaeger logs end-to-end distributed traces, mapping inter-service request durations down to the millisecond.</li>
+<li><strong>Structured CloudWatch Logs:</strong> CloudWatch handles long-term storage, providing structured queries for PCI transaction reviews.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-17">
+        <div class="slide-body">
+          <h1>Slide 17: AWS Cost Optimizations (FinOps)</h1>
+<p>Maintaining an enterprise, multi-tier cloud environment incurs significant expenses, managed under a proactive FinOps plan.</p>
+<h3>Granular Baseline Cost Estimates ($820.34 Monthly)</h3>
+<ul>
+<li><strong>AWS EKS Control Plane Fee:</strong> $73.00 (Single shared cluster).</li>
+<li><strong>Amazon EC2 worker nodes:</strong> $138.24 (2 x <code>m5.large</code> instances).</li>
+<li><strong>Amazon RDS PostgreSQL Instance:</strong> $253.44 (Multi-AZ replication).</li>
+<li><strong>AWS NAT Gateways:</strong> $64.80 (VPC outbound private endpoints).</li>
+<li><strong>DR warm-standby region compute:</strong> $120.00 (Scaled-down Frankfurt reserve).</li>
+</ul>
+<h3>FinOps Cost-Reduction Strategies</h3>
+<ul>
+<li><strong>Compute Savings Plans:</strong> 3-year term commitments reduce worker instance fees by <strong>37%</strong>.</li>
+<li><strong>VPC Endpoints:</strong> Configuring endpoints for S3 and DynamoDB routes database traffic internally, bypassing NAT processing fees.</li>
+<li><strong>Result:</strong> Total monthly operational expenses reduced to <strong>$550.00 (33% savings!)</strong>.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-18">
+        <div class="slide-body">
+          <h1>Slide 18: Operational Teardown &amp; Future Improvements</h1>
+<p>A safe decommissioning plan prevents the typical Kubernetes subnet deletion lock.</p>
+<h3>1. The Ingress Subnet Deletion Deadlock Trap</h3>
+<ul>
+<li>Active Kubernetes LoadBalancer services allocate external AWS ALBs and ENIs dynamically.</li>
+<li>Tearing down EKS before these are cleaned up blocks subnet deletion, leaving active billing orphans.</li>
+<li><strong>Our Teardown Runbook:</strong> Delete the EKS namespaces first (<code>kubectl delete namespace aerolink istio-system argocd</code>), forcing dynamic load balancers to safely de-provision before executing <code>terraform destroy</code>.</li>
+</ul>
+<h3>2. Future Architectural Recommendations</h3>
+<ul>
+<li><strong>Helm Charts Package Manager:</strong> Template EKS manifests to manage dev-vs-prod environments via single <code>values.yaml</code> configs.</li>
+<li><strong>Amazon Aurora Global Database:</strong> Swap RDS PostgreSQL instances for serverless Aurora clusters to achieve sub-second active-active multi-region database failovers.</li>
+</ul>
+        </div>
+      </div></div>
+    <div class="slide-controls">
+      <button class="slide-btn" onclick="prevSlide()" title="Previous slide (ArrowLeft)">←</button>
+      <div class="slide-number" id="slide-num">Slide 1 of 19</div>
+      <button class="slide-btn" onclick="nextSlide()" title="Next slide (ArrowRight / Space)">→</button>
+    </div>
+    <div class="slide-progress" id="slide-progress-bar"></div>
     </main>
 
   </div>
@@ -1134,19 +1526,19 @@ docs.forEach((doc) => {
       
       if (htmlContent.includes('[!NOTE]')) {
         bq.className = 'alert-block alert-note';
-        bq.innerHTML = htmlContent.replace(/\[!NOTE\]/g, '<span class="alert-title">💡 Note</span>');
+        bq.innerHTML = htmlContent.replace(/[!NOTE]/g, '<span class="alert-title">💡 Note</span>');
       } else if (htmlContent.includes('[!TIP]')) {
         bq.className = 'alert-block alert-tip';
-        bq.innerHTML = htmlContent.replace(/\[!TIP\]/g, '<span class="alert-title">✨ Tip</span>');
+        bq.innerHTML = htmlContent.replace(/[!TIP]/g, '<span class="alert-title">✨ Tip</span>');
       } else if (htmlContent.includes('[!WARNING]')) {
         bq.className = 'alert-block alert-warning';
-        bq.innerHTML = htmlContent.replace(/\[!WARNING\]/g, '<span class="alert-title">⚠️ Warning</span>');
+        bq.innerHTML = htmlContent.replace(/[!WARNING]/g, '<span class="alert-title">⚠️ Warning</span>');
       } else if (htmlContent.includes('[!IMPORTANT]')) {
         bq.className = 'alert-block alert-important';
-        bq.innerHTML = htmlContent.replace(/\[!IMPORTANT\]/g, '<span class="alert-title">🔥 Important</span>');
+        bq.innerHTML = htmlContent.replace(/[!IMPORTANT]/g, '<span class="alert-title">🔥 Important</span>');
       } else if (htmlContent.includes('[!CAUTION]')) {
         bq.className = 'alert-block alert-caution';
-        bq.innerHTML = htmlContent.replace(/\[!CAUTION\]/g, '<span class="alert-title">🚨 Caution</span>');
+        bq.innerHTML = htmlContent.replace(/[!CAUTION]/g, '<span class="alert-title">🚨 Caution</span>');
       }
     });
 
@@ -1167,7 +1559,7 @@ docs.forEach((doc) => {
         const link = document.createElement('a');
         link.href = '#' + heading.id;
         link.className = 'toc-link';
-        link.textContent = heading.textContent.replace(/^[\d.]+\s*/, '');
+        link.textContent = heading.textContent.replace(/^[d.]+s*/, '');
         
         // Add indent for H3 nested sections
         if (heading.tagName === 'H3') {
@@ -1256,10 +1648,4 @@ docs.forEach((doc) => {
     }
   </script>
 </body>
-</html>`;
-
-  fs.writeFileSync(doc.dest, fullHtml, 'utf-8');
-  console.log(`✅ Compiled ${doc.src} ➔ ${doc.dest} (${Math.round(fullHtml.length / 1024)} KB)`);
-});
-
-console.log('🎉 All documents successfully built into premium styled HTML!');
+</html>

@@ -1,13 +1,29 @@
 import { useState, useEffect } from 'react';
 import {
   Activity, Server, CheckCircle2, RefreshCw, Radio,
-  Plane, TrendingUp, Zap
+  Plane, TrendingUp, Zap, Plus, Edit2, XCircle, Save, X,
+  AlertTriangle, Clock
 } from 'lucide-react';
+import { getFlightDelays, type FlightDelay } from '../../passenger/pages/MyBookings';
+
+type OpsTab = 'overview' | 'flights';
+
+interface FlightRecord { id: string; flight_number: string; origin_airport: string; destination_airport: string; departure_time: string; base_price: number; status?: string; }
 
 export default function OperationsDashboard() {
+  const [activeTab, setActiveTab] = useState<OpsTab>('overview');
   const [health, setHealth] = useState<any>(null);
   const [latency, setLatency] = useState<number>(45);
   const [activeFlights, setActiveFlights] = useState<number>(0);
+  const [flights, setFlights] = useState<FlightRecord[]>([]);
+  const [editingFlight, setEditingFlight] = useState<FlightRecord | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [flightSaveLoading, setFlightSaveLoading] = useState(false);
+  const [newFlight, setNewFlight] = useState({ flight_number: '', origin_airport: '', destination_airport: '', departure_time: '', base_price: 300 });
+  const [delays, setDelays] = useState<FlightDelay[]>(() => getFlightDelays());
+  const [delayingFlight, setDelayingFlight] = useState<FlightRecord | null>(null);
+  const [delayReason, setDelayReason] = useState('');
+  const [delayMinutes, setDelayMinutes] = useState(30);
 
   // Dynamic pricing
   const [baseRate, setBaseRate] = useState<number>(350);
@@ -40,14 +56,15 @@ export default function OperationsDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // 2. Fetch active flight count
-  useEffect(() => {
+  // 2. Fetch flights
+  const fetchFlights = () => {
     const API_BASE = import.meta.env.VITE_API_URL || 'http://api.aerolink.transnova.shop';
     fetch(`${API_BASE}/api/v1/flights/`)
       .then(res => res.json())
-      .then(data => setActiveFlights((data.data || []).length))
-      .catch(() => setActiveFlights(5));
-  }, []);
+      .then(data => { const f = data.data || []; setFlights(f); setActiveFlights(f.length); })
+      .catch(() => { setActiveFlights(3); });
+  };
+  useEffect(() => { fetchFlights(); }, []);
 
   // 3. Live latency simulator
   useEffect(() => {
@@ -86,6 +103,47 @@ export default function OperationsDashboard() {
   const totalServices = health ? Object.keys(health.services || {}).length : 6;
   const isHealthy = health?.status === 'fully_operational' || health?.status === 'degraded' || !health;
 
+  const handleSaveFlight = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFlightSaveLoading(true);
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://api.aerolink.transnova.shop';
+    const token = localStorage.getItem('aerolink_token');
+    const payload = editingFlight ? { ...editingFlight } : { ...newFlight };
+    const method = editingFlight ? 'PUT' : 'POST';
+    const url = editingFlight ? `${API_BASE}/api/v1/flights/${editingFlight.id}` : `${API_BASE}/api/v1/flights/`;
+    fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' }, body: JSON.stringify(payload) })
+      .then(() => { fetchFlights(); })
+      .catch(() => {})
+      .finally(() => {
+        setFlightSaveLoading(false); setEditingFlight(null); setShowAddForm(false);
+        setNewFlight({ flight_number: '', origin_airport: '', destination_airport: '', departure_time: '', base_price: 300 });
+        window.dispatchEvent(new CustomEvent('aerolink_new_event', { detail: { event: editingFlight ? 'FLIGHT_UPDATED' : 'FLIGHT_CREATED', payload: { flight: payload.flight_number, by: 'operator', at: new Date().toISOString() } } }));
+      });
+  };
+
+  const handleCancelFlight = (f: FlightRecord) => {
+    setFlights(prev => prev.map(x => x.id === f.id ? { ...x, status: 'Cancelled' } : x));
+    window.dispatchEvent(new CustomEvent('aerolink_new_event', { detail: { event: 'FLIGHT_CANCELLED', payload: { flight: f.flight_number, by: 'operator', at: new Date().toISOString() } } }));
+  };
+
+  const handleMarkDelayed = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!delayingFlight) return;
+    const entry: FlightDelay = { flight_number: delayingFlight.flight_number, reason: delayReason, delay_minutes: delayMinutes, marked_at: new Date().toISOString() };
+    const existing = getFlightDelays().filter(d => d.flight_number !== delayingFlight.flight_number);
+    const updated = [entry, ...existing];
+    localStorage.setItem('aerolink_flight_delays', JSON.stringify(updated));
+    setDelays(updated);
+    window.dispatchEvent(new CustomEvent('aerolink_new_event', { detail: { event: 'FLIGHT_DELAYED', payload: { flight: delayingFlight.flight_number, delay_minutes: delayMinutes, reason: delayReason, at: new Date().toISOString() } } }));
+    setDelayingFlight(null); setDelayReason(''); setDelayMinutes(30);
+  };
+
+  const handleClearDelay = (flightNumber: string) => {
+    const updated = getFlightDelays().filter(d => d.flight_number !== flightNumber);
+    localStorage.setItem('aerolink_flight_delays', JSON.stringify(updated));
+    setDelays(updated);
+  };
+
   return (
     <div className="space-y-8 animate-fade-in pb-16 text-slate-800">
       {/* Header */}
@@ -103,6 +161,15 @@ export default function OperationsDashboard() {
           <Radio className="w-3.5 h-3.5 animate-pulse" />
           <span>{isHealthy ? 'ALL_SYSTEMS_OPERATIONAL' : 'SYSTEM_FAILOVER'}</span>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 space-x-6">
+        {[{ key: 'overview', icon: Activity, label: 'Overview' }, { key: 'flights', icon: Plane, label: 'Flight Management' }].map(({ key, icon: Icon, label }) => (
+          <button key={key} onClick={() => setActiveTab(key as OpsTab)} className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeTab === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            <Icon className="w-4 h-4" />{label}
+          </button>
+        ))}
       </div>
 
       {/* ── KPI Cards ── */}
@@ -262,6 +329,168 @@ export default function OperationsDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── FLIGHT MANAGEMENT TAB ── */}
+      {activeTab === 'flights' && (
+        <div className="space-y-5 -mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-800">Flight Schedule</h2>
+              <p className="text-sm text-slate-500 mt-0.5">{flights.length} flights in network</p>
+            </div>
+            <button onClick={() => setShowAddForm(v => !v)} className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors shadow-sm">
+              <Plus className="w-4 h-4" />Add Flight
+            </button>
+          </div>
+
+          {/* Add flight form */}
+          {showAddForm && (
+            <div className="bg-white border border-blue-200 rounded-xl p-5 shadow-sm animate-fade-in space-y-4">
+              <h3 className="text-sm font-bold text-slate-800">New Flight</h3>
+              <form onSubmit={handleSaveFlight} className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                {[
+                  { label: 'Flight No.', key: 'flight_number', placeholder: 'AL-999' },
+                  { label: 'Origin', key: 'origin_airport', placeholder: 'LAX' },
+                  { label: 'Destination', key: 'destination_airport', placeholder: 'JFK' },
+                ].map(({ label, key, placeholder }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">{label}</label>
+                    <input required value={(newFlight as any)[key]} onChange={e => setNewFlight(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Departure</label>
+                  <input required type="datetime-local" value={newFlight.departure_time} onChange={e => setNewFlight(p => ({ ...p, departure_time: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Base Price ($)</label>
+                  <input required type="number" min={1} value={newFlight.base_price} onChange={e => setNewFlight(p => ({ ...p, base_price: parseInt(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
+                </div>
+                <div className="flex items-end gap-2">
+                  <button type="submit" disabled={flightSaveLoading} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg cursor-pointer transition-colors">
+                    <Save className="w-3.5 h-3.5" />{flightSaveLoading ? 'Saving...' : 'Save'}
+                  </button>
+                  <button type="button" onClick={() => setShowAddForm(false)} className="flex items-center gap-1 text-slate-500 font-semibold text-xs px-3 py-2.5 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                    <X className="w-3.5 h-3.5" />Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Delay management modal */}
+          {delayingFlight && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDelayingFlight(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <h3 className="font-bold text-slate-800 text-sm">Mark Flight Delayed</h3>
+                  </div>
+                  <button onClick={() => setDelayingFlight(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
+                </div>
+                <div className="text-xs text-slate-500">Flight <span className="font-bold text-blue-700">{delayingFlight.flight_number}</span> — {delayingFlight.origin_airport} → {delayingFlight.destination_airport}</div>
+                <form onSubmit={handleMarkDelayed} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Delay (minutes)</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[15, 30, 60, 120].map(m => (
+                        <button key={m} type="button" onClick={() => setDelayMinutes(m)}
+                          className={`py-1.5 text-xs font-bold rounded-lg border cursor-pointer transition-all ${delayMinutes === m ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-200 text-slate-600 hover:border-amber-300'}`}>
+                          {m}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Reason</label>
+                    <input required value={delayReason} onChange={e => setDelayReason(e.target.value)} placeholder="e.g. Technical issue, weather, crew delay"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-slate-800" />
+                  </div>
+                  <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-2.5 rounded-xl text-sm cursor-pointer transition-colors flex items-center justify-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />Confirm Delay
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Flights table */}
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="grid grid-cols-12 gap-2 px-5 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="col-span-2">Flight</div>
+              <div className="col-span-3">Route</div>
+              <div className="col-span-3">Departure</div>
+              <div className="col-span-1">Price</div>
+              <div className="col-span-1">Status</div>
+              <div className="col-span-2">Actions</div>
+            </div>
+            {flights.length === 0 ? (
+              <div className="text-center py-12 text-slate-400"><Plane className="w-8 h-8 mx-auto mb-2 opacity-30 rotate-90" /><p className="text-sm font-semibold">No flights loaded from API.</p></div>
+            ) : (
+              flights.map(f => {
+                const isEditing = editingFlight?.id === f.id;
+                const delayInfo = delays.find(d => d.flight_number === f.flight_number);
+                return (
+                  <div key={f.id} className={`border-b border-slate-100 last:border-0 ${f.status === 'Cancelled' ? 'opacity-50' : ''}`}>
+                    <div className="grid grid-cols-12 gap-2 px-5 py-4 items-center text-sm">
+                    {isEditing ? (
+                      <>
+                        <div className="col-span-2"><input value={editingFlight.flight_number} onChange={e => setEditingFlight(p => p ? { ...p, flight_number: e.target.value } : p)} className="w-full px-2 py-1 border border-blue-300 rounded text-xs" /></div>
+                        <div className="col-span-3 flex gap-1">
+                          <input value={editingFlight.origin_airport} onChange={e => setEditingFlight(p => p ? { ...p, origin_airport: e.target.value } : p)} className="w-16 px-2 py-1 border border-blue-300 rounded text-xs" />
+                          <input value={editingFlight.destination_airport} onChange={e => setEditingFlight(p => p ? { ...p, destination_airport: e.target.value } : p)} className="w-16 px-2 py-1 border border-blue-300 rounded text-xs" />
+                        </div>
+                        <div className="col-span-3"><input type="datetime-local" value={editingFlight.departure_time?.slice(0, 16)} onChange={e => setEditingFlight(p => p ? { ...p, departure_time: e.target.value } : p)} className="w-full px-2 py-1 border border-blue-300 rounded text-xs" /></div>
+                        <div className="col-span-1"><input type="number" value={editingFlight.base_price} onChange={e => setEditingFlight(p => p ? { ...p, base_price: parseInt(e.target.value) } : p)} className="w-full px-2 py-1 border border-blue-300 rounded text-xs" /></div>
+                        <div className="col-span-1" />
+                        <div className="col-span-2 flex gap-1">
+                          <button onClick={handleSaveFlight as any} className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><Save className="w-3 h-3" />Save</button>
+                          <button onClick={() => setEditingFlight(null)} className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1 rounded cursor-pointer"><X className="w-3 h-3" /></button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="col-span-2 font-mono font-bold text-blue-700 text-xs bg-blue-50 border border-blue-100 px-2 py-1 rounded-lg w-fit">{f.flight_number}</div>
+                        <div className="col-span-3 flex items-center gap-1 font-bold text-slate-800 text-xs">{f.origin_airport}<Plane className="w-3 h-3 text-blue-400 rotate-90" />{f.destination_airport}</div>
+                        <div className="col-span-3 text-xs text-slate-600">{new Date(f.departure_time).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                        <div className="col-span-1 font-bold text-slate-800 text-xs">${f.base_price}</div>
+                        <div className="col-span-1">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                            f.status === 'Cancelled' ? 'bg-red-50 text-red-600 border-red-200' :
+                            delayInfo ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}>{f.status === 'Cancelled' ? 'Cancelled' : delayInfo ? `+${delayInfo.delay_minutes}m` : 'Active'}</span>
+                        </div>
+                        <div className="col-span-2 flex gap-1 flex-wrap">
+                          {f.status !== 'Cancelled' && (
+                            <>
+                              <button onClick={() => setEditingFlight(f)} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><Edit2 className="w-3 h-3" />Edit</button>
+                              {delayInfo ? (
+                                <button onClick={() => handleClearDelay(f.flight_number)} className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><CheckCircle2 className="w-3 h-3" />Clear</button>
+                              ) : (
+                                <button onClick={() => setDelayingFlight(f)} className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><Clock className="w-3 h-3" />Delay</button>
+                              )}
+                              <button onClick={() => handleCancelFlight(f)} className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><XCircle className="w-3 h-3" />Cancel</button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    </div>
+                    {delayInfo && f.status !== 'Cancelled' && (
+                      <div className="mx-5 mb-3 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700 font-semibold">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        Delayed {delayInfo.delay_minutes}min — {delayInfo.reason}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

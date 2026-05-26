@@ -1,4 +1,4 @@
-import { ArrowLeft, Ticket, CreditCard, User, Armchair, Loader2 } from 'lucide-react';
+import { ArrowLeft, Ticket, ArrowRight, User, Armchair, Loader2, TrendingUp } from 'lucide-react';
 
 interface Flight {
   flight_number: string;
@@ -138,6 +138,17 @@ export default function SeatSelection({
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-slate-800 text-sm shadow-sm font-mono"
                 />
               </div>
+              {/* Upgrade nudge — show when economy seat selected */}
+              {selectedSeat && parseInt(selectedSeat) > 2 && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs">
+                  <TrendingUp className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="font-bold text-amber-800">Upgrade to Business? </span>
+                    <span className="text-amber-700">Rows 1–2 offer extra legroom and priority boarding for +$50.</span>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={!selectedSeat || isSubmitting}
@@ -146,12 +157,12 @@ export default function SeatSelection({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Confirming booking...</span>
+                    <span>Saving selection...</span>
                   </>
                 ) : (
                   <>
-                    <CreditCard className="w-4 h-4" />
-                    <span>Confirm Booking</span>
+                    <ArrowRight className="w-4 h-4" />
+                    <span>Continue</span>
                   </>
                 )}
               </button>

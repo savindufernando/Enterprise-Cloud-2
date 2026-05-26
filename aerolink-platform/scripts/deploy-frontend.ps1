@@ -9,7 +9,7 @@ $rootDomain = "transnova.shop"
 $region = "eu-west-1"
 
 # Active AWS Load Balancer (Istio Ingress Gateway)
-$albDnsName = "ae701e6c1c62a4e788825bf453ddb563-2102846062.eu-west-1.elb.amazonaws.com"
+$albDnsName = "ac795954c452d408d96fc9a658169632-1093255538.eu-west-1.elb.amazonaws.com"
 $albHostedZoneId = "Z32O12XQLNTSW2" # Canonical Hosted Zone ID for ALBs in eu-west-1
 $s3HostedZoneId = "Z1BKCTXD74EZPE"  # Canonical Hosted Zone ID for S3 Web Hosting in eu-west-1
 

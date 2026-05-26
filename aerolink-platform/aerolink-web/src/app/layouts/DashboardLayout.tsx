@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  Plane, Activity, ConciergeBell, Shield, Radio, LogOut, 
-  User, RefreshCw, Layers, Terminal, CheckCircle
+import {
+  Plane, Activity, ConciergeBell, Shield, Radio, LogOut,
+  User, RefreshCw, Layers, Terminal, CheckCircle, Moon, Sun
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -17,6 +17,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<'UP' | 'DOWN'>('UP');
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('aerolink_dark_mode') === 'true' || (localStorage.getItem('aerolink_dark_mode') === null && window.matchMedia('(prefers-color-scheme: dark)').matches); } catch { return false; }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('aerolink_dark_mode', String(darkMode));
+  }, [darkMode]);
 
   // Check Gateway Health on mount
   useEffect(() => {
@@ -266,6 +274,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
               )}
             </div>
+
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setDarkMode(d => !d)}
+              className="p-2 border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg transition-all cursor-pointer"
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
 
             {/* Logout trigger */}
             <button

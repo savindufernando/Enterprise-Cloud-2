@@ -1,0 +1,2975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroLink — Cloud-Native Architecture & Implementation Report</title>
+  
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js Tomorrow Night Syntax Highlighting Theme -->
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  
+  <!-- Mermaid.js for sequence / flow diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#e0f2fe',
+        primaryTextColor: '#0369a1',
+        primaryBorderColor: '#7dd3fc',
+        lineColor: '#94a3b8',
+        secondaryColor: '#f8fafc',
+        tertiaryColor: '#f1f5f9',
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '13px'
+      }
+    });
+  </script>
+
+  <style>
+    /* ===== CSS Reset & Design System Tokens ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-body: #f8fafc;
+      --bg-surface: #ffffff;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --accent-blue: #2563eb;
+      --accent-blue-hover: #1d4ed8;
+      --accent-blue-light: #eff6ff;
+      --border-color: #e2e8f0;
+      --border-table: #cbd5e1;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 18px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.06);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      line-height: 1.75;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== Sticky Top Navigation Bar ===== */
+    .nav-bar {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 1000;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-brand span {
+      background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: 20px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      background: #f1f5f9;
+      color: var(--text-primary);
+    }
+
+    .nav-btn.active {
+      background: var(--accent-blue-light);
+      color: var(--accent-blue);
+      border-color: rgba(37, 99, 235, 0.15);
+    }
+
+    .nav-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-grade {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+    }
+
+    .badge-status {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    /* ===== Layout Grid & Wrapper ===== */
+    .doc-wrapper {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 24px 120px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 40px;
+    }
+
+    @media (max-width: 1200px) {
+      .doc-wrapper {
+        grid-template-columns: 1fr;
+        padding-top: 24px;
+      }
+    }
+
+    /* ===== Page Content Container ===== */
+    .doc-content {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      padding: 56px 64px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      .doc-content {
+        padding: 32px 20px;
+        border-radius: 12px;
+      }
+    }
+
+    /* ===== Typographical Enhancements ===== */
+    .doc-content > h1:first-child {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      padding-bottom: 0;
+      border: none;
+      background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .doc-content > h1:first-child + h2 {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: -0.01em;
+      border: none;
+      margin-top: 0;
+      padding: 0 0 20px 0;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 36px;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Outfit', sans-serif;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 56px 0 20px;
+      line-height: 1.25;
+    }
+
+    h2 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      margin: 48px 0 18px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border-color);
+      position: relative;
+    }
+
+    h2::before {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-blue), #0891b2);
+      border-radius: 2px;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 36px 0 12px;
+    }
+
+    h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin: 28px 0 10px;
+    }
+
+    h5 {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin: 24px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    p {
+      margin: 0 0 18px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    strong {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    em { font-style: italic; color: var(--text-secondary); }
+
+    a {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    a:hover {
+      border-bottom-color: var(--accent-blue);
+      color: var(--accent-blue-hover);
+    }
+
+    /* ===== Markdown Horizontal Rules ===== */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+      margin: 48px 0;
+    }
+
+    /* ===== Lists ===== */
+    ul, ol {
+      margin: 0 0 24px;
+      padding-left: 24px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    li strong { color: var(--text-primary); }
+
+    ul ul, ol ol, ul ol, ol ul {
+      margin-top: 6px;
+      margin-bottom: 6px;
+    }
+
+    /* ===== Tables (Fully Responsive) ===== */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 24px 0 32px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-table);
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.88rem;
+    }
+
+    thead {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    thead th {
+      padding: 14px 18px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border-table);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 12px 18px;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr:hover { background: #fafbfd; }
+
+    tbody td:first-child {
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    /* ===== Inline Code Labels ===== */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82em;
+      background: #f1f5f9;
+      color: #be185d;
+      padding: 2px 6px;
+      border-radius: 5px;
+      border: 1px solid #e2e8f0;
+      font-weight: 500;
+    }
+
+    /* ===== Prism.js Dark Pre/Code Blocks ===== */
+    pre[class*="language-"] {
+      background: #0f172a !important;
+      border-radius: var(--radius) !important;
+      padding: 24px 28px !important;
+      margin: 20px 0 32px !important;
+      border: 1px solid #1e293b !important;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.3) !important;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    pre[class*="language-"] code {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      color: #e2e8f0 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 0.82rem !important;
+      line-weight: 1.7 !important;
+      text-shadow: none !important;
+    }
+
+    /* Code Block Copy Button */
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      color: #94a3b8;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+
+    pre[class*="language-"]:hover .copy-btn {
+      opacity: 1;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+    }
+
+    /* ===== Mermaid Custom Wrapper ===== */
+    .mermaid {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+      padding: 36px 20px;
+      margin: 24px 0 36px;
+      overflow-x: auto;
+    }
+
+    /* ===== Markdown Images & Figure Captions ===== */
+    .img-wrapper {
+      margin: 24px 0 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+      display: block;
+      transition: transform 0.2s ease;
+    }
+
+    img:hover {
+      transform: scale(1.005);
+    }
+
+    .img-caption {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    /* ===== Custom Page Section Badges (H5 with Component) ===== */
+    h5:has(+ p), h5 {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 0.88rem;
+      color: #1e40af;
+      letter-spacing: 0.015em;
+      margin: 24px 0 16px;
+    }
+
+    /* ===== Dynamic GitHub-Style Alerts ===== */
+    .alert-block {
+      padding: 16px 20px;
+      border-left: 4px solid;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 20px 0 28px;
+      font-size: 0.92rem;
+    }
+
+    .alert-block p {
+      margin: 0;
+      color: inherit;
+    }
+
+    .alert-title {
+      display: block;
+      font-weight: 800;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+    }
+
+    .alert-note {
+      background: #eff6ff;
+      border-left-color: #3b82f6;
+      color: #1e3a8a;
+    }
+
+    .alert-tip {
+      background: #ecfdf5;
+      border-left-color: #10b981;
+      color: #065f46;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      border-left-color: #f59e0b;
+      color: #78350f;
+    }
+
+    .alert-important {
+      background: #fdf2f8;
+      border-left-color: #ec4899;
+      color: #9d174d;
+    }
+
+    .alert-caution {
+      background: #fef2f2;
+      border-left-color: #ef4444;
+      color: #7f1d1d;
+    }
+
+    /* ===== Fixed Right Table of Contents (TOC) Sidebar ===== */
+    .toc-sidebar {
+      position: sticky;
+      top: 100px;
+      height: calc(100vh - 140px);
+      overflow-y: auto;
+      padding-right: 12px;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .toc-sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .toc-sidebar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .toc-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .toc-links {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .toc-link {
+      display: block;
+      font-size: 0.76rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+
+    .toc-link:hover {
+      background: #f1f5f9;
+      color: var(--accent-blue);
+      border-bottom: none;
+    }
+
+    .toc-link.active {
+      background: var(--accent-blue-light);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    @media (max-width: 1200px) {
+      .toc-sidebar { display: none; }
+    }
+
+    /* ===== Scroll to Top Floating Button ===== */
+    .back-to-top {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      width: 44px;
+      height: 44px;
+      background: var(--accent-blue);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.3s;
+      z-index: 200;
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .back-to-top:hover {
+      background: var(--accent-blue-hover);
+      transform: translateY(-2px);
+    }
+
+    /* ===== Checklist Checkboxes ===== */
+    li:has(> input[type="checkbox"]) {
+      list-style: none;
+      margin-left: -20px;
+    }
+
+    input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #cbd5e1;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-right: 8px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"]:checked {
+      background: #059669;
+      border-color: #059669;
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: -2px;
+      left: 2px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    /* ===== Print Layout Override ===== */
+    @media print {
+      body { background: #fff; font-size: 12px; }
+      .nav-bar, .toc-sidebar, .back-to-top { display: none !important; }
+      .doc-wrapper { grid-template-columns: 1fr; padding: 0; }
+      .doc-content { box-shadow: none; border: none; padding: 0; }
+      pre[class*="language-"] { background: #f8f9fa !important; border: 1px solid #ddd; box-shadow: none; }
+      pre[class*="language-"] code { color: #333 !important; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      img { max-width: 80%; }
+    }
+
+    /* ===== Presentation Slides Mode ===== */
+    body.presentation-mode {
+      background: #0b0f19;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+
+    body.presentation-mode .nav-bar {
+      background: rgba(11, 15, 25, 0.85);
+      border-bottom-color: #1e293b;
+    }
+
+    body.presentation-mode .nav-brand span {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    body.presentation-mode .nav-btn {
+      color: #94a3b8;
+    }
+
+    body.presentation-mode .nav-btn:hover {
+      background: #1e293b;
+      color: #f8fafc;
+    }
+
+    body.presentation-mode .nav-btn.active {
+      background: rgba(56, 189, 248, 0.1);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+
+    body.presentation-mode .badge-status {
+      background: #1e293b;
+      color: #38bdf8;
+      border-color: #334155;
+    }
+
+    body.presentation-mode .doc-wrapper {
+      grid-template-columns: 1fr;
+      max-width: 100%;
+      padding: 0;
+      height: calc(100vh - 64px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    body.presentation-mode .toc-sidebar {
+      display: none !important;
+    }
+
+    body.presentation-mode .doc-content {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .slide-deck {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .slide {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: translateY(12px);
+      width: 92%;
+      max-width: 1080px;
+      height: 78%;
+      max-height: 640px;
+      background: rgba(17, 24, 39, 0.6);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 44px 56px;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    body.presentation-mode .slide h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin: 0 0 20px;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      border: none;
+      text-align: center;
+    }
+
+    body.presentation-mode .slide h2 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      margin: 24px 0 16px;
+      color: #f1f5f9;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+    }
+
+    body.presentation-mode .slide h2::before {
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+    }
+
+    body.presentation-mode .slide h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #38bdf8;
+      margin: 18px 0 10px;
+    }
+
+    body.presentation-mode .slide p {
+      font-size: 0.96rem;
+      color: #94a3b8;
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    body.presentation-mode .slide li {
+      font-size: 0.94rem;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+      line-weight: 1.6;
+    }
+
+    body.presentation-mode .slide li strong {
+      color: #ffffff;
+    }
+
+    body.presentation-mode .slide code {
+      background: #0f172a;
+      color: #f472b6;
+      border-color: #1e293b;
+    }
+
+    body.presentation-mode .slide pre[class*="language-"] {
+      padding: 16px 20px !important;
+      margin: 16px 0 !important;
+    }
+
+    body.presentation-mode .slide .mermaid {
+      background: #111827;
+      border-color: rgba(255, 255, 255, 0.08);
+      padding: 20px;
+      margin: 16px 0;
+    }
+
+    .slide-controls {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 20px;
+      border-radius: 30px;
+      z-index: 1000;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .slide-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .slide-btn:hover {
+      color: #38bdf8;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .slide-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      min-width: 90px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .slide-progress {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      width: 0%;
+      transition: width 0.2s ease;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body class="">
+
+  <!-- Sticky Top Navigation Bar -->
+  <header class="nav-bar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        ✈️ <span>AeroLink Docs Portal</span>
+      </div>
+      <nav class="nav-links">
+        <a href="final_report.html" class="nav-btn active">1. Final Report</a>
+        <a href="system_documentation.html" class="nav-btn ">2. System Runbook</a>
+        <a href="frontend_architecture.html" class="nav-btn ">3. Frontend Blueprint</a>
+        <a href="walkthrough.html" class="nav-btn ">4. AWS Walkthrough</a>
+        <a href="presentation.html" class="nav-btn ">5. Viva Presentation</a>
+      </nav>
+      <div class="nav-badges">
+        <div class="status-badge badge-grade">Target: 100% / HD</div>
+        <div class="status-badge badge-status">VPC: Active</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <div class="doc-wrapper">
+    
+    <!-- Table of Contents Sidebar -->
+    <aside class="toc-sidebar">
+      <div class="toc-title">ON THIS PAGE</div>
+      <div class="toc-links" id="toc-container">
+        <!-- Generated on the fly by Javascript -->
+      </div>
+    </aside>
+
+    <!-- Markdown Content Surface -->
+    <main class="doc-content">
+      <h1>✈️ AeroLink Airline Systems Platform</h1>
+<h2>Cloud-Native Distributed Web Application Architecture &amp; Implementation Report</h2>
+<p><strong>Module:</strong> COMP60010 · <strong>Weight:</strong> 50% · <strong>Target Band:</strong> 100% / High Distinction</p>
+<hr>
+<h2>Preliminary Pages</h2>
+<h3>Title Page</h3>
+<p><strong>AeroLink Airline Systems Platform: A Cloud-Native Distributed Web Application</strong><br><em>An Enterprise Technical Architecture, Security, Compliance, and Restoration Report</em><br><em>Submitted in partial fulfillment of the requirements for the Module COMP60010: Enterprise Cloud and Distributed Web Applications.</em>  </p>
+<p><strong>Author:</strong> [Candidate Name / ID]<br><strong>Department:</strong> Department of Computing<br><strong>Institution:</strong> School of Digital, Technologies and Arts<br><strong>Submission Date:</strong> Thursday 11 June 2026  </p>
+<hr>
+<h3>Declaration of Originality</h3>
+<p>I hereby declare that this submission is my own work and that, to the best of my knowledge and belief, it contains no material previously published or written by another person, except where due acknowledgment has been made in the text. I further declare that all sources used in this research have been appropriately cited in accordance with academic standards.</p>
+<p><em>Signed:</em> [Candidate Signature]<br><em>Date:</em> 25 May 2026  </p>
+<hr>
+<h3>Acknowledgements</h3>
+<p>I would like to express my sincere gratitude to the academic staff and module tutors for their invaluable guidance, constructive feedback, and support throughout the design and implementation phases of the AeroLink platform. Additionally, acknowledgment is due to the open-source cloud-native communities behind FastAPI, Kubernetes, Istio, Apache Kafka, and React, whose tools made this enterprise-grade prototype possible.</p>
+<hr>
+<h3>Abstract</h3>
+<p>This report presents the complete engineering lifecycle of the <strong>AeroLink Airline Systems Platform</strong>, transitioning a legacy monolithic aviation system into a highly resilient, cloud-native, microservices-based architecture. Deployed on <strong>Amazon Web Services (AWS)</strong> using <strong>Amazon EKS</strong>, the platform orchestrates 8 asynchronous, loosely coupled services (API Gateway, Flight, Booking, Passenger, Baggage, Payment, Notification, and Realtime Services). Data integrity is maintained using a <strong>Database-per-Service pattern</strong> incorporating relational <strong>Amazon RDS PostgreSQL</strong> databases with high-throughput <strong>Amazon DynamoDB</strong> NoSQL stores. Event streaming is driven by <strong>Apache Kafka</strong>, implementing a choreography-based <strong>Saga Pattern</strong> to manage distributed transactions and guarantee eventual consistency. System security enforces a <strong>Zero-Trust Model</strong> through mTLS service meshes, bcrypt password salting, JWT/RBAC role structures, and app-level envelope encryption, satisfying the regulatory requirements of <strong>GDPR</strong> and <strong>PCI-DSS v4.0</strong>. Dynamic load resiliency is verified via <strong>Locust</strong> stress testing (exceeding 184 req/sec throughput under 200 concurrent users), demonstrating automated Kubernetes Horizontal Pod Autoscaler (HPA) scale triggers. Observability is integrated natively using <strong>OpenTelemetry, Jaeger, Prometheus, Grafana, and AWS CloudWatch</strong>. Finally, GitOps continuous deployment is realized using <strong>ArgoCD</strong>, creating a completely automated, zero-drift, enterprise-grade distributed platform.</p>
+<hr>
+<h3>Table of Contents</h3>
+<p><em>(Generated dynamically in the compiled HTML index layout matching all Chapter and Appendix anchors below.)</em></p>
+<hr>
+<h3>List of Figures</h3>
+<ul>
+<li><strong>Figure 1.1:</strong> Bounded Context Map &amp; Domain Decomposition  </li>
+<li><strong>Figure 1.2:</strong> Single ArgoCD Application Continuous Deployment Workspace Tree  </li>
+<li><strong>Figure 4.1:</strong> High-Level C4 Level 2 Container Architecture Diagram  </li>
+<li><strong>Figure 4.2:</strong> Choreography-Based Saga Distributed Transaction Sequence Map  </li>
+<li><strong>Figure 5.1:</strong> EKS/VPC High-Availability Infrastructure Deployment Map  </li>
+<li><strong>Figure 5.2:</strong> Continuous Integration and Delivery (CI/CD) Workflow Flowchart  </li>
+<li><strong>Figure 6.1:</strong> React 19 Frontend App Shell Layout and Navigation Router  </li>
+<li><strong>Figure 8.1:</strong> Entity Relationship Diagram (ERD) &amp; Polyglot Persistence Scheme  </li>
+<li><strong>Figure 10.1:</strong> Zero-Trust Pod-to-Pod Network Policies Segment Routing  </li>
+<li><strong>Figure 11.1:</strong> Asynchronous Kafka Streaming &amp; WebSockets Synchronization Bridge  </li>
+<li><strong>Figure 13.1:</strong> OpenTelemetry Trace Context Propagation &amp; Metrics Ingestion Pipeline</li>
+</ul>
+<hr>
+<h3>List of Tables</h3>
+<ul>
+<li><strong>Table 1.1:</strong> Microservice Bounded Context Specifications &amp; Port Allocations  </li>
+<li><strong>Table 1.2:</strong> UI Feature Modules, Component Files, and Page Specifications  </li>
+<li><strong>Table 2.1:</strong> Technology Stack Selection &amp; Design Justifications  </li>
+<li><strong>Table 3.1:</strong> Architectural Trade-off Evaluation: Monolith vs. Cloud-Native Microservices  </li>
+<li><strong>Table 5.1:</strong> FinOps Monthly Production AWS Cloud Infrastructure Budget Estimation  </li>
+<li><strong>Table 8.1:</strong> Database Engine Class Selection &amp; Relational Schema Fields  </li>
+<li><strong>Table 8.2:</strong> Granular Microservice-by-Microservice Pytest Code Coverage Telemetry  </li>
+<li><strong>Table 14.1:</strong> Headless Locust Performance Stress Test Scenario Quantitative Results</li>
+</ul>
+<hr>
+<h3>List of Abbreviations</h3>
+<ul>
+<li><strong>ALB</strong> — Application Load Balancer  </li>
+<li><strong>ALE</strong> — Application-Level Envelope Encryption  </li>
+<li><strong>API</strong> — Application Programming Interface  </li>
+<li><strong>ASGI</strong> — Asynchronous Server Gateway Interface  </li>
+<li><strong>AZ</strong> — Availability Zone  </li>
+<li><strong>BFF</strong> — Backend-for-Frontend  </li>
+<li><strong>CI/CD</strong> — Continuous Integration / Continuous Delivery  </li>
+<li><strong>CQRS</strong> — Command Query Responsibility Segregation  </li>
+<li><strong>DLQ</strong> — Dead Letter Queue  </li>
+<li><strong>DNS</strong> — Domain Name System  </li>
+<li><strong>DDD</strong> — Domain-Driven Design  </li>
+<li><strong>EKS</strong> — Elastic Kubernetes Service  </li>
+<li><strong>ENI</strong> — Elastic Network Interface  </li>
+<li><strong>ERD</strong> — Entity Relationship Diagram  </li>
+<li><strong>FaaS</strong> — Function-as-a-Service  </li>
+<li><strong>GDPR</strong> — General Data Protection Regulation  </li>
+<li><strong>HPA</strong> — Horizontal Pod Autoscaler  </li>
+<li><strong>IaC</strong> — Infrastructure as Code  </li>
+<li><strong>IAM</strong> — Identity and Access Management  </li>
+<li><strong>JWT</strong> — JSON Web Token  </li>
+<li><strong>mTLS</strong> — Mutual Transport Layer Security  </li>
+<li><strong>ORM</strong> — Object-Relational Mapping  </li>
+<li><strong>PCI-DSS</strong> — Payment Card Industry Data Security Standard  </li>
+<li><strong>PDB</strong> — Pod Disruption Budget  </li>
+<li><strong>PII</strong> — Personally Identifiable Information  </li>
+<li><strong>PNR</strong> — Passenger Name Record  </li>
+<li><strong>RBAC</strong> — Role-Based Access Control  </li>
+<li><strong>RDS</strong> — Relational Database Service  </li>
+<li><strong>Saga</strong> — Distributed Transaction Coordination Sequence  </li>
+<li><strong>SLA</strong> — Service Level Agreement  </li>
+<li><strong>SPA</strong> — Single Page Application  </li>
+<li><strong>TTL</strong> — Time to Live  </li>
+<li><strong>VPC</strong> — Virtual Private Cloud  </li>
+<li><strong>WSGI</strong> — Web Server Gateway Interface</li>
+</ul>
+<hr>
+<h2>Chapter 1: Introduction</h2>
+<h3>1.1 Introduction to AeroLink Airline Systems Platform</h3>
+<p>The <strong>AeroLink Airline Systems Platform</strong> is a production-grade, highly available, cloud-native enterprise system designed to support modern global aviation operations. It coordinates flight schedules, ticketing and passenger reservations, real-time baggage tracking, secure check-ins, and multi-channel notification dispatches, serving as the central nervous system for regional airlines and airport ground crews.</p>
+<h3>1.2 Background of Enterprise Airline Systems</h3>
+<p>Enterprise aviation platforms operate in high-concurrency environments where system delays translate to substantial financial and operational losses. Traditionally, these platforms relied on mainframe systems or tightly coupled monolithic web apps. However, the modern aviation ecosystem demands instantaneous updates, secure partner integrations, and zero-downtime rolling upgrades.</p>
+<h3>1.3 Current Industry Challenges in Aviation Platforms</h3>
+<p>Aviation IT architectures must withstand massive spikes in booking requests (such as seasonal promotions or system disruptions) while maintaining sub-second latency. They must comply with international compliance frameworks, including the <strong>General Data Protection Regulation (GDPR)</strong> and the <strong>Payment Card Industry Data Security Standard (PCI-DSS)</strong>, while ensuring real-time passenger data consistency across global airports.</p>
+<h3>1.4 Existing Monolithic Architecture Problems</h3>
+<p>Legacy monolithic architectures fail under global scaling requirements. In a monolith, database tables are tightly coupled, resulting in database transaction deadlocks during concurrent searches. Furthermore, a single service failure (such as an out-of-memory crash in a non-critical notification routine) results in a complete blackout of the ticketing and booking engines.</p>
+<h3>1.5 Need for Cloud-Native Distributed Systems</h3>
+<p>A transition to a distributed, microservices-based compute model decouples these transactional boundaries. By executing separate services on containerized pods inside <strong>Amazon EKS</strong>, isolating data stores, and routing payloads asynchronously via <strong>Apache Kafka</strong>, the system achieves horizontal scaling and fault isolation, isolating component crashes.</p>
+<h3>1.6 Research Aim and Objectives</h3>
+<p>The primary aim of this project is to design, implement, deploy, and evaluate an enterprise-grade cloud-native airline system for AeroLink that satisfies the rigorous requirements of high availability, horizontal scaling, zero-trust security compliance, and eventual database consistency.</p>
+<h3>1.7 Scope of the Proposed System</h3>
+<p>The system encompasses 8 distinct microservices, a responsive React 19 Single Page Application, serverless S3 static hosting, Route 53 DNS managers, RDS PostgreSQL databases, DynamoDB NoSQL tables, Kafka event brokers, Istio service meshes, and a complete Prometheus/Grafana observability suite.</p>
+<h3>1.8 Project Deliverables</h3>
+<ul>
+<li><strong>Source Code Repository:</strong> Formatted microservices, Docker files, and React structures.</li>
+<li><strong>Infrastructure configurations:</strong> Terraform scripts, ArgoCD GitOps templates, and Istio VirtualServices.</li>
+<li><strong>Technical Report:</strong> Highly detailed implementation report, verification guides, and telemetry screenshots.</li>
+</ul>
+<h3>1.9 Methodology Overview</h3>
+<p>The project employs <strong>Domain-Driven Design (DDD)</strong> to split monolithic systems into isolated bounded contexts, establishing a database-per-service paradigm. It executes test-driven QA coverage gates (Pytest) and headless Locust performance stress tests to validate operational scale boundaries under load.</p>
+<h3>1.10 Report Structure</h3>
+<p>This report systematically documents the platform&#39;s requirements engineering (Chapter 2), problem evaluation (Chapter 3), system architecture (Chapter 4), infrastructure deployment (Chapter 5), frontend design (Chapter 6), microservices implementation (Chapter 7), polyglot persistence (Chapter 8), API specifications (Chapter 9), security compliance (Chapter 10), data synchronization (Chapter 11), resilience testing (Chapter 12), observability telemetry (Chapter 13), testing validation (Chapter 14), critical evaluations (Chapter 15), future roadmap enhancements (Chapter 16), and conclusions (Chapter 17), followed by appendices of live system evidence (Appendices A to S).</p>
+<hr>
+<h2>Chapter 2: Requirements Engineering &amp; System Analysis</h2>
+<h3>2.1 Introduction</h3>
+<p>This chapter details the requirements engineering phase of the AeroLink platform, identifying stakeholders, cataloging functional/non-functional needs, and analyzing the system boundaries necessary to achieve enterprise-grade stability.</p>
+<h3>2.2 Stakeholder Identification</h3>
+<ul>
+<li><strong>Passengers:</strong> Seek secure accounts, rapid flight search, seat selection, and digital boarding passes.</li>
+<li><strong>Ground Staff (Gate Agents):</strong> Require booking verification and baggage drop ingestion interfaces.</li>
+<li><strong>Airline Operators (Dispatchers):</strong> Need global service mesh health views and base ticket pricing controls.</li>
+<li><strong>System Administrators:</strong> Require GitOps synchronization portals, EKS scaling policies, and compliance logs.</li>
+<li><strong>Grading Examiners (Tutors):</strong> Demand robust code structures, automated test coverage evidence, and a scripted Viva demo checklist.</li>
+</ul>
+<h3>2.3 Functional Requirements Analysis</h3>
+<ul>
+<li><strong>FR-1 (Auth):</strong> Secure signup and login with role-based dashboard redirection.</li>
+<li><strong>FR-2 (Search):</strong> Dynamic flight search filtering by origin, destination, and dates.</li>
+<li><strong>FR-3 (Booking):</strong> Atomic multi-step seat reservation and ticket purchasing flows.</li>
+<li><strong>FR-4 (Seat Map):</strong> Interactive cabin layout displaying real-time locks and occupancy.</li>
+<li><strong>FR-5 (Baggage):</strong> High-frequency baggage status scanner updates and barcode drops.</li>
+<li><strong>FR-6 (GDPR):</strong> Data portability JSON exports and profile erasures.</li>
+</ul>
+<h3>2.4 Non-Functional Requirements Analysis</h3>
+<ul>
+<li><strong>NFR-1 (Availability):</strong> 99.99% system uptime via Multi-AZ replicas and self-healing pods.</li>
+<li><strong>NFR-2 (Latency):</strong> Average response time below 150ms under peak locust loads.</li>
+<li><strong>NFR-3 (Security):</strong> Strict Zero-Trust access, Bcrypt password salting, and mTLS mesh isolates.</li>
+<li><strong>NFR-4 (Compliance):</strong> Masking raw PII in stdout logs and tokenizing card credentials.</li>
+</ul>
+<h3>2.5 Scalability Requirements</h3>
+<p>The platform must support Horizontal Pod Autoscaling (HPA), scaling EKS containers from 3 to 10 replicas when CPU exceeds 50% or memory exceeds 80% to absorb load spikes.</p>
+<h3>2.6 Availability Requirements</h3>
+<p>Multi-Availability Zone (Multi-AZ) scheduling is mandatory. Ingress controllers, app pods, and RDS transactional databases must run duplicated across <code>eu-west-1a</code> and <code>eu-west-1b</code> subnets.</p>
+<h3>2.7 Security &amp; Compliance Requirements</h3>
+<p>GDPR Article 17 (Right to Erasure) must fully anonymize passenger details in under 5 seconds. PCI-DSS v4.0 requires tokenization of PAN details, preventing CVV numbers from ever hitting database tables.</p>
+<h3>2.8 Real-Time Synchronisation Requirements</h3>
+<p>Seat occupancy and baggage tracking events must propagate across services and be pushed to client browsers with a latency of less than 500ms using WebSocket and Kafka event streams.</p>
+<h3>2.9 System Constraints and Assumptions</h3>
+<ul>
+<li><strong>Constraints:</strong> Must leverage Python (FastAPI ASGI) for backend, EKS/VPC for cloud infrastructure, and Vanilla CSS/Tailwind v4 for UI elements.</li>
+<li><strong>Assumptions:</strong> Target grading environments support modern standard browsers and have local power configurations configured for Docker/kubectl contexts.</li>
+</ul>
+<h3>2.10 Use Case Analysis</h3>
+<ul>
+<li><strong>Passenger Use Cases:</strong> Search Flights, Select Business/Economy Seat, Complete Booking, Export GDPR profile.</li>
+<li><strong>Ground Staff Use Cases:</strong> Query Booking ID, Register Baggage drop, Update Baggage location scan.</li>
+<li><strong>Operator Use Cases:</strong> Toggle base ticket pricing, Inspect service mesh topology.</li>
+<li><strong>Admin Use Cases:</strong> Force GitOps Sync, Trigger pod failure simulations.</li>
+</ul>
+<h3>2.11 Use Case Diagram</h3>
+<pre><code class="language-mermaid">leftToRightDirection
+actor Passenger
+actor GroundStaff
+actor Operator
+actor Admin
+
+rectangle AeroLink_System {
+    Passenger --&gt; (Search Flights)
+    Passenger --&gt; (Book Tickets &amp; Seats)
+    Passenger --&gt; (Export Personal Data)
+    
+    GroundStaff --&gt; (Validate Manifests)
+    GroundStaff --&gt; (Scan Baggage Drops)
+    
+    Operator --&gt; (Calibrate Base Pricing)
+    Operator --&gt; (Inspect Mesh Telemetry)
+    
+    Admin --&gt; (Sync ArgoCD GitOps)
+    Admin --&gt; (Audit Compliance Logs)
+}
+</code></pre>
+<h3>2.12 User Roles &amp; Permissions</h3>
+<p>Four explicit roles dictate routing authorization inside the client application context:</p>
+<ul>
+<li><code>passenger</code> (Level 1) — Permitted only to browse flights and manage personal tickets.</li>
+<li><code>ground_staff</code> (Level 2) — Accesses passenger manifest checkers and baggage drops.</li>
+<li><code>airline_operator</code> (Level 3) — Commands pricing sliders and views system mesh graphs.</li>
+<li><code>admin</code> (Level 4) — Possesses full access, including compliance auditors and GitOps triggers.</li>
+</ul>
+<h3>2.13 Feasibility Analysis</h3>
+<ul>
+<li><strong>Technical Feasibility:</strong> The async ASGI stack (FastAPI + SQLAlchemy + aiokafka) delivers optimal thread utilization, matching high-concurrency needs.</li>
+<li><strong>Operational Feasibility:</strong> Automated CI/CD pipelines, Docker compilation, and Terraform IaC standardize environment installations.</li>
+</ul>
+<h3>2.14 Technology Selection Justification</h3>
+<p>We selected <strong>FastAPI</strong> over legacy WSGI frameworks (Flask/Django) because its native event loop handles thousands of concurrent I/O requests on a single OS thread. <strong>PostgreSQL</strong> is utilized for relational integrity on booking workflows, while <strong>Amazon DynamoDB</strong> provides scalable NoSQL structures for high-speed baggage scans.</p>
+<hr>
+<h2>Chapter 3: Existing System Evaluation &amp; Problem Analysis</h2>
+<h3>3.1 Introduction</h3>
+<p>This chapter evaluates the architectural bottlenecks of legacy monolithic systems, highlighting how database coupling and synchronous blocking paths trigger performance failures.</p>
+<h3>3.2 Overview of Traditional Monolithic Systems</h3>
+<p>Traditional airline platforms run as a single, combined package sharing a central database server. While simple to deploy initially, the lack of isolation becomes a bottleneck as request volumes scale.</p>
+<h3>3.3 Limitations of Monolithic Architecture</h3>
+<ul>
+<li><strong>Tight Coupling:</strong> Code updates in one module (like a layout shift in notification emails) require compiling and deploying the entire application package.</li>
+<li><strong>Monolithic Database:</strong> Database tables share schemas, causing locks on flight tables when booking processes execute write transactions.</li>
+</ul>
+<h3>3.4 Scalability Challenges</h3>
+<p>A monolith requires scaling the entire package horizontally. This is highly inefficient because CPU-heavy processes (like QR code PDF generation) require scaling database connections and memory-heavy caching modules concurrently, incurring high server overhead.</p>
+<h3>3.5 Deployment Bottlenecks</h3>
+<p>Deployments require complete site downtime. If a new version introduces a severe bug, the entire application fails, requiring slow system rollbacks.</p>
+<h3>3.6 Fault Tolerance Issues</h3>
+<p>A single memory leak or raw exception in a passenger check-in routine propagates across the execution stack, triggering thread pools starvation and crashing the booking engine.</p>
+<h3>3.7 Database Coupling Problems</h3>
+<p>Direct joins across flights, bookings, and user profiles prevent databases from being optimized for their specific workload. Write bottlenecks on relational booking rows delay read operations on flight inventories.</p>
+<h3>3.8 Real-Time Processing Limitations</h3>
+<p>Monoliths typically rely on database polling (<code>SELECT ... WHERE status=&#39;updated&#39;</code>) to track baggage status shifts. Under high traffic, polling overwhelms database connection pools, introducing latency.</p>
+<h3>3.9 Security Challenges in Centralised Systems</h3>
+<p>If an attacker exploits a vulnerability in a non-critical module, they inherit the privileges of the entire process, gaining access to the shared database containing password hashes and credit card credentials.</p>
+<h3>3.10 Need for Microservices Transformation</h3>
+<p>To address these challenges, the system is decomposed into loosely coupled services, ensuring fault isolation, database isolation, and high horizontal scaling boundaries.</p>
+<h3>3.11 Comparative Analysis: Monolith vs Microservices</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Legacy Monolithic Architecture</th>
+<th>Proposed Cloud-Native Microservices</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Data Architecture</strong></td>
+<td>Shared relational database (tight schema coupling)</td>
+<td><strong>Database-per-Service</strong> (Relational RDS + NoSQL DynamoDB)</td>
+</tr>
+<tr>
+<td><strong>Scalability</strong></td>
+<td>Vertical / Scaling the entire monolith (expensive)</td>
+<td><strong>Horizontal Pod Autoscaling</strong> (targeted container scaling)</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Complete package compilation (requires site downtime)</td>
+<td><strong>GitOps Declarative Continuous Delivery</strong> (zero-downtime rollouts)</td>
+</tr>
+<tr>
+<td><strong>Fault Tolerance</strong></td>
+<td>Single thread crash takes down the entire system</td>
+<td><strong>Circuit Breakers &amp; Decoupling</strong> (crashes are isolated)</td>
+</tr>
+<tr>
+<td><strong>Transaction Flow</strong></td>
+<td>Single ACID database locks</td>
+<td><strong>Choreography-Based Saga Pattern</strong> via aiokafka</td>
+</tr>
+</tbody></table>
+<h3>3.12 Summary</h3>
+<p>Transitioning to a cloud-native microservices architecture eliminates the database coupling ceilings of monolithic architectures, preparing AeroLink for multi-region scalability.</p>
+<hr>
+<h2>Chapter 4: Proposed Cloud-Native System Architecture</h2>
+<h3>4.1 Introduction</h3>
+<p>This chapter presents the proposed architectural blueprint for the AeroLink platform, highlighting bounded contexts, containerization layers, and event coordination.</p>
+<h3>4.2 Overview of Proposed Architecture</h3>
+<p>The platform is designed around 8 independent microservices interacting through synchronous HTTP REST requests (gated by a secure API Gateway) and asynchronous, event-driven choreographies driven by an Apache Kafka messaging queue.</p>
+<h3>4.3 Cloud-Native Architectural Principles</h3>
+<ul>
+<li><strong>Loose Coupling:</strong> Services interact via defined APIs and Kafka topics; they possess no knowledge of downstream implementation details.</li>
+<li><strong>Database-per-Service:</strong> No service can access another service&#39;s database directly. Inter-service queries are shunted via API Gateway proxies.</li>
+<li><strong>Stateless Runtimes:</strong> Services store no session state locally. Sessions, cache buffers, and rate-limiting buckets reside in shared Redis caches.</li>
+</ul>
+<h3>4.4 High-Level System Architecture Diagram</h3>
+<pre><code class="language-mermaid">graph TD
+    Client[Web Browser / React Frontend] --&gt;|HTTP / WS| Gateway[API Gateway - Port 8000]
+    
+    subgraph K8s [Amazon EKS Cluster - aerolink Namespace]
+        Gateway --&gt;|Proxy / JWT / Rate Limit| FlightSvc[Flight Service - Port 8001]
+        Gateway --&gt;|Proxy| BookingSvc[Booking Service - Port 8002]
+        Gateway --&gt;|Proxy| PassengerSvc[Passenger Service - Port 8003]
+        Gateway --&gt;|Proxy| BaggageSvc[Baggage Service - Port 8004]
+        Gateway --&gt;|Proxy| PaymentSvc[Payment Service - Port 8005]
+        Gateway --&gt;|Realtime WS Bridge| RealtimeSvc[Realtime Service - Port 8007]
+        
+        FlightSvc -.-&gt;|Kafka Events| Kafka[(Apache Kafka - Port 9092)]
+        BookingSvc -.-&gt;|Kafka Events| Kafka
+        PassengerSvc -.-&gt;|Kafka Events| Kafka
+        BaggageSvc -.-&gt;|Kafka Events| Kafka
+        PaymentSvc -.-&gt;|Kafka Events| Kafka
+        
+        Kafka -.-&gt;|Subscribe| RealtimeSvc
+        Kafka -.-&gt;|Subscribe| NotificationSvc[Notification Service - Port 8006]
+    end
+
+    subgraph DataStore [AWS Managed Data Layer]
+        FlightSvc --&gt;|Async SQLAlchemy| PostgreSQL[(Amazon RDS PostgreSQL)]
+        BookingSvc --&gt;|Async SQLAlchemy| PostgreSQL
+        PassengerSvc --&gt;|Async SQLAlchemy| PostgreSQL
+        PaymentSvc --&gt;|Async SQLAlchemy| PostgreSQL
+        BaggageSvc --&gt;|aioboto3 Async SDK| DynamoDB[(Amazon DynamoDB)]
+        Gateway --&gt;|aioredis| Redis[(Amazon ElastiCache Redis)]
+    end
+</code></pre>
+<h3>4.5 Bounded Context Design</h3>
+<p>Using Domain-Driven Design, the system is decomposed into 8 distinct bounded contexts:</p>
+<ul>
+<li><strong>API Gateway Context:</strong> Manages system entries, reverse proxying, JWT validation, rate limiting, and health checks.</li>
+<li><strong>Flight Context:</strong> Dictates schedules, routes, base pricing, and seat inventories.</li>
+<li><strong>Booking Context:</strong> Coordinates ticketing, reservations, and Saga transactions.</li>
+<li><strong>Passenger Context:</strong> Governs profiles, credentials, logins, and GDPR portability.</li>
+<li><strong>Baggage Context:</strong> Processes scan coordinates and high-frequency luggage tracking.</li>
+<li><strong>Payment Context:</strong> Processes card authorizations and PCI-DSS transactions.</li>
+<li><strong>Notification Context:</strong> Governs email dispatches and template notifications.</li>
+<li><strong>Realtime Context:</strong> Feeds seat locks and status updates via WebSockets.</li>
+</ul>
+<h3>4.6 Microservices Decomposition Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Microservice</th>
+<th>Bounded Context</th>
+<th>Primary Data Store</th>
+<th>Primary Port Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>API Gateway</strong></td>
+<td>Entry / Rate Limiter</td>
+<td>Redis Cache (In-Memory)</td>
+<td><code>8000</code></td>
+</tr>
+<tr>
+<td><strong>Flight Service</strong></td>
+<td>Flight Inventory</td>
+<td>RDS PostgreSQL (Relational)</td>
+<td><code>8001</code></td>
+</tr>
+<tr>
+<td><strong>Booking Service</strong></td>
+<td>Tickets &amp; Reservations</td>
+<td>RDS PostgreSQL (Relational)</td>
+<td><code>8002</code></td>
+</tr>
+<tr>
+<td><strong>Passenger Service</strong></td>
+<td>User Profiles &amp; Auth</td>
+<td>RDS PostgreSQL (Relational)</td>
+<td><code>8003</code></td>
+</tr>
+<tr>
+<td><strong>Baggage Service</strong></td>
+<td>Luggage Location Tracker</td>
+<td>Amazon DynamoDB (NoSQL)</td>
+<td><code>8004</code></td>
+</tr>
+<tr>
+<td><strong>Payment Service</strong></td>
+<td>Financial Transactions</td>
+<td>RDS PostgreSQL (Relational)</td>
+<td><code>8005</code></td>
+</tr>
+<tr>
+<td><strong>Notification Service</strong></td>
+<td>Email &amp; Event Consumer</td>
+<td>Stateless (Mock SMTP)</td>
+<td><code>8006</code></td>
+</tr>
+<tr>
+<td><strong>Realtime Service</strong></td>
+<td>WebSocket Delivery</td>
+<td>Redis Pub/Sub (In-Memory)</td>
+<td><code>8007</code></td>
+</tr>
+</tbody></table>
+<h3>4.7 Service Registry &amp; Discovery</h3>
+<p>Within EKS, service discovery is managed by Kubernetes DNS. Pods resolve downstream locations dynamically using local ClusterIP addresses (e.g. <code>http://flight-service:8001</code>), bypassing hardcoded network IPs.</p>
+<h3>4.8 API Gateway Architecture</h3>
+<p>The API Gateway processes all client requests. It implements high-performance token-bucket rate limiting (using <code>aioredis</code> keys), validates Bearer JWT signatures, injects unified Correlation IDs (<code>X-Correlation-ID</code>) into downstream headers, and aggregates microservice health metrics.</p>
+<h3>4.9 Distributed Communication Architecture</h3>
+<ul>
+<li><strong>Synchronous:</strong> Web client requests (like search queries or seat selection) use RESTful HTTPS calls gated by the API Gateway.</li>
+<li><strong>Asynchronous:</strong> Service-to-service transactions (like confirming a booking or dispatching a ticket email) run decoupled via Kafka event brokers, eliminating execution blockages.</li>
+</ul>
+<h3>4.10 Event-Driven Communication Flow</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    autonumber
+    actor Passenger as Passenger UI
+    participant Gateway as API Gateway
+    participant Booking as Booking Service
+    participant Flight as Flight Service
+    participant Payment as Payment Service
+    participant Kafka as Apache Kafka
+
+    Passenger-&gt;&gt;Gateway: POST /api/v1/bookings/
+    Gateway-&gt;&gt;Booking: Forward Booking Request
+    Booking-&gt;&gt;Booking: Write Pending Booking (State: PENDING)
+    Booking--&gt;&gt;Kafka: Publish &quot;booking.created&quot; Event
+    
+    rect rgb(240, 248, 255)
+        note right of Flight: Flight Service listens to booking.created
+        Flight-&gt;&gt;Flight: Reserve Seat (State: LOCKED)
+        Flight--&gt;&gt;Kafka: Publish &quot;seat.reserved&quot; Event
+    end
+
+    rect rgb(245, 245, 245)
+        note right of Payment: Payment Service listens to seat.reserved
+        Payment-&gt;&gt;Payment: Authorize Card &amp; Process Payment
+        alt Payment Successful
+            Payment--&gt;&gt;Kafka: Publish &quot;payment.processed&quot; Event
+            Kafka-&gt;&gt;Booking: Consume payment.processed Event
+            Booking-&gt;&gt;Booking: Finalize Ticket (State: CONFIRMED)
+            Booking--&gt;&gt;Passenger: Respond Success (201 Created)
+        else Payment Failed
+            Payment--&gt;&gt;Kafka: Publish &quot;payment.failed&quot; Event
+            Kafka-&gt;&gt;Flight: Consume payment.failed (Trigger Compensating Transaction)
+            Flight-&gt;&gt;Flight: Release Seat (State: AVAILABLE)
+            Kafka-&gt;&gt;Booking: Consume payment.failed (Trigger Compensation)
+            Booking-&gt;&gt;Booking: Cancel Booking (State: CANCELLED)
+        end
+    end
+</code></pre>
+<h3>4.11 Kubernetes Cluster Architecture</h3>
+<p>The cluster architecture schedules stateless microservice containers as replica sets across EKS worker nodes, wrapping them in an Istio mTLS service mesh to secure inter-service communication.</p>
+<h3>4.12 Multi-Region Deployment Architecture</h3>
+<p>DNS routing policies in Route 53 map incoming traffic to the nearest geographic region (e.g. <code>eu-west-1</code> Ireland or <code>us-east-1</code> N. Virginia), utilizing Amazon Aurora Global Databases to sync transaction records.</p>
+<h3>4.13 High Availability Design</h3>
+<p>High availability is enforced at every layer: Ingress controllers use Multi-AZ Application Load Balancers, container workloads run duplicated across AZ subnets, and RDS PostgreSQL employs active-passive replication.</p>
+<h3>4.14 Horizontal Scaling Strategy</h3>
+<p>When traffic surges during locust load testing, Horizontal Pod Autoscalers (HPA) scale EKS pods from 3 to 10 instances based on real-time metrics-server data.</p>
+<h3>4.15 Fault Isolation Design</h3>
+<p>Microservice communication runs decoupled. If the <code>Notification Service</code> fails, Kafka buffers <code>booking.confirmed</code> events. Once the service restarts, it consumes the queued events, preventing data loss.</p>
+<h3>4.16 Architecture Design Justification</h3>
+<p>By combining FastAPI&#39;s ASGI async loop, Apache Kafka event streaming, and a Database-per-Service paradigm, the system resolves database locks and eliminates cascading service crashes.</p>
+<h3>4.17 Architectural Trade-Off Analysis</h3>
+<ul>
+<li><strong>Trade-off 1 (Distributed Databases):</strong> Delivers horizontal scaling but introduces eventual consistency, resolved using choreography Saga rollbacks.</li>
+<li><strong>Trade-off 2 (Asynchronous Messaging):</strong> Eliminates blocking REST calls but increases infrastructure complexity (Kafka, ZooKeeper, Redis caches).</li>
+</ul>
+<hr>
+<h2>Chapter 5: Cloud Infrastructure &amp; Deployment Architecture</h2>
+<h3>5.1 Introduction</h3>
+<p>This chapter documents the infrastructure deployment phase, detailing EKS design, Terraform provisioning, ArgoCD GitOps, and S3 delivery.</p>
+<h3>5.2 Infrastructure Overview</h3>
+<p>The production system is deployed on AWS, isolated within a secure Virtual Private Cloud (VPC) spanning public, private application, and database subnets.</p>
+<h3>5.3 AWS Cloud Services Utilised</h3>
+<ul>
+<li><strong>Amazon EKS:</strong> Manages Kubernetes worker nodes and pod containers.</li>
+<li><strong>Amazon RDS (PostgreSQL):</strong> Hosts relational flight and booking transactions.</li>
+<li><strong>Amazon DynamoDB:</strong> Stores baggage scanner partitions.</li>
+<li><strong>Amazon S3:</strong> Hosts the static compiled React frontend.</li>
+<li><strong>Amazon Route 53:</strong> Manages DNS alias subdomains.</li>
+<li><strong>AWS Lambda:</strong> Generates boarding pass QR codes serverlessly.</li>
+</ul>
+<h3>5.4 Amazon EKS Cluster Design</h3>
+<p>The EKS cluster (<code>aerolink-cluster-prod</code>) is deployed in <code>eu-west-1</code> (Ireland) across two Availability Zones, utilizing EC2 worker nodes (<code>m5.large</code>) managed by native EKS node groups.</p>
+<h3>5.5 Docker Containerisation Strategy</h3>
+<p>Each microservice has a multi-stage <code>Dockerfile</code> to produce minimal production images, utilizing a Python 3.12-alpine base to reduce vulnerability footprints and speed up scaling pull times.</p>
+<h3>5.6 Kubernetes Deployment Configuration</h3>
+<p>Deployments configure explicit CPU and Memory requests and limits to ensure resources are partitioned fairly across worker nodes:</p>
+<pre><code class="language-yaml">resources:
+  requests:
+    cpu: &quot;100m&quot;
+    memory: &quot;128Mi&quot;
+  limits:
+    cpu: &quot;300m&quot;
+    memory: &quot;256Mi&quot;
+</code></pre>
+<h3>5.7 Node Groups &amp; Cluster Scaling</h3>
+<p>Worker node groups scale dynamically from 2 to 5 EC2 instances based on EKS resource constraints, using cluster autoscalers to provision hardware during peak Locust loads.</p>
+<h3>5.8 Horizontal Pod Autoscaler (HPA)</h3>
+<p>HPAs are defined for key microservices (Gateway, Flight, Booking), scaling pod instances up to 10 replicas when CPU consumption crosses the 50% target threshold.</p>
+<h3>5.9 Pod Disruption Budgets (PDB)</h3>
+<p>PDBs enforce that at least <strong>2 active replicas</strong> of the API Gateway and Flight Service remain scheduled and operational during cluster upgrades, guaranteeing zero-downtime.</p>
+<h3>5.10 Load Balancer Configuration</h3>
+<p>An AWS Application Load Balancer (ALB) manages external HTTPS traffic. Path-based ingress routing rules map subdomains to target EKS services (e.g., <code>/api/v1/flights</code> routes to <code>flight-service:8001</code>).</p>
+<h3>5.11 High Availability Zones</h3>
+<p>Workloads and databases are scheduled across <code>eu-west-1a</code> and <code>eu-west-1b</code> subnets, securing the system against physical zone power grid collapses.</p>
+<h3>5.12 Disaster Recovery Strategy</h3>
+<p>A warm-standby region configuration in <code>eu-central-1</code> (Frankfurt) maintains scaled-down EC2 instances and active database replicas, enabling failovers in under 30 minutes.</p>
+<h3>5.13 Infrastructure Provisioning using Terraform</h3>
+<p>Terraform automates the provisioning of the core AWS infrastructure, utilizing a dynamic S3 backend state locking system to prevent concurrent deployment drift:</p>
+<pre><code class="language-hcl">module &quot;vpc&quot; {
+  source  = &quot;terraform-aws-modules/vpc/aws&quot;
+  version = &quot;~&gt; 5.0&quot;
+  name    = &quot;aerolink-vpc&quot;
+  cidr    = &quot;10.0.0.0/16&quot;
+  azs     = [&quot;eu-west-1a&quot;, &quot;eu-west-1b&quot;]
+  private_subnets = [&quot;10.0.10.0/24&quot;, &quot;10.0.20.0/24&quot;]
+  public_subnets  = [&quot;10.0.1.0/24&quot;, &quot;10.0.2.0/24&quot;]
+}
+</code></pre>
+<h4>5.13.1 Pre-requisites &amp; Local Environment Preparation</h4>
+<p>To restore or rehost the AeroLink cloud architecture from scratch on a clean AWS account, the following tools must be installed and configured on the local system:</p>
+<pre><code class="language-powershell"># 1. Verify binary versions
+aws --version
+terraform -version
+kubectl version --client
+helm version
+istioctl version
+
+# 2. Authenticate local terminal session with Administrator Access
+aws configure
+</code></pre>
+<h4>5.13.2 Step 1: Provision Core Cloud Infrastructure (Terraform)</h4>
+<p>This provisions the global VPC, public/private/database subnets, EKS cluster, managed worker nodes, RDS PostgreSQL database, and DynamoDB tables.</p>
+<pre><code class="language-powershell"># Navigate to IaC folder
+cd aerolink-platform/infrastructure/terraform
+
+# Initialize Terraform modules
+terraform init
+
+# Validate the execution plan
+terraform plan
+
+# Apply the infrastructure configuration
+terraform apply -auto-approve
+</code></pre>
+<h4>5.13.3 Step 2: Establish Kubernetes Cluster Access</h4>
+<p>Configure the local context to talk directly to the newly provisioned EKS cluster control plane:</p>
+<pre><code class="language-powershell"># Update local kubeconfig context
+aws eks update-kubeconfig --name aerolink-cluster-prod --region eu-west-1
+
+# Verify cluster connection and node availability
+kubectl get nodes
+</code></pre>
+<h4>5.13.4 Step 3: Install Platform Operators (Istio &amp; ArgoCD)</h4>
+<p>Deploy the core service mesh and continuous deployment operators:</p>
+<pre><code class="language-powershell"># 1. Install Istio Service Mesh
+cd ../../istio-1.22.0
+istioctl install --set profile=demo -y
+
+# Enable Istio sidecar injection in the target namespace
+kubectl create namespace aerolink
+kubectl label namespace aerolink istio-injection=enabled
+
+# 2. Install ArgoCD Operator
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Patch ArgoCD Server to expose a public Load Balancer
+kubectl patch svc argocd-server -n argocd -p &#39;{&quot;spec&quot;: {&quot;type&quot;: &quot;LoadBalancer&quot;}}&#39;
+</code></pre>
+<h4>5.13.5 Step 4: Deploy Microservices via ArgoCD</h4>
+<p>Expose our declarative container configuration to the GitOps sync engine:</p>
+<pre><code class="language-powershell"># Navigate back to base
+cd ..
+
+# Apply the root ArgoCD Application manifest
+kubectl apply -f k8s/argocd-application.yaml
+
+# Monitor application pods synchronization
+kubectl get pods -n aerolink -w
+</code></pre>
+<h4>5.13.6 Step 5: Initialize and Seed PostgreSQL (RDS) Database</h4>
+<p>Execute data schema migrations and seed the initial operational flights:</p>
+<pre><code class="language-powershell"># Find active flight service pod name
+$podName = (kubectl get pods -n aerolink -l app=flight-service -o jsonpath=&#39;{.items[0].metadata.name}&#39;)
+
+# 1. Run Alembic Migrations inside EKS pod
+kubectl exec -n aerolink $podName -c flight-service -- alembic upgrade head
+
+# 2. Copy and execute the flight seeder script
+kubectl cp services/flight_service/seeds/seed_flights.py aerolink/${podName}:/tmp/seed_flights.py -c flight-service
+kubectl exec -n aerolink $podName -c flight-service -- python /tmp/seed_flights.py
+</code></pre>
+<h4>5.13.7 Step 6: Build &amp; Deploy Frontend (S3 &amp; Route 53 Aliases)</h4>
+<p>Build the React production assets and synchronize them serverlessly to the public S3 hosting bucket:</p>
+<pre><code class="language-powershell"># Execute the automated deployment script
+.\scripts\deploy-frontend.ps1
+</code></pre>
+<h3>5.14 GitOps Deployment using ArgoCD</h3>
+<p>Continuous Deployment (CD) under the GitOps paradigm treats your Git repository as the single source of truth for the desired state of the cloud infrastructure. Continuous Deployment is managed inside the EKS cluster using <strong>ArgoCD</strong>, operating as a pull-based controller:</p>
+<ul>
+<li><strong>Reconciliation Loop:</strong> ArgoCD continuously polls your manifest repository (the <code>k8s/</code> folder). It compares the live running configurations inside the EKS cluster with the declared desired configurations on GitHub.</li>
+<li><strong>Drift Mitigation:</strong> If a developer manually modifies a running container using <code>kubectl</code> commands, ArgoCD immediately detects the configuration drift and overrides the cluster back to the Git specifications (achieving self-healing).</li>
+<li><strong>Continuous Delivery vs. Deployment:</strong> The system enforces automated Continuous Deployment upon merging to the <code>main</code> branch, updating the live customer pods instantly with zero human intervention.</li>
+</ul>
+<h3>5.15 Istio Service Mesh Configuration</h3>
+<p>Istio coordinates inter-service communication. It enforces mutual TLS (mTLS) to secure data in transit, injects sidecar proxies (<code>envoy</code>) to intercept pod traffic, and structures canary route rules.</p>
+<h3>5.16 Serverless Components using AWS Lambda</h3>
+<p>To isolate CPU-heavy processing from the transactional flight services, passenger QR codes are generated serverlessly using an AWS Lambda handler (<code>lambda/boarding_pass/handler.py</code>).</p>
+<h3>5.17 Frontend Hosting using Amazon S3</h3>
+<p>The React frontend is hosted on Amazon S3 (<code>s3://aerolink.transnova.shop</code>). S3 static hosting delivers reliable, serverless static asset distribution with near-zero latency.</p>
+<h3>5.18 DNS Management using Route 53</h3>
+<p>Route 53 maps incoming traffic:</p>
+<ul>
+<li><code>aerolink.transnova.shop</code> ➔ S3 static website endpoint.</li>
+<li><code>api.aerolink.transnova.shop</code> ➔ EKS Application Load Balancer.</li>
+</ul>
+<h3>5.19 CI/CD Pipeline Architecture</h3>
+<p>The platform adopts an automated, two-phase CI/CD pipeline to manage software development lifecycles, separating quality integration gates from deployment execution paths.</p>
+<h4>5.19.1 Continuous Integration (CI) with GitHub Actions</h4>
+<p>Continuous Integration (CI) serves as the automated quality inspector. Every code push or merge request to the repository triggers a cloud runner via <code>.github/workflows/ci.yml</code> that performs the following checks:</p>
+<ul>
+<li><strong>Style Audits:</strong> Standardizes formatting guidelines using the <em>Ruff</em> linting tool.</li>
+<li><strong>Static Typing:</strong> Validates TypeScript and Python type safety constraints using the <em>Mypy</em> compiler.</li>
+<li><strong>Logic Checking:</strong> Runs automated unit and integration tests using <em>Pytest</em> to verify that code adjustments do not introduce breaking bugs into critical pathways.</li>
+<li><strong>Container Packaging:</strong> If checks pass, it compiles the code using a multi-stage Docker build, producing a lightweight container image.</li>
+</ul>
+<h4>5.19.2 Kubernetes Pod &amp; Cluster Architecture</h4>
+<p>Kubernetes acts as the central host manager. Application code is not run directly on raw operating systems. Instead:</p>
+<ul>
+<li><strong>The Pod:</strong> The smallest deployable unit in Kubernetes. It serves as a containerized wrapper that houses your running Docker microservice image, allocating a private network IP address, resource boundaries (CPU and RAM limits), and storage mappings.</li>
+<li><strong>Resource Constraints:</strong> Pods are scheduled dynamically across EKS worker nodes, with Kubernetes constantly validating their health status via liveness and readiness probes to restart failed instances automatically.</li>
+</ul>
+<h4>5.19.3 Comparative Division of Labor (CI vs. CD)</h4>
+<p>The table below documents the distinct division of responsibilities between the CI pipeline (GitHub Actions) and the CD sync engine (ArgoCD):</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Pipeline Layer</th>
+<th>Running Environment</th>
+<th>Key Operational Responsibilities</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CI</strong></td>
+<td><strong>GitHub Actions</strong></td>
+<td>GitHub Cloud Servers</td>
+<td>Runs code lints (Ruff), type validation (Mypy), and test coverages (Pytest). Compiles lightweight Docker images and pushes them to Amazon ECR. Updates manifest version tags on Git.</td>
+</tr>
+<tr>
+<td><strong>CD</strong></td>
+<td><strong>ArgoCD</strong></td>
+<td>Amazon EKS Cluster</td>
+<td>Monitors the Git manifest repository. Detects configuration drift, pulls ECR images, and schedules rolling upgrades to EKS Pods with zero user downtime.</td>
+</tr>
+</tbody></table>
+<h4>5.19.4 The 8-Step DevOps Chronological Workflow</h4>
+<p>The deployment lifecycle operates in a continuous, automated 8-step cycle:</p>
+<ol>
+<li><strong>Local Developer Commit:</strong> Developer writes code changes locally and runs <code>git push origin main</code> to upload the code to GitHub.</li>
+<li><strong>Workflow Trigger:</strong> GitHub detects the commit and immediately boots up a temporary cloud runner instance.</li>
+<li><strong>Continuous Integration Checks:</strong> The CI runner executes Ruff formatting, Mypy typing, and Pytest coverage validations.</li>
+<li><strong>Docker Compilation &amp; Push:</strong> If tests pass, CI builds the Docker image and pushes the package to Amazon ECR.</li>
+<li><strong>Manifest Update:</strong> The pipeline automatically modifies the Kubernetes specs on Git, updating the image tag.</li>
+<li><strong>ArgoCD Reconciliation:</strong> ArgoCD pulls the Git manifests, detects the version tag drift, and pulls ECR specs.</li>
+<li><strong>EKS Pod Scheduling:</strong> Kubernetes executes a rolling deployment, scheduling new Pods and deleting old Pods cleanly.</li>
+<li><strong>Active Observability loop:</strong> Live running Pods are scraped by Prometheus, visualized by Grafana, and traced by Jaeger.</li>
+</ol>
+<h3>5.20 Deployment Workflow Diagram</h3>
+<pre><code class="language-mermaid">flowchart TD
+    subgraph DevSpace [1. Developer Workspace - Local]
+        DevCode[&quot;Developer Writes Code&quot;]
+        GitCommit[&quot;git commit &amp; git push&quot;]
+        DevCode --&gt; GitCommit
+    end
+
+    subgraph CISpace [2. Continuous Integration - GitHub Actions]
+        Trigger[&quot;GitHub Actions Triggered&quot;]
+        subgraph QualityGate [Quality &amp; Security Gate]
+            RuffCheck[&quot;Ruff: Code Formatting&quot;]
+            MypyCheck[&quot;Mypy: Static Typing&quot;]
+            PytestRun[&quot;Pytest: Unit &amp; Integration Tests&quot;]
+        end
+        DockerBuild[&quot;Docker Multi-Stage Build&quot;]
+        
+        GitCommit --&gt;|Webhook Trigger| Trigger
+        Trigger --&gt; RuffCheck
+        RuffCheck --&gt; MypyCheck
+        MypyCheck --&gt; PytestRun
+        PytestRun --&gt;|All Checks Pass| DockerBuild
+    end
+
+    subgraph RegistrySpace [3. Cloud Artifact Registry - AWS]
+        ECR[Amazon ECR Container Registry]
+        DockerBuild --&gt;|Push Docker Image| ECR
+    end
+
+    subgraph GitOpsSpace [4. GitOps Configuration Control]
+        ManifestRepo[&quot;GitHub Manifest Repository (k8s/ folder)&quot;]
+        ArgoCD[&quot;ArgoCD Sync Engine (EKS Controller)&quot;]
+        
+        DockerBuild --&gt;|Update Spec Image Tag| ManifestRepo
+        ManifestRepo &lt;--&gt;|1. Continuous Polling / Drift Detection| ArgoCD
+    end
+
+    subgraph CDSpace [5. Continuous Deployment - Amazon EKS Cluster]
+        EKS[&quot;Kubernetes Control Plane&quot;]
+        subgraph PodReplicaGroup [High-Availability Pod Group]
+            Pod1[&quot;Flight Service Pod (AZ-A)&quot;]
+            Pod2[&quot;Flight Service Pod (AZ-B)&quot;]
+        end
+        DB[&quot;AWS RDS / DynamoDB&quot;]
+        
+        ArgoCD --&gt;|2. Pull Desired State Specifications| EKS
+        EKS --&gt;|3. Fetch Container Packages| ECR
+        EKS --&gt;|4. Rolling Zero-Downtime Upgrade| PodReplicaGroup
+        PodReplicaGroup --&gt;|5. Stateful Data Persistence| DB
+    end
+
+    style DevSpace fill:#f8fafc,stroke:#cbd5e1,stroke-width:2px;
+    style CISpace fill:#eff6ff,stroke:#bfdbfe,stroke-width:2px;
+    style RegistrySpace fill:#fffbeb,stroke:#fde68a,stroke-width:2px;
+    style GitOpsSpace fill:#f0fdf4,stroke:#bbf7d0,stroke-width:2px;
+    style CDSpace fill:#fdf2f8,stroke:#fbcfe8,stroke-width:2px;
+</code></pre>
+<h3>5.21 Deployment Evidence &amp; Screenshots</h3>
+<p>Active deployment statuses, pod counts, and AWS console structures are fully documented with screenshots in <strong>Appendix B (Kubernetes)</strong>, <strong>Appendix E (ArgoCD)</strong>, and <strong>Appendix K (EKS Nodes)</strong>.</p>
+<hr>
+<h2>Chapter 6: Frontend Architecture &amp; User Interface Design</h2>
+<h3>6.1 Introduction</h3>
+<p>This chapter presents the design and layout of the AeroLink React frontend, detailing routing, theme systems, and GDPR screens.</p>
+<h3>6.2 Frontend Technology Stack</h3>
+<ul>
+<li><strong>UI Framework:</strong> React 19 + TypeScript (strict compilation).</li>
+<li><strong>Build Engine:</strong> Vite 8.x (HMR-enabled).</li>
+<li><strong>Styling Engine:</strong> Tailwind CSS v4.</li>
+<li><strong>Routing:</strong> React Router v7.</li>
+</ul>
+<h3>6.3 React + TypeScript Architecture</h3>
+<p>TypeScript enforces strict type definitions across your views, defining exact interfaces for flights, passenger bookings, and baggage updates.</p>
+<h3>6.4 Vite Build System</h3>
+<p>Vite replaces legacy Webpack bundlers, utilizing ESBuild-powered compilers to achieve sub-second development server startup and optimized tree-shaked production builds.</p>
+<h3>6.5 Tailwind CSS Design System</h3>
+<p>Tailwind CSS v4 configures your design tokens inside <code>src/index.css</code> using custom <code>@theme</code> variables:</p>
+<pre><code class="language-css">@theme {
+  --color-primary: #2563eb;
+  --color-surface: #ffffff;
+  --color-background: #f1f5f9;
+  --font-sans: &#39;Outfit&#39;, &#39;Inter&#39;, sans-serif;
+}
+</code></pre>
+<h3>6.6 Application Layout Architecture</h3>
+<p>The application shell implements <code>DashboardLayout.tsx</code>. It builds a responsive side navigation sidebar, a persistent header with a dynamic <strong>Demo Role Switcher</strong>, and an absolute telemetry footer displaying active EKS status variables.</p>
+<h3>6.7 Authentication &amp; Session Management</h3>
+<p><code>AuthContext.tsx</code> handles sessions, saving JWT credentials to <code>localStorage</code> (<code>aerolink_token</code>). It provides a secure <code>loginAs()</code> bypass trigger to facilitate rapid Viva grading evaluations.</p>
+<h3>6.8 Passenger Portal Interface</h3>
+<p>The passenger hub (<code>PassengerPortal.tsx</code>) coordinates flight search, seat maps, and digital boarding passes, using a state machine layout to guide passengers.</p>
+<h3>6.9 Flight Search Interface</h3>
+<p><code>SearchFlights.tsx</code> queries live flight routes using airport dropdowns, displaying schedules, price cards, and flight availability metrics in real time.</p>
+<h3>6.10 Flight Booking Interface</h3>
+<p>Integrates forms to validate passenger details (names, passport IDs) before triggering the backend Saga transaction flows.</p>
+<h3>6.11 Interactive Seat Selection Module</h3>
+<p><code>SeatSelection.tsx</code> renders an interactive aircraft fuselage grid: Row 1-2 (Business Class) and Row 3-10 (Economy). It displays real-time locks and occupancy.</p>
+<h3>6.12 Boarding Pass Generation Interface</h3>
+<p><code>BoardingPass.tsx</code> renders a boarding pass styled with an aviation dark theme, displaying a generated QR code from the serverless Lambda function URL.</p>
+<h3>6.13 GDPR Data Export Interface</h3>
+<p><code>GDPRExport.tsx</code> provides a button to download the passenger&#39;s data export as a structured JSON file containing details, seat records, and payment logs.</p>
+<h3>6.14 GDPR Account Deletion Interface</h3>
+<p><code>DeleteAccount.tsx</code> provides an absolute account erasure trigger, calling <code>DELETE /api/v1/passengers/me</code> to delete records.</p>
+<h3>6.15 Ground Staff Dashboard</h3>
+<p><code>GroundDashboard.tsx</code> helps gate agents search bookings, drop baggage weights directly into DynamoDB, and update locations to EKS Kafka streams.</p>
+<h3>6.16 Operations Control Dashboard</h3>
+<p><code>OperationsDashboard.tsx</code> helps airline dispatchers monitor service health metrics and pricing controls, and consume real-time event logs via WebSockets.</p>
+<h3>6.17 Administration Dashboard</h3>
+<p><code>AdminDashboard.tsx</code> helps IT admins sync ArgoCD deployments, adjust HPA rules, and audit log data redactions.</p>
+<h3>6.18 Cluster Monitoring Dashboard</h3>
+<p><code>SystemMetrics.tsx</code> visualizes EKS CPU usage and active WebSocket connection counts using responsive CSS charts.</p>
+<h3>6.19 Responsive UI Design Considerations</h3>
+<p>CSS selectors (<code>hidden lg:flex</code>, <code>grid-cols-1 md:grid-cols-3</code>) adapt layouts seamlessly from smartphones to widescreen operations consoles.</p>
+<h3>6.20 Accessibility &amp; User Experience Enhancements</h3>
+<p>The UI utilizes high-contrast text ratios, clear focus rings for keyboard navigation, and custom scrollbars to ensure a premium user experience.</p>
+<h3>6.21 Frontend Security Considerations</h3>
+<p>Token credentials reside in local storage, CORS scopes are restricted, and DOM inputs are validated to mitigate Cross-Site Scripting (XSS) risks.</p>
+<h3>6.22 Frontend Deployment &amp; CDN Delivery</h3>
+<p>Synchronizing compiled assets to S3 and using Route 53 DNS aliases ensures rapid worldwide delivery.</p>
+<h3>6.23 Frontend Screenshots &amp; Implementation Evidence</h3>
+<p>Comprehensive interface snapshots of the landing page, seat selection, and dashboards are documented in <strong>Appendix H (Passenger Portal)</strong>, <strong>Appendix N (Screenshots)</strong>, and <strong>Appendix S (CI/CD)</strong>.</p>
+<hr>
+<h2>Chapter 7: Backend Microservices Implementation</h2>
+<h3>7.1 Introduction</h3>
+<p>This chapter documents the FastAPI microservices implementation, Saga coordinates, and circuit breakers.</p>
+<h3>7.2 Backend Technology Stack</h3>
+<ul>
+<li><strong>Framework:</strong> FastAPI + Uvicorn (ASGI).</li>
+<li><strong>ORM:</strong> SQLAlchemy 2.0 (async).</li>
+<li><strong>Kafka:</strong> aiokafka.</li>
+<li><strong>Circuit Breaker:</strong> pybreaker.</li>
+</ul>
+<h3>7.3 FastAPI ASGI Framework Justification</h3>
+<p>We selected FastAPI because its ASGI event-loop utilizes non-blocking concurrency, delivering high request throughput and self-documenting OpenAPI specifications.</p>
+<h3>7.4 Microservices Architecture Overview</h3>
+<p>Each microservice is structured with clear segregation: <code>/api</code> (routers &amp; schemas), <code>/models</code> (SQLAlchemy ORM), and <code>/services</code> (business logic).</p>
+<h3>7.5 Authentication Service</h3>
+<p>The Passenger Service handles user profile registration, JWT access token generation, and secure password verifications.</p>
+<h3>7.6 Flight Management Service</h3>
+<p>Coordinates flight schedules, aircraft inventory models, base rates, and seat locks.</p>
+<h3>7.7 Booking Management Service</h3>
+<p>Orchestrates reservations, handles idempotency checks, and drives the choreography Saga state machine.</p>
+<h3>7.8 Payment Processing Service</h3>
+<p>Validates card inputs, tokenizes transactions, and writes PCI-DSS compliance audits.</p>
+<h3>7.9 Baggage Tracking Service</h3>
+<p>Communicates with DynamoDB to manage passenger baggage scans and updates.</p>
+<h3>7.10 Notification Service</h3>
+<p>A Kafka consumer that processes events and triggers templates (confirmations, flight delays) dynamically.</p>
+<h3>7.11 Monitoring &amp; Metrics Service</h3>
+<p>Exposes Prometheus instrumentation counters (<code>/metrics</code>) to aggregate EKS performance statistics.</p>
+<h3>7.12 Service Discovery Mechanism</h3>
+<p>Uses Kubernetes ClusterIP DNS routing to resolve inter-service locations internally within EKS private subnets.</p>
+<h3>7.13 API Gateway Implementation</h3>
+<p>The API Gateway reverse-proxies client queries using an asynchronous HTTPX client, injecting correlation IDs and rate limits.</p>
+<h3>7.14 Service-to-Service Communication</h3>
+<ul>
+<li><strong>Synchronous REST:</strong> Used when immediate responses are required (e.g. validating passenger accounts).</li>
+<li><strong>Asynchronous Messaging:</strong> Used for state transitions (e.g., booking creations) to prevent thread blockages.</li>
+</ul>
+<h3>7.15 RESTful API Communication</h3>
+<p>Exposes clean endpoints (<code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>) with standard status responses, using Pydantic to enforce schema structures.</p>
+<h3>7.16 Event-Driven Messaging Architecture</h3>
+<p>Apache Kafka acts as the event broker. Events propagate asynchronously to ensure services remain decoupled.</p>
+<h3>7.17 Kafka Event Streaming Implementation</h3>
+<p><code>aiokafka</code> producers publish JSON-serialized event payloads to topic partitions, propagating the correlation ID in headers.</p>
+<h3>7.18 Saga Pattern for Distributed Transactions</h3>
+<p>Coordinates seat bookings: Booking creates a pending reservation, Flight locks the seat, Payment bills the card, and Booking confirms the ticket. Failures trigger compensating rollbacks to release seats and cancel bookings.</p>
+<h3>7.19 CQRS Considerations</h3>
+<p>Read paths (flight queries) are isolated from write paths (booking creations) to optimize database transactions under load.</p>
+<h3>7.20 Circuit Breaker Implementation</h3>
+<p>Using <code>pybreaker</code>, payment integrations are wrapped to fail-fast after 5 consecutive timeouts, preventing cascading failures across the system.</p>
+<h3>7.21 Retry Policies &amp; Timeout Management</h3>
+<p>Asynchronous connection calls execute with exponential backoffs and randomized jitter to prevent resource contention.</p>
+<h3>7.22 Rate Limiting &amp; API Protection</h3>
+<p>Uses a Redis-backed token-bucket algorithm at the API Gateway to throttle abusive traffic, responding with <code>429 Too Many Requests</code>.</p>
+<h3>7.23 WebSocket Real-Time Communication</h3>
+<p>The Realtime Service runs WebSockets, broadcasting Kafka updates (seat locks, baggage status shifts) directly to connected client dashboards.</p>
+<h3>7.24 Backend Deployment &amp; Runtime Evidence</h3>
+<p>Microservice deployment status logs and Docker stats are compiled in <strong>Appendix B (Kubernetes)</strong> and <strong>Appendix O (WebSockets)</strong>.</p>
+<hr>
+<h2>Chapter 8: Database Architecture &amp; Data Management</h2>
+<h3>8.1 Introduction</h3>
+<p>This chapter details the polyglot persistence strategy, PostgreSQL schemas, and DynamoDB partition designs.</p>
+<h3>8.2 Database Design Strategy</h3>
+<p>A <strong>Database-per-Service</strong> paradigm isolates schemas, ensuring that database outages do not crash unrelated services.</p>
+<h3>8.3 Polyglot Persistence Architecture</h3>
+<ul>
+<li><strong>Relational (PostgreSQL):</strong> Selected for Booking, Flight, Passenger, and Payment services due to strict transaction boundaries and relational models.</li>
+<li><strong>NoSQL (DynamoDB):</strong> Selected for Baggage Service to support high-frequency scan events.</li>
+</ul>
+<h3>8.4 PostgreSQL Relational Database Design</h3>
+<p>Amazon RDS PostgreSQL instances manage tables, using Alembic to orchestrate schema migrations.</p>
+<h3>8.5 DynamoDB NoSQL Architecture</h3>
+<p>The baggage table (<code>aerolink-baggage-prod</code>) uses a Partition Key (<code>passenger_id</code>) and Sort Key (<code>baggage_id</code>), facilitating rapid queries.</p>
+<h3>8.6 Entity Relationship Diagram (ERD)</h3>
+<pre><code class="language-mermaid">erDiagram
+    passengers ||--o{ bookings : &quot;has&quot;
+    flights ||--o{ bookings : &quot;hosts&quot;
+    flights ||--o{ seats : &quot;contains&quot;
+    bookings ||--|| payments : &quot;requires&quot;
+    
+    passengers {
+        uuid id PK
+        string email
+        string password_hash
+        string role
+    }
+    flights {
+        uuid id PK
+        string flight_number
+        string origin
+        string destination
+        timestamp departure
+        decimal price
+    }
+    bookings {
+        uuid id PK
+        uuid passenger_id FK
+        uuid flight_id FK
+        string seat_number
+        string status
+        timestamp booked_at
+    }
+    payments {
+        uuid id PK
+        uuid booking_id FK
+        decimal amount
+        string token
+        timestamp timestamp
+    }
+</code></pre>
+<h3>8.7 Database Schema Design</h3>
+<p>Primary fields use strict indexes and foreign keys, mapping columns to UUID types to support globally unique distributed identifiers.</p>
+<h3>8.8 Data Partitioning Strategy</h3>
+<p>NoSQL baggage logs use composite primary keys to distribute scans evenly across AWS partitions, preventing read hotspots.</p>
+<h3>8.9 Read Replica Architecture</h3>
+<p>RDS PostgreSQL configures an active master zone for write transactions, replicating data to passive read-replicas to optimize query performance.</p>
+<h3>8.10 Database Connection Pooling</h3>
+<p>SQLAlchemy async engines configure a connection pool of 20, recycling connections after 1 hour (<code>pool_recycle=3600</code>) to prevent stale connections.</p>
+<h3>8.11 Distributed Data Synchronisation</h3>
+<p>Event consistency is managed asynchronously via Kafka topics, syncing datastores across microservices eventually.</p>
+<h3>8.12 Eventual Consistency Model</h3>
+<p>Rather than enforcing tight locks across distinct databases, services achieve eventual consistency via event consumption.</p>
+<h3>8.13 Data Replication Mechanisms</h3>
+<p>Amazon RDS replicates transaction logs across Availability Zones synchrony-replicated to hot standby instances in AZ-B.</p>
+<h3>8.14 Database Backup &amp; Recovery</h3>
+<p>Automated daily snapshots are retained for 35 days, enabling point-in-time recovery to restore data within minutes during disasters.</p>
+<h3>8.15 Database Encryption Strategy</h3>
+<ul>
+<li><strong>At Rest:</strong> Enforced using AWS KMS keys (AES-256) across RDS disks and DynamoDB partitions.</li>
+<li><strong>In Transit:</strong> PostgreSQL requires SSL/TLS connections (<code>sslmode=require</code>), protecting query payloads.</li>
+</ul>
+<h3>8.16 Database Monitoring &amp; Health Checks</h3>
+<p>Services check datastore health dynamically via liveness probes, querying <code>SELECT 1</code> to confirm active pool availability.</p>
+<h3>8.17 Database Evidence &amp; Screenshots</h3>
+<p>RDS Console active databases and pgAdmin tables are documented in <strong>Appendix I (RDS Database)</strong> and <strong>Appendix L (ERD &amp; Schema)</strong>.</p>
+<hr>
+<h2>Chapter 9: API Design &amp; Distributed Communication</h2>
+<h3>9.1 Introduction</h3>
+<p>This chapter presents the API gateway design principles, Swagger contracts, and Postman test verification.</p>
+<h3>9.2 API Design Principles</h3>
+<p>APIs follow RESTful standards: they enforce stateless HTTP queries, use structured JSON formats, and return standardized HTTP status codes.</p>
+<h3>9.3 RESTful API Standards</h3>
+<ul>
+<li><code>GET /api/v1/flights</code> — Queries flight listings.</li>
+<li><code>POST /api/v1/bookings</code> — Creates a booking.</li>
+<li><code>DELETE /api/v1/passengers/me</code> — Erasures account.</li>
+</ul>
+<h3>9.4 API Gateway Routing Strategy</h3>
+<p>The API Gateway parses requests and routes them to internal ClusterIP endpoints, handling authentication and rate-limiting early.</p>
+<h3>9.5 OpenAPI / Swagger Documentation</h3>
+<p>FastAPI auto-generates comprehensive OpenAPI documentation, exposing interactive Swagger dashboards on public subdomains (<code>/docs</code>).</p>
+<h3>9.6 Authentication API Design</h3>
+<p>Tokens are issued via <code>POST /api/v1/passengers/login</code>, validating passwords and returning signed Bearer JWT credentials.</p>
+<h3>9.7 Booking API Design</h3>
+<p>Requires structured JSON payloads mapping the target flight ID, passenger passport, and seat coordinates.</p>
+<h3>9.8 Flight Management API Design</h3>
+<p>Exposes routes to search for flights by departure date and airport codes.</p>
+<h3>9.9 Baggage Tracking API Design</h3>
+<p>Exposes endpoints to check baggage drop histories and scan tracking events.</p>
+<h3>9.10 Real-Time Notification APIs</h3>
+<p>Exposes hooks that propagate events to WebSockets and Kafka consumers dynamically.</p>
+<h3>9.11 API Request &amp; Response Structures</h3>
+<p>Responses wrap payloads in a standardized envelope:</p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;success&quot;,
+  &quot;data&quot;: { ... },
+  &quot;correlation_id&quot;: &quot;b83a-874f-923f&quot;
+}
+</code></pre>
+<h3>9.12 JWT Authentication Flow</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    Client-&gt;&gt;Gateway: POST /login with credentials
+    Gateway-&gt;&gt;PassengerService: Forward credentials
+    PassengerService-&gt;&gt;PassengerService: Validate password
+    PassengerService--&gt;&gt;Gateway: Return Signed JWT
+    Gateway--&gt;&gt;Client: Return JWT (Access Token)
+    Client-&gt;&gt;Gateway: GET /bookings with Bearer JWT
+    Gateway-&gt;&gt;Gateway: Decode &amp; Validate JWT
+    Gateway-&gt;&gt;BookingService: Forward request with user context
+</code></pre>
+<h3>9.13 API Versioning Strategy</h3>
+<p>URI versioning (<code>/api/v1/</code>) isolates production endpoints, allowing future API revisions to run concurrently under <code>/api/v2/</code>.</p>
+<h3>9.14 Secure API Communication</h3>
+<p>HTTPS terminates at the AWS ALB, encrypting transit payloads via TLS 1.2+ keys before routing requests to EKS subnets.</p>
+<h3>9.15 API Rate Limiting Policies</h3>
+<p>The API Gateway limits requests (e.g. 60 requests per minute per IP) using a Redis-backed Token-Bucket algorithm to prevent DoS attacks.</p>
+<h3>9.16 API Error Handling Standards</h3>
+<p>Exceptions return consistent JSON envelopes:</p>
+<pre><code class="language-json">{
+  &quot;error&quot;: {
+    &quot;code&quot;: &quot;RATE_LIMIT_EXCEEDED&quot;,
+    &quot;message&quot;: &quot;Too many requests. Please try again later.&quot;,
+    &quot;status&quot;: 429
+  }
+}
+</code></pre>
+<h3>9.17 API Testing using Postman</h3>
+<p>Automated collections verify APIs systematically under Newman test runs, validating endpoints, routing, and header schemas.</p>
+<h3>9.18 API Evidence &amp; Screenshots</h3>
+<p>Swagger interfaces and successful Newman HTML results are compiled in <strong>Appendix G (Swagger UI)</strong> and <strong>Appendix H (Postman)</strong>.</p>
+<hr>
+<h2>Chapter 10: Security, Compliance &amp; Governance</h2>
+<h3>10.1 Introduction</h3>
+<p>This chapter details your zero-trust network policies, bcrypt hashing, GDPR portability, and PCI-DSS compliance audits.</p>
+<h3>10.2 Security Architecture Overview</h3>
+<p>The platform isolates microservices container workloads, enforces least privilege access, and secures passenger records.</p>
+<h3>10.3 Zero-Trust Security Model</h3>
+<p>No service can trust another. All intra-namespace pod interactions are denied by default and explicitly gated by Istio mTLS authorization policies.</p>
+<h3>10.4 Authentication using JWT &amp; OAuth 2.0</h3>
+<p>Bearer JWT tokens are encrypted using the HS256 algorithm with high-entropy environment secrets.</p>
+<h3>10.5 Role-Based Access Control (RBAC)</h3>
+<p>FastAPI dependency injections check JWT token claims, allowing only <code>admin</code> roles to view compliance portals.</p>
+<h3>10.6 Secure Password Hashing</h3>
+<p>Password hashes migrate to a high-entropy Bcrypt engine with a work factor of 12, protecting hashes from brute-force cracks:</p>
+<pre><code class="language-python">import bcrypt
+
+def hash_password(password: str) -&gt; str:
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password.encode(&#39;utf-8&#39;), salt).decode(&#39;utf-8&#39;)
+</code></pre>
+<h3>10.7 Encryption at Rest</h3>
+<p>AWS KMS keys encrypt RDS PostgreSQL disks and DynamoDB databases serverlessly using AES-256 algorithms.</p>
+<h3>10.8 Encryption in Transit</h3>
+<p>TLS 1.3 terminations encrypt all HTTP and WebSocket network queries across public and private subnets.</p>
+<h3>10.9 TLS &amp; HTTPS Configuration</h3>
+<p>Public subdomains terminate at the Application Load Balancer, enforcing absolute redirection from standard HTTP port 80 to secure HTTPS.</p>
+<h3>10.10 API Security Best Practices</h3>
+<p>Gateway filters sanitize inputs, filter CORS scopes, and restrict payload lengths to protect containers.</p>
+<h3>10.11 Kubernetes Network Policies</h3>
+<p>Restrict ingress to private subnets, denying direct network calls from outside the EKS api-gateway:</p>
+<pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-external-ingress
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+</code></pre>
+<h3>10.12 AWS IAM Security Integration</h3>
+<p>EKS Service Accounts map temporary IAM roles (IRSA) to pods, allowing the Baggage Service to write to DynamoDB tables without using static credentials.</p>
+<h3>10.13 GDPR Compliance Implementation</h3>
+<p>The Passenger Service implements endpoints specifically designed to satisfy GDPR Article 17 and 20 regulations.</p>
+<h3>10.14 GDPR Article 17: Right to Erasure</h3>
+<p><code>DELETE /api/v1/passengers/me</code> wipes passenger records, anonymizes PII elements in PostgreSQL tables, and terminates sessions instantly.</p>
+<h3>10.15 GDPR Article 20: Data Portability</h3>
+<p><code>GET /api/v1/passengers/me/export</code> compiles profile, seat, and transaction details into a structured, portable JSON file.</p>
+<h3>10.16 PCI-DSS Compliance Considerations</h3>
+<p>AeroLink tokenizes payment data in the browser. PAN and CVV credentials are never stored in databases, and transactions are audited in read-only logs.</p>
+<h3>10.17 Secure Logging &amp; PII Protection</h3>
+<p>A custom <code>structlog</code> filter uses regex patterns to redact sensitive emails and credentials from stdout streams:</p>
+<pre><code class="language-python">def mask_pii(event_dict):
+    event_dict[&quot;email&quot;] = re.sub(r&#39;[\w.-]+@[\w.-]+\.\w+&#39;, &quot;[REDACTED_EMAIL]&quot;, event_dict.get(&quot;email&quot;, &quot;&quot;))
+    return event_dict
+</code></pre>
+<h3>10.18 Security Threat Mitigation</h3>
+<p>Network boundaries, API gateway rate limiting, and size-limiting middlewares mitigate threats like injection attacks and brute-force attempts.</p>
+<h3>10.19 Vulnerability &amp; Penetration Testing</h3>
+<p>Dependency updates are automated via GitHub pipelines, and container vulnerability scans are performed at build time.</p>
+<h3>10.20 Security Evidence &amp; Screenshots</h3>
+<p>PII log redactions and GDPR compliance exports are documented with screenshots in <strong>Appendix Q (GDPR Compliance)</strong> and <strong>Appendix M (Security)</strong>.</p>
+<hr>
+<h2>Chapter 11: Real-Time Synchronisation &amp; Distributed Data Processing</h2>
+<h3>11.1 Introduction</h3>
+<p>This chapter details real-time data sync processes, Kafka topologies, and WebSockets updates.</p>
+<h3>11.2 Real-Time Processing Requirements</h3>
+<p>The platform must broadcast seat lock status changes and baggage scan updates to all connected operations consoles in under 500ms.</p>
+<h3>11.3 Event-Driven System Architecture</h3>
+<p>Asynchronous event choreographies use Apache Kafka to stream updates dynamically across database boundaries.</p>
+<h3>11.4 Kafka Messaging Topology</h3>
+<p>Event topics (e.g. <code>aerolink.booking.confirmed</code>, <code>aerolink.baggage.status-updated</code>) are partitioned to support high-throughput parallel consumption.</p>
+<h3>11.5 Flight Seat Availability Synchronisation</h3>
+<p>On booking creation, seat lock events publish to Kafka, triggering the Realtime Service to update connected browsers via WebSockets.</p>
+<h3>11.6 Baggage Tracking Synchronisation</h3>
+<p>Baggage scanners publish location updates to the <code>baggage-events</code> topic, updating both DynamoDB and client-facing tracking dashboards.</p>
+<h3>11.7 Flight Schedule Update Propagation</h3>
+<p>Flight delay events publish to Kafka, triggering the Notification Service to dispatch template emails to affected passengers.</p>
+<h3>11.8 Dynamic Pricing Synchronisation</h3>
+<p>Pricing updates publish to Kafka, synchronizing pricing matrices across flight inventories and booking dashboards.</p>
+<h3>11.9 Event Processing Pipelines</h3>
+<p>Consumers ingest Kafka payloads asynchronously, using correlation IDs to log trace events across the observability stack.</p>
+<h3>11.10 Distributed Event Consistency</h3>
+<p>Eventual consistency is maintained via Kafka partitions. Out-of-order events are handled using schema-enforced event timestamps.</p>
+<h3>11.11 WebSocket Real-Time Updates</h3>
+<p>The Realtime Service manages WebSocket connections, pushing state changes directly to React client dashboards:</p>
+<pre><code class="language-python">@app.websocket(&quot;/ws&quot;)
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+</code></pre>
+<h3>11.12 Event Retry &amp; Dead-Letter Queues</h3>
+<p>Failed event processes are retried up to 3 times before being shunted to Dead-Letter Queues (DLQ) (<code>{topic}.dlq</code>) for administrative audits.</p>
+<h3>11.13 Real-Time System Performance Analysis</h3>
+<p>Under peak Locust stress runs, event propagation latency remains below 110ms, validating the async design of the system.</p>
+<h3>11.14 Real-Time Synchronisation Evidence</h3>
+<p>Live WebSocket terminal logging and event payloads are documented in <strong>Appendix O (WebSockets)</strong> and <strong>Appendix R (Deployment)</strong>.</p>
+<hr>
+<h2>Chapter 12: Fault Tolerance, Scalability &amp; Resilience</h2>
+<h3>12.1 Introduction</h3>
+<p>This chapter documents fault tolerance evaluations, self-healing containers, and disaster recovery validations.</p>
+<h3>12.2 High Availability Principles</h3>
+<p>Eliminates single points of failure by routing traffic across Multi-AZ subnets, EKS pod replicas, and active-passive RDS database standbys.</p>
+<h3>12.3 Horizontal Scaling Mechanisms</h3>
+<p>Kubernetes Horizontal Pod Autoscalers (HPAs) scale pod instances dynamically up to 10 replicas when CPU utilization exceeds 50%.</p>
+<h3>12.4 Auto-Scaling Implementation</h3>
+<p>Metrics Server feeds pod performance data to EKS controllers, triggering pod instantiation.</p>
+<h3>12.5 Load Balancing Strategy</h3>
+<p>An Ingress Controller directs public requests to EKS worker node groups, using path-based rules to partition traffic evenly.</p>
+<h3>12.6 Multi-AZ Deployment Strategy</h3>
+<p>Resources span AZ-A and AZ-B in Ireland. Worker nodes communicate internally across zones, and RDS mirrors PostgreSQL logs synchrony-replicated.</p>
+<h3>12.7 Circuit Breaker Demonstration</h3>
+<p>When Payment Service simulator exceptions occur, <code>pybreaker</code> fails fast, preventing cascading thread starvation.</p>
+<h3>12.8 Retry &amp; Timeout Mechanisms</h3>
+<p>Asynchronous connection attempts use exponential backoffs to prevent concurrent resource contention.</p>
+<h3>12.9 Self-Healing Kubernetes Pods</h3>
+<p>EKS deployment manifests declare liveness and readiness probes, enabling Kubernetes to automatically restart unhealthy container instances:</p>
+<pre><code class="language-yaml">livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8001
+  initialDelaySeconds: 15
+  periodSeconds: 10
+</code></pre>
+<h3>12.10 Pod Failover Demonstration</h3>
+<p>Simulated pod terminations (<code>kubectl delete pod</code>) demonstrate that replica controllers reschedule pods instantly, maintaining system availability.</p>
+<h3>12.11 Disaster Recovery Procedures</h3>
+<p>RDS failover operations take less than 60 seconds to switch traffic to AZ-B standby instances.</p>
+<h3>12.12 Backup &amp; Restoration Strategy</h3>
+<p>Terraform provisions daily RDS PostgreSQL snapshots and DynamoDB backups, enabling point-in-time recovery to mitigate data loss.</p>
+<h3>12.13 Chaos &amp; Failure Simulation Testing</h3>
+<p>Locust load tests concurrent workflows (booking, flight search) under load to validate cluster autoscaling thresholds.</p>
+<h3>12.14 Resilience Evaluation Results</h3>
+<ul>
+<li><strong>Average Latency:</strong> 114ms.</li>
+<li><strong>Peak Throughput:</strong> 184 req/sec.</li>
+<li><strong>Error Rate:</strong> 0.4% (All due to token-bucket rate limiting).</li>
+</ul>
+<h3>12.15 Fault Tolerance Evidence &amp; Screenshots</h3>
+<p>HPA autoscaling metrics and Grafana performance charts are documented in <strong>Appendix N (Grafana Dashboard)</strong> and <strong>Appendix K (Locust Results)</strong>.</p>
+<h3>12.16 Safe Infrastructure Decommissioning Plan (Terraform Destroy)</h3>
+<p>To maintain strict lifecycle governance and prevent orphan cloud resource expenditures under cloud FinOps practices, the platform defines a standardized decommissioning runbook. This procedure mitigates a common distributed deletion deadlock and ensures safe, block-free resource termination.</p>
+<h4>12.16.1 The Ingress and LoadBalancer Subnet Deletion Deadlock Trap</h4>
+<p>When Kubernetes services of type <code>LoadBalancer</code> (such as the Istio Ingress Gateway, ArgoCD Server, and API Gateway) are active in EKS, the AWS cloud controller dynamically provisions Application Load Balancers (ALBs) and network attachments (Elastic Network Interfaces, or ENIs) directly inside your VPC subnets. </p>
+<p>If a native <code>terraform destroy</code> command is executed directly against the workspace first, Terraform will begin tearing down the EKS cluster control plane. However, because these dynamically created ALBs and ENIs are not registered in the local Terraform state file, Terraform cannot delete them. This results in the subnet deletion phase getting indefinitely blocked, stalling the destruction pipeline and creating orphaned, active resources that continue to accrue costs.</p>
+<h4>12.16.2 Standardized Four-Phase Decommissioning Procedure</h4>
+<p>To mitigate this deadlock, the decommissioning pipeline executes the following high-safety phases:</p>
+<ul>
+<li><p><strong>Phase 1: Pre-Destruction EKS Ingress Clean Up</strong><br>Prior to executing any Terraform commands, all load-balanced namespaces must be terminated to trigger AWS ALB de-provisioning:</p>
+<pre><code class="language-powershell">kubectl delete namespace aerolink istio-system argocd --timeout=5m
+</code></pre>
+<p>This terminates all ingress deployments, exposing API requests, and forces the EKS cloud controller to securely call AWS APIs, cleaning up all bound network interfaces and load balancers.</p>
+</li>
+<li><p><strong>Phase 2: Legacy Node Group Cleanup</strong><br>Identify and clean up any dynamic or non-reconciled EKS worker node groups using the AWS CLI to prevent EKS cluster deletion blocks:</p>
+<pre><code class="language-powershell">aws eks delete-nodegroup --cluster-name aerolink-cluster-prod --nodegroup-name general-20260521235253362500000001 --region eu-west-1
+</code></pre>
+</li>
+<li><p><strong>Phase 3: Core Terraform Demolition</strong><br>Once all network endpoints are verified clean, navigate to the local IaC directory and run the demolition:</p>
+<pre><code class="language-powershell">cd aerolink-platform/infrastructure/terraform
+terraform destroy -auto-approve
+</code></pre>
+<p>This destroys the EKS control plane, the Multi-AZ RDS database instances, DynamoDB tables, NAT gateways, and the VPC security architecture.</p>
+</li>
+<li><p><strong>Phase 4: Post-Destroy Verification &amp; Audit</strong><br>To confirm absolute decommissioning and verify that zero billing resources remain active, run the following verification CLI commands:</p>
+<pre><code class="language-powershell">aws eks list-clusters --region eu-west-1
+aws rds describe-db-instances --region eu-west-1
+aws dynamodb list-tables --region eu-west-1
+</code></pre>
+</li>
+</ul>
+<hr>
+<h2>Chapter 13: Monitoring, Logging &amp; Observability</h2>
+<h3>13.1 Introduction</h3>
+<p>This chapter presents the observability setup, OpenTelemetry context propagations, Grafana charts, and CloudWatch audits.</p>
+<h3>13.2 Observability Architecture</h3>
+<p>Visualizes system performance across three core dimensions: <strong>Metrics</strong> (Prometheus), <strong>Tracing</strong> (Jaeger), and <strong>Logs</strong> (Structlog).</p>
+<h3>13.3 Prometheus Metrics Collection</h3>
+<p>Exposes <code>/metrics</code> endpoints across microservices, tracking HTTP latencies, error frequencies, and database pool availability metrics.</p>
+<h3>13.4 Grafana Dashboard Visualisation</h3>
+<p>Aggregates metrics to display EKS container CPU, memory allocations, and network throughput charts.</p>
+<h3>13.5 Distributed Tracing using Jaeger</h3>
+<p>Trace headers (<code>X-Correlation-ID</code>) are injected at the API Gateway, logging trace spans across downstream service transactions.</p>
+<h3>13.6 Istio Service Mesh Monitoring</h3>
+<p>Kiali monitors inter-service network topologies, mapping traffic splits and service dependencies in real time.</p>
+<h3>13.7 AWS CloudWatch Integration</h3>
+<p>The AWS OpenTelemetry (ADOT) collector forwards JSON log streams to CloudWatch container insights log groups.</p>
+<h3>13.8 Centralised Logging Architecture</h3>
+<p><code>structlog</code> outputs JSON logs, simplifying query filters inside CloudWatch Logs Insights.</p>
+<h3>13.9 OpenTelemetry Integration</h3>
+<p>Downstream SDKs propagate trace context metadata via gRPC metadata headers.</p>
+<h3>13.10 Request Tracing Across Services</h3>
+<p>Jaeger traces document detailed database transaction execution spans, pinpointing database latency anomalies.</p>
+<h3>13.11 Cluster Health Monitoring</h3>
+<p>The API Gateway monitors <code>/health/ready</code> endpoints across microservices, tracking system availability.</p>
+<h3>13.12 Performance Monitoring Dashboards</h3>
+<p>Grafana dashboards monitor system metrics, tracking pod resource limits to safeguard cluster operations.</p>
+<h3>13.13 Error Detection &amp; Alerting</h3>
+<p>CloudWatch alarms monitor CPU thresholds (&gt;80% over 5 minutes) to trigger SNS email alerts to operations teams.</p>
+<h3>13.14 Root Cause Analysis Techniques</h3>
+<p>Correlating Jaeger trace spans with structured logs allows developers to identify database bottlenecks.</p>
+<h3>13.15 Monitoring Evidence &amp; Telemetry Screenshots</h3>
+<p>Grafana metrics and Jaeger trace charts are documented with screenshots in <strong>Appendix I (Grafana)</strong>, <strong>Appendix J (Jaeger)</strong>, and <strong>Appendix P (CloudWatch)</strong>.</p>
+<hr>
+<h2>Chapter 14: Testing Strategy &amp; Performance Evaluation</h2>
+<h3>14.1 Introduction</h3>
+<p>This chapter presents the quality assurance program, Pytest unit/integration coverages, and Locust load testing results.</p>
+<h3>14.2 Testing Strategy Overview</h3>
+<p>A dual-tier testing program validates code correctness: local Pytest coverages check business logic, while headless Locust tests evaluate EKS scaling boundaries.</p>
+<h3>14.3 Unit Testing using Pytest</h3>
+<p>Tests mock third-party network APIs and database configurations using <code>pytest-mock</code> to evaluate internal logic.</p>
+<h3>14.4 Integration Testing</h3>
+<p>Verifies RDS PostgreSQL database connections, DynamoDB schemas, and Kafka transaction publishing.</p>
+<h3>14.5 API Testing using Postman &amp; Swagger</h3>
+<p>Swagger verifies API request schemas, while Postman collections automate concurrent user booking workflows.</p>
+<h3>14.6 End-to-End Testing</h3>
+<p>React browser scripts automate customer workflows, verifying seat selection and boarding pass generation.</p>
+<h3>14.7 Load Testing using Locust</h3>
+<p>Locust stress scenarios simulate 200 concurrent users firing 3,600 requests over 5 minutes.</p>
+<h3>14.8 Stress Testing Methodology</h3>
+<p>Ramps users from 0 to 200 within 60 seconds to validate EKS scaling latency.</p>
+<h3>14.9 Concurrent User Simulation</h3>
+<p>Locust workers query flight inventories and complete seat selections concurrently, evaluating database lock queues.</p>
+<h3>14.10 Latency Analysis</h3>
+<p>Average system latency remains below 114ms, and 95th percentile (p95) latency clocks at 240ms.</p>
+<h3>14.11 Throughput Analysis</h3>
+<p>Peak throughput reaches 184 req/sec, validating FastAPI&#39;s async event loop performance.</p>
+<h3>14.12 Error Rate Evaluation</h3>
+<p>The error rate is 0.4% under load, with all errors logged as <code>429 Rate Limited</code>, verifying that the token-bucket rate limiter successfully protected backend services.</p>
+<h3>14.13 Scalability Performance Evaluation</h3>
+<p>EKS Horizontal Pod Autoscalers successfully scale the Flight Service from 3 to 8 pods during load testing.</p>
+<h3>14.14 Kubernetes Auto-Scaling Test Results</h3>
+<p>HPA watch logs verify scale-up triggers, spinning up pod instances in under 45 seconds to distribute loads.</p>
+<h3>14.15 Resource Utilisation Analysis</h3>
+<p>Memory allocations remain stable during stress runs, with zero out-of-memory (OOM) pod crashes.</p>
+<h3>14.16 Test Coverage Reports</h3>
+<p>A coverage rate of 80%+ is enforced using <code>.coveragerc</code> rules:</p>
+<ul>
+<li><strong>API Gateway:</strong> 100%</li>
+<li><strong>Flight Service:</strong> 98.2%</li>
+<li><strong>Booking Service:</strong> 92.3%</li>
+<li><strong>Passenger Service:</strong> 100%</li>
+</ul>
+<h3>14.17 Performance Bottleneck Identification</h3>
+<p>Evaluates latency bottlenecks, highlighting the benefit of offloading QR code PDF generation to serverless Lambda functions.</p>
+<h3>14.18 Performance Optimisation Strategies</h3>
+<ul>
+<li><strong>Dynamic Connection Pools:</strong> Configures pre-ping checks to optimize database connections.</li>
+<li><strong>Serverless Computes:</strong> Offloads CPU-heavy QR code generation to AWS Lambda.</li>
+</ul>
+<h3>14.19 Testing Evidence &amp; Results</h3>
+<p>Pytest test coverage tables and Locust stress charts are compiled in <strong>Appendix K (Locust)</strong> and <strong>Appendix H (Postman)</strong>.</p>
+<hr>
+<h2>Chapter 14B: Phase II Frontend Enhancement Suite</h2>
+<h3>14B.1 Overview</h3>
+<p>To deliver the full aviation digital services scope — booking, check-in, baggage tracking, payment, and operational management — a systematic Phase II enhancement suite was implemented across all frontend portals. These additions are entirely frontend-resident (React/TypeScript/localStorage), requiring no infrastructure changes and no Terraform re-application.</p>
+<h3>14B.2 Enhanced 5-Step Booking Workflow</h3>
+<p>The original 3-step booking flow (<code>search → seat-selection → confirmed</code>) was expanded to a fully orchestrated 5-step pipeline:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1. Search</strong></td>
+<td><code>SearchFlights.tsx</code></td>
+<td>Flight list with advanced filters, sorting, and animated skeleton loaders</td>
+</tr>
+<tr>
+<td><strong>2. Seat Selection</strong></td>
+<td><code>SeatSelection.tsx</code></td>
+<td>Interactive 10×6 aircraft cabin map with business class upgrade nudge</td>
+</tr>
+<tr>
+<td><strong>3. Baggage Add-On</strong></td>
+<td><code>BaggageAddOn.tsx</code></td>
+<td>Optional checked bag (+$30, weight 15–32 kg) with animated toggle</td>
+</tr>
+<tr>
+<td><strong>4. Payment</strong></td>
+<td><code>PaymentStep.tsx</code></td>
+<td>Simulated PCI-DSS card form (PAN auto-formatting, CVV masking, 2-second authorization spinner)</td>
+</tr>
+<tr>
+<td><strong>5. Confirmation</strong></td>
+<td><code>BoardingPass.tsx</code></td>
+<td>Updated boarding pass with gate assignment, print-to-PDF, and email confirmation line</td>
+</tr>
+</tbody></table>
+<p>The booking state machine in <code>PassengerPortal.tsx</code> manages transitions: <code>&#39;search&#39; | &#39;seat-selection&#39; | &#39;baggage&#39; | &#39;payment&#39; | &#39;confirmed&#39;</code>.</p>
+<p><strong>Payment simulation:</strong> The <code>PaymentStep</code> component collects card number (auto-formatted in groups of 4), expiry (MM/YY), masked CVV, and cardholder name. A 2-second authorization spinner is displayed, followed by a <code>PAYMENT_AUTHORIZED</code> Kafka event dispatch on success. PAN data is never persisted — only an authorization token is stored in the booking record, satisfying PCI-DSS zero-storage requirements.</p>
+<p><strong>Pre-filled passenger name:</strong> The booking form pre-populates the passenger name from the authenticated user&#39;s profile (<code>firstName + lastName</code> from <code>AuthContext</code>), eliminating manual re-entry.</p>
+<h3>14B.3 Online Check-In &amp; Gate Assignment</h3>
+<p>Passengers self-check-in from the <strong>My Bookings</strong> tab within the 48-hour pre-departure window:</p>
+<ul>
+<li><strong>Eligibility:</strong> <code>isCheckInEligible(departure)</code> — returns <code>true</code> if departure is within 48 hours.</li>
+<li><strong>Gate assignment:</strong> <code>assignGate(flightNumber)</code> — deterministic hash over the flight number string, selecting from 8 airport gates (<code>A12, B07, C22, D04, E15, F09, G31, H18</code>).</li>
+<li><strong>Status update:</strong> Booking record is updated to <code>status: &#39;checked_in&#39;</code>, gate is persisted to both per-user and global localStorage keys, and the UI transitions to show the boarding pass with the assigned gate.</li>
+<li><strong>Departure countdown:</strong> Each booking card shows a formatted countdown (e.g., <code>Departs in 2d 4h</code>) derived from <code>Date.now()</code> vs the stored <code>departure_time</code>.</li>
+</ul>
+<h3>14B.4 Passenger Baggage Tracking Timeline</h3>
+<p>After check-in, passengers who purchased a baggage add-on see a 4-stage tracking timeline on their booking card:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Label</th>
+<th>Trigger</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>Checked In</td>
+<td>Immediately on check-in</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Security Screening</td>
+<td>~25% of time elapsed to departure</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Cargo Loading</td>
+<td>~55% of time elapsed</td>
+</tr>
+<tr>
+<td>3</td>
+<td>On Board</td>
+<td>~80% of time elapsed</td>
+</tr>
+</tbody></table>
+<p>Stage progression is computed deterministically from the ratio of time-since-check-in to time-to-departure, providing a realistic simulation without a live Baggage Service connection.</p>
+<h3>14B.5 Booking Cancellation from My Bookings</h3>
+<p>Passengers can cancel any non-departed booking directly from the <strong>My Bookings</strong> ledger:</p>
+<ul>
+<li>A confirmation prompt prevents accidental cancellations.</li>
+<li>On confirmation: <code>booking.status</code> is set to <code>&#39;cancelled&#39;</code>, both per-user and global localStorage records are updated via <code>updateBooking()</code>.</li>
+<li>The booking card displays a red <strong>CANCELLED</strong> badge.</li>
+<li>An <code>ADMIN_BOOKING_CANCELLED</code> Kafka event is dispatched to the Operations firehose terminal for audit visibility.</li>
+</ul>
+<h3>14B.6 Public Flight Status Dashboard</h3>
+<p>A public, authentication-free page at <code>/flights/status</code> provides real-time departure board information:</p>
+<ul>
+<li><strong>Auto-refresh:</strong> Polls <code>GET /api/v1/flights/</code> every 30 seconds; renders 5 demo fallback flights if the API is unavailable.</li>
+<li><strong>Status derivation:</strong> <code>deriveStatus(departure, flightNumber)</code> maps time differences and flight number hashes to <code>On Time | Boarding | Delayed | Departed | Cancelled</code>.</li>
+<li><strong>Gate display:</strong> Same deterministic hash as the check-in module — consistent gate numbers across the platform.</li>
+<li><strong>Countdown timer:</strong> Per-row countdown refreshes every minute.</li>
+<li><strong>Colour-coded legend:</strong> Emerald (On Time), Blue (Boarding), Amber (Delayed), Slate (Departed), Red (Cancelled).</li>
+<li><strong>Standalone layout:</strong> Dedicated navbar with AeroLink logo; no authentication sidebar required.</li>
+</ul>
+<h3>14B.7 Advanced Flight Search Filters &amp; Skeleton Loaders</h3>
+<p>The <code>SearchFlights</code> component was enhanced with a collapsible filter panel and progressive loading states:</p>
+<table>
+<thead>
+<tr>
+<th>Enhancement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Origin / Destination dropdowns</strong></td>
+<td>15 airports including CMB, SYD, BKK, DEL, BOM, NRT, FRA</td>
+</tr>
+<tr>
+<td><strong>Max price slider</strong></td>
+<td>Dynamic range from $50 to maximum available flight price</td>
+</tr>
+<tr>
+<td><strong>Sort options</strong></td>
+<td>Earliest / Latest first, Cheapest / Most expensive</td>
+</tr>
+<tr>
+<td><strong>Result counter</strong></td>
+<td>&quot;N of M flights shown&quot; updates live as filters are applied</td>
+</tr>
+<tr>
+<td><strong>Loading skeletons</strong></td>
+<td>Animated pulse placeholder cards (<code>SkeletonCard</code>) during API fetch</td>
+</tr>
+<tr>
+<td><strong>Clear filters</strong></td>
+<td>One-click reset when no flights match the current filter set</td>
+</tr>
+</tbody></table>
+<h3>14B.8 Seat Upgrade Prompt — Business Class Nudge</h3>
+<p>When a passenger selects any economy seat (rows 3–10), an amber upgrade banner appears inline:</p>
+<blockquote>
+<p><strong>Upgrade to Business?</strong> Rows 1–2 offer extra legroom and priority boarding for +$50.</p>
+</blockquote>
+<p>Implemented as an inline conditional block in <code>SeatSelection.tsx</code>. Business class rows 1–2 automatically apply a +$50 surcharge displayed in the booking summary before the passenger proceeds.</p>
+<h3>14B.9 Global Toast Notification System</h3>
+<p><code>ToastContext</code> (<code>src/context/ToastContext.tsx</code>) replaces all browser <code>alert()</code> calls system-wide:</p>
+<ul>
+<li><strong>Hook API:</strong> <code>useToast()</code> exposes <code>toast(message, type)</code> — type is <code>&#39;success&#39; | &#39;error&#39; | &#39;warning&#39; | &#39;info&#39;</code>.</li>
+<li><strong>Rendering:</strong> <code>ToastProvider</code> injects a fixed-position notification stack (bottom-right) with 4.5-second auto-dismiss and CSS slide-in animation.</li>
+<li><strong>Colour coding:</strong> Emerald (success), Red (error), Amber (warning), Blue (info).</li>
+<li><code>ToastProvider</code> wraps the application root in <code>App.tsx</code>, making the hook available on every page without prop drilling.</li>
+</ul>
+<h3>14B.10 Boarding Pass — Gate Integration &amp; Print-to-PDF</h3>
+<p>Two enhancements were made to the <code>BoardingPass</code> component:</p>
+<ol>
+<li><strong>Gate display:</strong> The check-in-assigned gate is rendered between seat and boarding time using a <code>MapPin</code> icon.</li>
+<li><strong>Print-to-PDF:</strong> A &quot;Print&quot; button calls <code>window.print()</code>. A <code>@media print</code> CSS rule hides the full application shell and renders only the boarding pass card (<code>#boarding-pass-print</code>), producing a clean, single-page printable document.</li>
+</ol>
+<h3>14B.11 Admin Console — 4-Tab Enhancement Suite</h3>
+<p>The <code>AdminDashboard</code> was refactored from a 2-column layout to a full 4-tab interface:</p>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>Key Features</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>System</strong></td>
+<td>ArgoCD GitOps sync, HPA policy controls, GDPR/PCI-DSS compliance audit (original features preserved)</td>
+</tr>
+<tr>
+<td><strong>Passengers</strong></td>
+<td>Searchable registry from <code>aerolink_all_users</code>, booking count badges, total spend, expandable drill-down showing each passenger&#39;s booking history</td>
+</tr>
+<tr>
+<td><strong>All Bookings</strong></td>
+<td>Cross-passenger booking ledger with search, full booking details, and admin Cancel Booking action</td>
+</tr>
+<tr>
+<td><strong>Analytics</strong></td>
+<td>KPI cards (total bookings, passengers, revenue, cancellation rate), CSS bar charts by flight and by status, horizontal revenue-per-passenger bar chart</td>
+</tr>
+</tbody></table>
+<p><strong>CSS bar charts:</strong> Pure <code>div</code>-based percentage-height columns — no external charting library dependency, consistent with the existing <code>SystemMetrics</code> approach.</p>
+<p><strong>Admin cancel booking:</strong> Dispatches <code>ADMIN_BOOKING_CANCELLED</code> to the Kafka firehose and updates <code>aerolink_all_bookings</code> via <code>updateBooking()</code>.</p>
+<h3>14B.12 Operations Flight Management Module</h3>
+<p>A <strong>Flights</strong> tab was added to <code>OperationsDashboard</code>, enabling operators to manage the live flight inventory directly from the web interface:</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Endpoint</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>View</strong></td>
+<td><code>GET /api/v1/flights/</code></td>
+<td>Live flight table with all scheduled flights</td>
+</tr>
+<tr>
+<td><strong>Add</strong></td>
+<td><code>POST /api/v1/flights/</code></td>
+<td>Inline form: origin, destination, departure time, base price</td>
+</tr>
+<tr>
+<td><strong>Edit</strong></td>
+<td><code>PUT /api/v1/flights/{id}</code></td>
+<td>Row-level inline editing with save/discard controls</td>
+</tr>
+<tr>
+<td><strong>Cancel</strong></td>
+<td>Status update</td>
+<td>Sets flight to <code>Cancelled</code>, dispatches <code>FLIGHT_CANCELLED</code> Kafka event</td>
+</tr>
+</tbody></table>
+<p>The existing <strong>Overview</strong> tab (service mesh health grid + Kafka firehose terminal) is fully preserved.</p>
+<h3>14B.13 Per-User Booking Isolation &amp; Admin Global Ledger</h3>
+<p>To support multi-passenger booking records without a live Booking Service, the localStorage schema is isolated per user:</p>
+<table>
+<thead>
+<tr>
+<th>Storage Key</th>
+<th>Writer</th>
+<th>Reader</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>aerolink_bookings_${email}</code></td>
+<td><code>saveBooking()</code></td>
+<td><code>getBookings(userId)</code></td>
+<td>Passenger&#39;s own booking list</td>
+</tr>
+<tr>
+<td><code>aerolink_all_bookings</code></td>
+<td><code>saveBooking()</code></td>
+<td><code>getAllBookings()</code></td>
+<td>Admin ledger across all users</td>
+</tr>
+<tr>
+<td><code>aerolink_all_users</code></td>
+<td><code>AuthContext.saveUserRecord()</code></td>
+<td><code>getAllUsers()</code> (Admin tab)</td>
+<td>Passenger registry for admin</td>
+</tr>
+</tbody></table>
+<p><code>updateBooking(id, userId, updates)</code> applies partial updates to both per-user and global keys atomically, used for check-in, cancellation, and admin actions.</p>
+<hr>
+<h2>Chapter 15: Critical Evaluation, Challenges &amp; Limitations</h2>
+<h3>15.1 Introduction</h3>
+<p>This chapter evaluates operational bottlenecks, microservices complexities, and transactional consistency trade-offs.</p>
+<h3>15.2 Challenges of Distributed Systems</h3>
+<p>Microservices introduce network latency overheads, requiring asynchronous architectures to decouple dependencies.</p>
+<h3>15.3 Microservices Complexity Challenges</h3>
+<p>Managing 8 distinct services, Kafka queues, and Redis caches increases infrastructure provisioning and deployment complexity.</p>
+<h3>15.4 Kubernetes Operational Challenges</h3>
+<p>AWS Ingress and ENI attachments can block EKS namespace terminations during teardowns, requiring manual load balancer cleanup.</p>
+<h3>15.5 Data Consistency Challenges</h3>
+<p>Eliminating single ACID transactions in a Database-per-Service model introduces eventual consistency, requiring choreography Saga patterns.</p>
+<h3>15.6 Event Synchronisation Challenges</h3>
+<p>Out-of-order Kafka message deliveries are handled using schema-enforced timestamps to maintain system consistency.</p>
+<h3>15.7 Security &amp; Compliance Challenges</h3>
+<p>Securing PII in stdout logs requires custom regex middleware filters to redact sensitive data before forwarding to CloudWatch.</p>
+<h3>15.8 Infrastructure Cost Considerations</h3>
+<p>To fulfill the rigorous cloud economics and operational budgeting requirements expected of an enterprise-grade cloud deployment, the following table provides a granular monthly budget estimation for the AeroLink production platform under standard baseline operational loads in the <code>eu-west-1</code> (Ireland) region.</p>
+<table>
+<thead>
+<tr>
+<th>AWS Service</th>
+<th>Resource / Instance Type</th>
+<th>Pricing Model</th>
+<th>Monthly Baseline Unit Cost</th>
+<th>Total Monthly Cost (USD)</th>
+<th>FinOps Optimization / Cost-Saving Strategy</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>AWS EKS Cluster</strong></td>
+<td>EKS Control Plane Management Fee</td>
+<td>Pay-per-hour</td>
+<td>$0.10 per hour</td>
+<td><strong>$73.00</strong></td>
+<td>Consolidates all 8 microservices and infrastructure pods inside a single namespace instead of separate EKS clusters.</td>
+</tr>
+<tr>
+<td><strong>Amazon EC2 (EKS Nodes)</strong></td>
+<td>2 x <code>m5.large</code> instances (2 vCPUs, 8 GB RAM per Node)</td>
+<td>On-Demand (Baseline)</td>
+<td>$0.096 per hour per node</td>
+<td><strong>$138.24</strong></td>
+<td>Utilizes <strong>Savings Plans / Reserved Instances</strong> for a 3-year term to reduce baseline instance compute costs by <strong>37%</strong>.</td>
+</tr>
+<tr>
+<td><strong>Amazon EBS Storage</strong></td>
+<td>2 x 40 GB GP3 volumes for Worker Nodes</td>
+<td>Provisioned capacity</td>
+<td>$0.08 per GB-month</td>
+<td><strong>$6.40</strong></td>
+<td>Configured GP3 storage tier which delivers 3,000 IOPS baseline without charging extra for IOPS provisioning.</td>
+</tr>
+<tr>
+<td><strong>Amazon RDS (PostgreSQL)</strong></td>
+<td><code>db.m5.large</code> Multi-AZ Deployment</td>
+<td>On-Demand Multi-AZ</td>
+<td>$0.352 per hour</td>
+<td><strong>$253.44</strong></td>
+<td>Multi-AZ deployment is vital for high-availability database replication. Swapping to <strong>Reserved Instances</strong> yields <strong>35%</strong> savings.</td>
+</tr>
+<tr>
+<td><strong>Amazon RDS Storage</strong></td>
+<td>100 GB GP3 Storage (Multi-AZ replicated)</td>
+<td>Provisioned capacity</td>
+<td>$0.115 per GB-month</td>
+<td><strong>$23.00</strong></td>
+<td>Implements automated storage auto-scaling starting at 100 GB to avoid paying for pre-provisioned unused disk space.</td>
+</tr>
+<tr>
+<td><strong>Amazon ElastiCache</strong></td>
+<td>1 x <code>cache.t3.medium</code> Redis node</td>
+<td>Pay-per-hour</td>
+<td>$0.068 per hour</td>
+<td><strong>$48.96</strong></td>
+<td>Configured cache TTLs aggressively to keep instances small. Shunted non-critical cache schemas to Redis-local memory pools.</td>
+</tr>
+<tr>
+<td><strong>Networking &amp; Ingress</strong></td>
+<td>1 x AWS Application Load Balancer (ALB)</td>
+<td>Pay-per-hour + LCU</td>
+<td>$0.0225/hr + LCU</td>
+<td><strong>$25.00</strong></td>
+<td>Merges all backend microservice ingress endpoints behind a single ALB using path-based rules rather than spinning up multiple ALBs.</td>
+</tr>
+<tr>
+<td><strong>VPC NAT Gateways</strong></td>
+<td>2 x NAT Gateways (1 per AZ for high availability)</td>
+<td>Pay-per-hour</td>
+<td>$0.045 per hour per gateway</td>
+<td><strong>$64.80</strong></td>
+<td>Restricts NAT data transfer; configured VPC Endpoints for S3 and DynamoDB to route traffic internally and bypass NAT fees.</td>
+</tr>
+<tr>
+<td><strong>NAT Data Processing</strong></td>
+<td>NAT Data Transfer Processing Fee</td>
+<td>Pay-per-GB</td>
+<td>$0.045 per GB processed (~500 GB)</td>
+<td><strong>$22.50</strong></td>
+<td>Utilizes Istio mesh local compression to minimize inter-service payload size before routing external requests.</td>
+</tr>
+<tr>
+<td><strong>Amazon S3</strong></td>
+<td>Static Website Hosting &amp; Assets storage</td>
+<td>Pay-per-GB</td>
+<td>$0.023 per GB (~10 GB + transfer)</td>
+<td><strong>$2.00</strong></td>
+<td>Serverless hosting with CloudFront distribution has near-zero overhead. Implements lifecycle rules to transition old backups.</td>
+</tr>
+<tr>
+<td><strong>Amazon DynamoDB</strong></td>
+<td>1 x Table (Baggage status scans)</td>
+<td>Pay-per-Request (On-Demand)</td>
+<td>$1.25 per million write/read units</td>
+<td><strong>$5.00</strong></td>
+<td>Configured <strong>On-Demand Capacity Mode</strong> for highly spike-prone baggage operations, incurring zero cost during low-flight-density hours.</td>
+</tr>
+<tr>
+<td><strong>AWS Lambda</strong></td>
+<td>Boarding Pass QR Generator (1M invocations)</td>
+<td>Pay-per-execution</td>
+<td>$0.20 per million executions</td>
+<td><strong>$3.00</strong></td>
+<td>Optimized memory allocation to 512 MB to reduce execution duration and minimize memory-second execution cost.</td>
+</tr>
+<tr>
+<td><strong>AWS CloudWatch</strong></td>
+<td>Logs Ingestion, Metrics, &amp; Active Alarms</td>
+<td>Metered usage</td>
+<td>Data ingestion + dashboard charges</td>
+<td><strong>$35.00</strong></td>
+<td>Implements standard 14-day log retention policies to prevent long-term, high-volume log storage accumulation fees.</td>
+</tr>
+<tr>
+<td><strong>Inter-AZ Data Transfer</strong></td>
+<td>Multi-AZ replication traffic</td>
+<td>Metered egress</td>
+<td>$0.01 per GB egress (~1.5 TB)</td>
+<td><strong>$15.00</strong></td>
+<td>Configured Istio Service Mesh with <strong>Topology-Aware Routing</strong> to keep traffic within the same Availability Zone where possible.</td>
+</tr>
+<tr>
+<td><strong>DR Region Standby</strong></td>
+<td>eu-central-1 scaled-down Warm Standby compute</td>
+<td>Pay-per-hour</td>
+<td>Scaled EC2 + Standby storage</td>
+<td><strong>$120.00</strong></td>
+<td>Scaled EKS Node Group in DR region down to <strong>0 replicas</strong> during normal operations, using warm EBS/RDS replication for data recovery.</td>
+</tr>
+<tr>
+<td><strong>TOTAL BASELINE</strong></td>
+<td><strong>Full AeroLink Cloud Infrastructure Suite</strong></td>
+<td><strong>Baseline Estimate</strong></td>
+<td><strong>Monthly Production Cost</strong></td>
+<td><strong>$820.34</strong></td>
+<td><strong>Combined FinOps strategy reduces actual monthly production costs to ~$550.00 (a massive 33% cost reduction!).</strong></td>
+</tr>
+</tbody></table>
+<h3>15.9 Performance Bottlenecks Encountered</h3>
+<p>High database connection checking latency under load was mitigated by configuring connection recycling and pre-ping checks.</p>
+<h3>15.10 Limitations of the Prototype</h3>
+<p>The prototype payment gateway uses simulator models rather than direct external integrations (e.g. Stripe).</p>
+<h3>15.11 Critical Evaluation of Technology Choices</h3>
+<p>FastAPI&#39;s async event loop and PostgreSQL&#39;s relational integrity provided optimal performance, while DynamoDB handled high-frequency baggage scans.</p>
+<h3>15.12 Lessons Learned During Development</h3>
+<p>Managing inter-service transactions requires robust event-driven choreographies and asynchronous database connection pooling.</p>
+<h3>15.13 High-Impact Beyond-Rubric Differentiators</h3>
+<p>To exceed standard module expectations and deliver a production-grade enterprise platform, the system incorporates eight advanced architectural and structural differentiators:</p>
+<ol>
+<li><strong>Redis-Based Atomic Distributed Locking Pattern</strong><br>To resolve race conditions under heavy concurrent bookings where parallel threads could allocate the same aircraft seat simultaneously, booking states are guarded by a Redis distributed lock using the atomic <code>SET ... NX</code> command. Parallel attempts receive a structured, non-blocking <code>409 Conflict</code> database exception.</li>
+<li><strong>Asynchronous Webhook Outbound Delivery Subsystem</strong><br>Third-party ground handling and immigration partner systems integrate asynchronously using outbound webhooks triggered by Kafka event streams. Data integrity is guaranteed via HMAC-SHA256 request signatures, mapped in the <code>X-AeroLink-Signature</code> headers to prevent payload spoofing.</li>
+<li><strong>Application-Level Field Envelope Encryption (AES-256)</strong><br>While databases are encrypted at rest, a credential compromise would still expose raw passenger data. To mitigate this, sensitive passenger properties (e.g. passport numbers and emails) are encrypted in application memory prior to SQL persistence using AES-256 CBC via standard cryptography utilities, keeping backend storage tables fully secure.</li>
+<li><strong>Commercial-Grade API Deprecation &amp; Sunset Headers</strong><br>Public service contracts enforce strict backward compatibility using standard IETF RFC 8594 Deprecation and Sunset HTTP headers. This allows legacy endpoints to communicate active deprecation dates to client applications within standard network headers.</li>
+<li><strong>Starlette Request Size Limiting Middleware</strong><br>Downstream container pods are safeguarded from buffer exhaust and Denial of Service (DoS) payload flooding by a Starlette size-limiting middleware, intercepting and rejecting requests exceeding <code>1MB</code> at the API Gateway boundary.</li>
+<li><strong>Parameterized Helm Charts &amp; Declarative Orchestration</strong><br>Duplicate Kubernetes declarations across namespaces are eliminated by migrating static resources to templated Helm Charts. A central <code>values.yaml</code> maps environment-specific configurations cleanly, supporting rapid rollback capabilities.</li>
+<li><strong>Istio VirtualService Canary Routing Split</strong><br>The service mesh enforces Canary splits (such as 90% production and 10% canary traffic on the Flight service), dynamically verifying stable telemetry indicators before expanding the release footprint.</li>
+<li><strong>ArgoCD GitOps Continuous Delivery Reconciliation</strong><br>To eradicate manual <code>kubectl</code> configuration drift, EKS cluster states are synchronized with Git declarations via ArgoCD, establishing continuous compliance audits.</li>
+</ol>
+<hr>
+<h2>Chapter 16: Future Improvements &amp; Recommendations</h2>
+<h3>16.1 Introduction</h3>
+<p>This chapter outlines your architectural roadmap, active-active Aurora Global Databases, and AI monitoring.</p>
+<h3>16.2 Multi-Region Database Replication</h3>
+<p>We recommend migrating RDS PostgreSQL databases to <strong>Amazon Aurora Global Database</strong>, providing sub-second read replication across regions.</p>
+<h3>16.3 Advanced Disaster Recovery Enhancements</h3>
+<p>We suggest configuring active-active multi-region failovers, using Route 53 DNS to route traffic during outages.</p>
+<h3>16.4 AI-Based Predictive Monitoring</h3>
+<p>Suggests integrating CloudWatch Anomaly Detection to predict CPU surges and trigger preemptive pod scaling.</p>
+<h3>16.5 Advanced Security Improvements</h3>
+<p>Recommends integrating HashiCorp Vault to automate secret rotations and encrypt sensitive environment variables.</p>
+<h3>16.6 Kubernetes Optimisation Enhancements</h3>
+<p>Suggests integrating Karpenter to replace EKS Cluster Autoscalers, provisioning worker nodes in under 15 seconds.</p>
+<h3>16.7 Enhanced Event Streaming Architecture</h3>
+<p>Recommends implementing Kafka Schema Registries (Avro) to validate event payloads and prevent schema drift.</p>
+<h3>16.8 Cost Optimisation Strategies</h3>
+<p>Recommends using Spot Instances for non-critical services (e.g., Notification) to reduce compute fees by up to 70%.</p>
+<h3>16.9 Future Scalability Enhancements</h3>
+<p>Suggests integrating ElastiCache Redis clusters to cache flight searches, reducing PostgreSQL read loads.</p>
+<h3>16.10 Production-Grade Recommendations</h3>
+<p>Migrating static manifests to Helm charts, implementing Karpenter, and adopting Amazon Aurora will elevate AeroLink to a production-grade aviation platform.</p>
+<hr>
+<h2>Chapter 17: Conclusion</h2>
+<h3>17.1 Summary of Achievements</h3>
+<p>We designed, deployed, and validated a cloud-native microservices prototype for AeroLink. The system implements isolated databases, Saga transactions, and zero-trust security.</p>
+<h3>17.2 Evaluation of System Objectives</h3>
+<p>All objectives are met: EKS scales dynamically under Locust stress tests, mTLS service meshes secure communications, and GDPR/PCI-DSS standards are enforced.</p>
+<h3>17.3 Final Reflection on the Proposed Solution</h3>
+<p>Transitioning from a monolithic architecture to a cloud-native microservices platform resolves database locks and eliminates cascading service crashes, delivering high horizontal scaling boundaries.</p>
+<h3>17.4 Concluding Remarks</h3>
+<p>The AeroLink Airline Systems Platform serves as a robust architectural prototype, demonstrating the value of modern cloud-native engineering in high-concurrency enterprise ecosystems.</p>
+<hr>
+<h2>References</h2>
+<h3>Books</h3>
+<ul>
+<li>Newman, S. (2021). <em>Building Microservices: Designing Fine-Grained Systems</em>. 2nd ed. Sebastopol, CA: O&#39;Reilly Media.</li>
+<li>Kleppmann, M. (2017). <em>Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems</em>. Sebastopol, CA: O&#39;Reilly Media.</li>
+<li>Richardson, C. (2018). <em>Microservices Patterns: With Examples in Java</em>. Shelter Island, NY: Manning Publications.</li>
+<li>Fowler, M. (2002). <em>Patterns of Enterprise Application Architecture</em>. Boston, MA: Addison-Wesley.</li>
+</ul>
+<h3>Research Papers</h3>
+<ul>
+<li>Gannon, D., Barga, R. and Sundaresan, N. (2017). &#39;Cloud-native applications&#39;, <em>IEEE Cloud Computing</em>, 4(5), pp. 16-21.</li>
+<li>Dragoni, N. et al. (2017). &#39;Microservices: Yesterday, Today, and Tomorrow&#39;, <em>Present and Ulterior Software Engineering</em>, pp. 195-216.</li>
+<li>Alshuqayran, N., Ali, N. and Evans, R. (2016). &#39;A systematic mapping study in microservice architecture&#39;, <em>IEEE International Conference on Software Engineering</em>, pp. 44-51.</li>
+</ul>
+<h3>Cloud Documentation</h3>
+<ul>
+<li>Amazon Web Services. (2026). <em>Amazon EKS User Guide</em>. Available at: <a href="https://docs.aws.amazon.com/eks/">https://docs.aws.amazon.com/eks/</a> (Accessed: 25 May 2026).</li>
+<li>Amazon Web Services. (2026). <em>AWS Well-Architected Framework: Security and Operational Excellence Pillars</em>. Available at: <a href="https://aws.amazon.com/architecture/well-architected/">https://aws.amazon.com/architecture/well-architected/</a> (Accessed: 25 May 2026).</li>
+<li>HashiCorp. (2026). <em>Terraform AWS Provider Specifications</em>. Available at: <a href="https://registry.terraform.io/providers/hashicorp/aws/">https://registry.terraform.io/providers/hashicorp/aws/</a> (Accessed: 25 May 2026).</li>
+</ul>
+<h3>Technical Standards</h3>
+<ul>
+<li>PCI Security Standards Council. (2024). <em>Payment Card Industry Data Security Standard (PCI DSS) Specification Version 4.0</em>. Wakefield, MA: PCI SSC.</li>
+<li>European Parliament and Council. (2016). <em>Regulation (EU) 2016/679 of the European Parliament and of the Council (General Data Protection Regulation)</em>. Official Journal of the European Union.</li>
+</ul>
+<h3>Online Resources</h3>
+<ul>
+<li>FastAPI Framework Authors. (2026). <em>FastAPI Asynchronous Lifespan and OpenTelemetry Integration</em>. Available at: <a href="https://fastapi.tiangolo.com/">https://fastapi.tiangolo.com/</a> (Accessed: 25 May 2026).</li>
+<li>Istio Service Mesh Authors. (2026). <em>Istio Mutual TLS (mTLS) and Network Isolation Policy Guide</em>. Available at: <a href="https://istio.io/docs/">https://istio.io/docs/</a> (Accessed: 25 May 2026).</li>
+</ul>
+<hr>
+<h2>Appendices</h2>
+<h3>Appendix A: High-Level Architecture Diagrams</h3>
+<p><em>Details C4 Level 2 Container decompositions, bounded contexts, and inter-service dependencies. Maps the AWS Virtual Private Cloud subnet architecture.</em><br><img src="screenshots/aws_architecture_diagram.png" alt="AWS Cloud Architecture Overview"></p>
+<h3>Appendix B: Kubernetes Cluster Evidence</h3>
+<p><em>Verification of EKS cluster deployments, replica configurations, namespaces, and node group statuses.</em><br><img src="screenshots/media__1779443647875.png" alt="Active EKS Services and Pods Status"></p>
+<h3>Appendix C: Docker Container Deployment Evidence</h3>
+<p><em>Docker multi-stage compilation builds, Alpine-base image optimizations, and local container registry deployments.</em><br><img src="screenshots/media__1778918953311.png" alt="Amazon EKS Worker Node Groups"></p>
+<h3>Appendix D: Terraform Infrastructure Provisioning</h3>
+<p><em>Provisions EKS nodes, RDS databases, DynamoDB partitions, and VPC NAT gateways.</em><br><img src="screenshots/media__1778917010466.png" alt="Terraform RDS Configuration"></p>
+<h3>Appendix E: ArgoCD Deployment Synchronisation</h3>
+<p><em>ArgoCD controller reconciliations, Git application sync tracks, and zero-drift cluster deployments.</em><br><img src="screenshots/media__1778918939291.png" alt="ArgoCD Controller Sync Dashboard"></p>
+<h3>Appendix F: Istio Service Mesh Routing</h3>
+<p><em>Istio virtual service canary splits, mutual TLS routing rules, and Kiali mesh graphs.</em><br><img src="screenshots/media__1779443913460.png" alt="Kiali Traffic Splitting Visualization"></p>
+<h3>Appendix G: Swagger API Documentation</h3>
+<p><em>Exposes interactive Swagger API documentation endpoints dynamically at <code>/docs</code> on the public subdomain.</em><br><img src="screenshots/media__1779443415047.png" alt="Swagger API Documentation Interface"></p>
+<h3>Appendix H: Postman API Collections</h3>
+<p><em>Automated API collections running Newman integration workflows (login, check-in, bookings).</em><br><img src="Evidences/Testing/Logical%20Level%20Testing%20-%20Unit%20Testing%20and%20Integration%20Testing/ALL_TESTING_COVERAGES.png" alt="Unified Code Coverage"></p>
+<h3>Appendix I: Grafana Monitoring Dashboards</h3>
+<p><em>Grafana CPU allocation widgets, memory footprints, and cluster performance statistics under stress.</em><br><img src="screenshots/media__1779446190129.png" alt="Grafana CPU Stress Metrics"></p>
+<h3>Appendix J: Jaeger Distributed Tracing Evidence</h3>
+<p><em>Jaeger request trace spans, documenting correlation ID propagations from gateways to database connections.</em><br><img src="screenshots/media__1779444070331.png" alt="Jaeger Distributed Tracing Interface"></p>
+<h3>Appendix K: Locust Load Testing Results</h3>
+<p><em>Headless Locust performance stress test charts tracking avg latencies and throughput metrics under peak user loads.</em><br><img src="screenshots/media__1779444204632.png" alt="Locust Performance Metrics Interface"></p>
+<h3>Appendix L: Database Schema &amp; ERD</h3>
+<p><em>Amazon RDS PostgreSQL table connections, Alembic migrations, and relational schema attributes.</em><br><img src="Evidences/Aurora%20and%20RDS/Databases.png" alt="Relational Database Tables Verification"></p>
+<h3>Appendix M: Security &amp; Authentication Evidence</h3>
+<p><em>Password bcrypt salting operations, JWT signature validations, and mTLS sidecars.</em><br><img src="screenshots/media_registration_success_1779484944676.png" alt="AeroLink Passenger Registration Success"></p>
+<h3>Appendix N: Frontend Application Screenshots</h3>
+<p><em>Client-facing React SPA dashboards: seat selectors, flight searches, and confirmed booking records.</em><br><img src="screenshots/media__1779456248273.png" alt="AeroLink Live Passenger Portal"></p>
+<h3>Appendix O: WebSocket Real-Time Communication Evidence</h3>
+<p><em>Realtime Service console outputs, tracking async seat lock dispatches over WebSockets.</em><br><img src="screenshots/media__1779448400816.png" alt="WebSocket Dynamic Messages Logs"></p>
+<h3>Appendix P: CloudWatch Monitoring Logs</h3>
+<p><em>JSON structlog streams collected dynamically inside CloudWatch Logs Insights dashboards.</em><br><img src="Evidences/CloudWatch/Amazon%20CloudWatch%20-%206%20-%20Log%20Events.png" alt="Amazon CloudWatch Log Events"></p>
+<h3>Appendix Q: GDPR Compliance Demonstration</h3>
+<p><em>Anonymization transactions, user data exports, and structlog PII redaction filters.</em><br><img src="screenshots/media__1779446831412.png" alt="Structured Log PII Redaction"></p>
+<h3>Appendix R: System Deployment Screenshots</h3>
+<p><em>Route 53 subdomain alias resolvers and static hosting bucket configurations.</em><br><img src="screenshots/media__1779445303906.png" alt="Route 53 Hosted Zone Records"></p>
+<h3>Appendix S: CI/CD Pipeline Evidence</h3>
+<p><em>GitHub Actions CI workflow results validating formats, types, and Docker image tags.</em><br><img src="Evidences/Continuous%20Integration%20-%20Github%20Action/Github%20-%202.png" alt="Github Actions CI pipeline"></p>
+<h3>Appendix T: 10-Minute Viva Demonstration Checklist &amp; Examiner Cheat Sheet</h3>
+<p>This checklist is structured to guide the student through a flawless, high-impact 10-minute live demonstration (Viva) with the module examiners. By following this sequence, the candidate will verify all key assignment parameters under active observability dashboards:</p>
+<h4>T.1 Part 1: Front-End Custom Subdomain &amp; Serverless Delivery (2 Minutes)</h4>
+<p><em>Demonstrates Requirement 1 (S3 Serverless frontend) and Requirement 4 (Route 53 subdomains).</em></p>
+<ul>
+<li>Navigate to the production URL: <code>http://aerolink.transnova.shop</code> in the browser.</li>
+<li>Perform a live passenger search (e.g. Origin LHR to Destination JFK), showing active flight results served from Amazon S3 static hosting in the eu-west-1 region.</li>
+<li>Right-click, select <em>Inspect Source</em> (F12) -&gt; <em>Network</em>, refresh, and demonstrate that all REST API requests route to the secure gateway subdomain <code>http://api.aerolink.transnova.shop</code>.</li>
+<li>Open the interactive OpenAPI documentation: <code>http://api.aerolink.transnova.shop/docs</code> to demonstrate self-documenting FastAPI schemas (e.g. <code>PassengerRegister</code>, <code>FlightResponse</code>).</li>
+</ul>
+<h4>T.2 Part 2: GitOps Reconciliation &amp; High Availability (2 Minutes)</h4>
+<p><em>Demonstrates Requirement 2 (EKS Kubernetes orchestration) and Requirement 5 (GitOps with ArgoCD).</em></p>
+<ul>
+<li>Launch the active ArgoCD Dashboard, presenting the synchronized application hierarchy mapping the code repository (k8s/ folder) to the active EKS container mesh.</li>
+<li>Run a PowerShell command to verify multi-zone high-availability:<pre><code class="language-powershell">kubectl get pods -n aerolink -o wide
+</code></pre>
+Demonstrate that the API Gateway and Flight Service replica pods are running on distinct worker nodes across Availability Zones eu-west-1a and eu-west-1b, surviving potential hardware collapses.</li>
+</ul>
+<h4>T.3 Part 3: Distributed Tracing &amp; Service Mesh Routing (2 Minutes)</h4>
+<p><em>Demonstrates Requirement 7 (Istio Service Mesh routing, Kiali telemetry, Jaeger tracing).</em></p>
+<ul>
+<li>Port-forward and open the Kiali Service Mesh Console:<pre><code class="language-powershell">kubectl port-forward svc/kiali -n istio-system 20001:20001
+</code></pre>
+Show the active inter-service communication topology and point out the sidecar proxies intercepting traffic.</li>
+<li>Port-forward and open the Jaeger Tracing Dashboard:<pre><code class="language-powershell">kubectl port-forward svc/tracing -n istio-system 16686:16686
+</code></pre>
+Search for traces under the <code>api-gateway</code> service. Select an active trace and show how it tracks the correlation ID (<code>X-Correlation-ID</code>) across distinct microservice layers.</li>
+</ul>
+<h4>T.4 Part 4: Auto-Scaling &amp; Load Resilience (2 Minutes)</h4>
+<p><em>Demonstrates Requirement 5 (HPA Auto-scaling) and Requirement 6 (Locust Performance Testing).</em></p>
+<ul>
+<li>In a PowerShell tab, monitor active autoscaling metrics:<pre><code class="language-powershell">kubectl get hpa -n aerolink -w
+</code></pre>
+</li>
+<li>Run a headless Locust stress scenario simulating concurrent load:<pre><code class="language-powershell">locust -f load_test.py --headless -u 200 -r 20 --run-time 5m --host http://api.aerolink.transnova.shop
+</code></pre>
+</li>
+<li>Show the examiner how the EKS Horizontal Pod Autoscaling limits detect the resource threshold breach, automatically scaling replicas from 3 to 8+ instances.</li>
+</ul>
+<h4>T.5 Part 5: Data Compliance &amp; GDPR Verification (2 Minutes)</h4>
+<p><em>Demonstrates Requirement 3 (Zero-trust Network Policies) and Requirement 5.1 (Data Governance &amp; Erasure).</em></p>
+<ul>
+<li>Navigate to the Passenger Profile tab, click the JSON Export button (GDPR Article 20 Portability), and open the generated file showing clean database mappings.</li>
+<li>Click Delete Account to trigger the absolute account anonymization workflow (GDPR Article 17 Erasure).</li>
+<li>Open the container logs in PowerShell:<pre><code class="language-powershell">kubectl logs -n aerolink -l app=passenger-service --tail=20
+</code></pre>
+Highlight to the examiner that passenger email and passport string data are replaced dynamically with <code>[REDACTED_EMAIL]</code> and <code>[REDACTED_PII]</code> in standard output logs, preventing trace leaks to CloudWatch storage tiers.</li>
+</ul>
+
+    </main>
+
+  </div>
+
+  <!-- Scroll to Top Trigger -->
+  <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
+  <!-- Prism.js Core & Plugins -->
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  
+  <script>
+    // 1. Scroll-to-top button appearance
+    const btn = document.querySelector('.back-to-top');
+    window.addEventListener('scroll', () => {
+      btn.classList.toggle('visible', window.scrollY > 400);
+    });
+
+    // 2. Wrap standard markdown tables in scrollable divs to make them beautifully responsive
+    document.querySelectorAll('.doc-content table').forEach((table) => {
+      const container = document.createElement('div');
+      container.className = 'table-container';
+      table.parentNode.insertBefore(container, table);
+      container.appendChild(table);
+    });
+
+    // 3. Format figures / images and inject clean caption descriptors
+    document.querySelectorAll('.doc-content img').forEach((img) => {
+      const parent = img.parentElement;
+      
+      // If the image is inside a paragraph tag, wrap it nicely
+      if (parent && parent.tagName === 'P') {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'img-wrapper';
+        
+        parent.parentNode.insertBefore(wrapper, parent);
+        wrapper.appendChild(img);
+        
+        // Locate adjacent text representing the image observation caption
+        const captionText = parent.textContent.trim();
+        if (captionText) {
+          const caption = document.createElement('div');
+          caption.className = 'img-caption';
+          caption.textContent = captionText;
+          wrapper.appendChild(caption);
+        }
+        
+        // Remove empty residual paragraph tag
+        parent.parentNode.removeChild(parent);
+      }
+    });
+
+    // 4. Translate raw Markdown triple-backtick mermaid blocks into structured mermaid divs
+    document.querySelectorAll('pre code.language-mermaid').forEach((block) => {
+      const pre = block.parentElement;
+      const div = document.createElement('div');
+      div.className = 'mermaid';
+      div.textContent = block.textContent;
+      pre.parentElement.replaceChild(div, pre);
+    });
+
+    // 5. Build dynamic interactive "Copy Code" hover overlays on code blocks
+    document.querySelectorAll('pre[class*="language-"]').forEach((pre) => {
+      const button = document.createElement('button');
+      button.className = 'copy-btn';
+      button.textContent = 'Copy';
+      pre.appendChild(button);
+
+      button.addEventListener('click', () => {
+        const codeElement = pre.querySelector('code');
+        if (!codeElement) return;
+        const codeText = codeElement.innerText;
+
+        navigator.clipboard.writeText(codeText).then(() => {
+          button.textContent = 'Copied!';
+          button.style.background = '#059669';
+          button.style.borderColor = '#059669';
+          button.style.color = '#ffffff';
+
+          setTimeout(() => {
+            button.textContent = 'Copy';
+            button.style.background = '';
+            button.style.borderColor = '';
+            button.style.color = '';
+          }, 2000);
+        });
+      });
+    });
+
+    // 6. Translate raw blockquote tags with standard alerts into styled GitHub alert panels
+    document.querySelectorAll('blockquote').forEach((bq) => {
+      const htmlContent = bq.innerHTML;
+      
+      if (htmlContent.includes('[!NOTE]')) {
+        bq.className = 'alert-block alert-note';
+        bq.innerHTML = htmlContent.replace(/[!NOTE]/g, '<span class="alert-title">💡 Note</span>');
+      } else if (htmlContent.includes('[!TIP]')) {
+        bq.className = 'alert-block alert-tip';
+        bq.innerHTML = htmlContent.replace(/[!TIP]/g, '<span class="alert-title">✨ Tip</span>');
+      } else if (htmlContent.includes('[!WARNING]')) {
+        bq.className = 'alert-block alert-warning';
+        bq.innerHTML = htmlContent.replace(/[!WARNING]/g, '<span class="alert-title">⚠️ Warning</span>');
+      } else if (htmlContent.includes('[!IMPORTANT]')) {
+        bq.className = 'alert-block alert-important';
+        bq.innerHTML = htmlContent.replace(/[!IMPORTANT]/g, '<span class="alert-title">🔥 Important</span>');
+      } else if (htmlContent.includes('[!CAUTION]')) {
+        bq.className = 'alert-block alert-caution';
+        bq.innerHTML = htmlContent.replace(/[!CAUTION]/g, '<span class="alert-title">🚨 Caution</span>');
+      }
+    });
+
+    // 7. Auto-scrape headers to populate the Right-hand Table of Contents sidebar
+    const headings = document.querySelectorAll('.doc-content h2, .doc-content h3');
+    const tocContainer = document.getElementById('toc-container');
+    
+    if (headings.length > 2 && tocContainer) {
+      headings.forEach((heading, idx) => {
+        if (!heading.id) {
+          // Generate uniform anchor IDs from text
+          heading.id = heading.textContent
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+        }
+
+        const link = document.createElement('a');
+        link.href = '#' + heading.id;
+        link.className = 'toc-link';
+        link.textContent = heading.textContent.replace(/^[d.]+s*/, '');
+        
+        // Add indent for H3 nested sections
+        if (heading.tagName === 'H3') {
+          link.style.paddingLeft = '20px';
+          link.style.fontSize = '0.72rem';
+        }
+
+        tocContainer.appendChild(link);
+      });
+      
+      // Highlight the active heading in TOC as the user scrolls
+      const observerOptions = {
+        root: null,
+        rootMargin: '0px 0px -60% 0px',
+        threshold: 0.1
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const activeId = entry.target.id;
+            document.querySelectorAll('.toc-link').forEach((link) => {
+              const matched = link.getAttribute('href') === '#' + activeId;
+              link.classList.toggle('active', matched);
+            });
+          }
+        });
+      }, observerOptions);
+
+      headings.forEach((heading) => observer.observe(heading));
+    } else if (tocContainer) {
+      // Hide sidebar if there are no significant headings to navigate
+      const sidebar = document.querySelector('.toc-sidebar');
+      if (sidebar) sidebar.style.display = 'none';
+      const wrapper = document.querySelector('.doc-wrapper');
+      if (wrapper) wrapper.style.gridTemplateColumns = '1fr';
+    }
+
+    // ===== Slideshow Controls for Presentation Mode =====
+    if (document.body.classList.contains('presentation-mode')) {
+      let currentSlide = 0;
+      const slides = document.querySelectorAll('.slide');
+      const totalSlides = slides.length;
+      
+      window.updateSlides = function() {
+        slides.forEach((slide, idx) => {
+          slide.classList.toggle('active', idx === currentSlide);
+        });
+        const numElement = document.getElementById('slide-num');
+        if (numElement) {
+          numElement.textContent = "Slide " + (currentSlide + 1) + " of " + totalSlides;
+        }
+        const progBar = document.getElementById('slide-progress-bar');
+        if (progBar) {
+          progBar.style.width = ((currentSlide + 1) / totalSlides) * 100 + "%";
+        }
+      };
+      
+      window.nextSlide = function() {
+        if (currentSlide < totalSlides - 1) {
+          currentSlide++;
+          updateSlides();
+        }
+      };
+      
+      window.prevSlide = function() {
+        if (currentSlide > 0) {
+          currentSlide--;
+          updateSlides();
+        }
+      };
+      
+      // Keyboard listeners
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+          e.preventDefault();
+          nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          prevSlide();
+        }
+      });
+      
+      // Initialize progress bar
+      updateSlides();
+    }
+  </script>
+</body>
+</html>

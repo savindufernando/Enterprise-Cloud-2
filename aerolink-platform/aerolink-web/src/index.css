@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --color-primary: #2563eb; /* Blue-600 */
   --color-primary-hover: #1d4ed8; /* Blue-700 */
@@ -23,6 +25,17 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+/* Dark mode overrides */
+.dark body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(51, 65, 85, 0.5);
 }
 
 /* Glassmorphism utilities optimized for premium light-theme */
