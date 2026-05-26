@@ -23,6 +23,7 @@ function LandingRoute() {
     if (user?.role === 'admin') return <Navigate to="/admin" replace />;
     if (user?.role === 'airline_operator') return <Navigate to="/operations" replace />;
     if (user?.role === 'ground_staff') return <Navigate to="/agent" replace />;
+    return <Navigate to="/passenger" replace />;
   }
   return <LandingPage />;
 }

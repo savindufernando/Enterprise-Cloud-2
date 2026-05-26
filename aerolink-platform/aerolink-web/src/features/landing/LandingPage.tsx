@@ -367,7 +367,10 @@ export default function LandingPage() {
                       <div className="text-3xl font-extrabold text-slate-900">${(flight.base_price * passengers).toLocaleString()}</div>
                       <div className="text-xs text-slate-400 mt-0.5">${flight.base_price} per person</div>
                     </div>
-                    <button onClick={() => openLoginModal()} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer shadow-sm">
+                    <button
+                      onClick={() => passengerLoggedIn ? navigate('/passenger') : openLoginModal()}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer shadow-sm"
+                    >
                       <span>Select Flight</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
