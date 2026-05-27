@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Activity, Server, CheckCircle2, RefreshCw, Radio,
-  Plane, TrendingUp, Zap, Plus, Edit2, XCircle, Save, X,
-  AlertTriangle, Clock
+  Plane, TrendingUp, Zap, Plus, Edit2, Save, X,
+  AlertTriangle, Clock, Search, Calendar,
+  DollarSign, Ban
 } from 'lucide-react';
 import { getFlightDelays, type FlightDelay } from '../../passenger/pages/MyBookings';
 
@@ -24,6 +25,10 @@ export default function OperationsDashboard() {
   const [delayingFlight, setDelayingFlight] = useState<FlightRecord | null>(null);
   const [delayReason, setDelayReason] = useState('');
   const [delayMinutes, setDelayMinutes] = useState(30);
+
+  // Flight list filters
+  const [flightSearch, setFlightSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'delayed' | 'cancelled'>('all');
 
   // Dynamic pricing
   const [baseRate, setBaseRate] = useState<number>(350);
@@ -102,6 +107,31 @@ export default function OperationsDashboard() {
     : 0;
   const totalServices = health ? Object.keys(health.services || {}).length : 6;
   const isHealthy = health?.status === 'fully_operational' || health?.status === 'degraded' || !health;
+
+  const filteredFlights = useMemo(() => {
+    return flights.filter(f => {
+      const q = flightSearch.toLowerCase();
+      const matchSearch = !q || f.flight_number.toLowerCase().includes(q)
+        || f.origin_airport.toLowerCase().includes(q)
+        || f.destination_airport.toLowerCase().includes(q);
+      const delayInfo = delays.find(d => d.flight_number === f.flight_number);
+      const isCancelled = f.status === 'Cancelled';
+      const isDelayed = !!delayInfo && !isCancelled;
+      const matchStatus =
+        statusFilter === 'all' ? true :
+        statusFilter === 'cancelled' ? isCancelled :
+        statusFilter === 'delayed' ? isDelayed :
+        !isCancelled && !isDelayed;
+      return matchSearch && matchStatus;
+    });
+  }, [flights, flightSearch, statusFilter, delays]);
+
+  const flightStats = useMemo(() => ({
+    total: flights.length,
+    active: flights.filter(f => f.status !== 'Cancelled' && !delays.find(d => d.flight_number === f.flight_number)).length,
+    delayed: flights.filter(f => f.status !== 'Cancelled' && !!delays.find(d => d.flight_number === f.flight_number)).length,
+    cancelled: flights.filter(f => f.status === 'Cancelled').length,
+  }), [flights, delays]);
 
   const handleSaveFlight = (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,161 +363,268 @@ export default function OperationsDashboard() {
       {/* ── FLIGHT MANAGEMENT TAB ── */}
       {activeTab === 'flights' && (
         <div className="space-y-5 -mt-4">
-          <div className="flex items-center justify-between">
+
+          {/* Header + Add button */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-extrabold text-slate-800">Flight Schedule</h2>
               <p className="text-sm text-slate-500 mt-0.5">{flights.length} flights in network</p>
             </div>
-            <button onClick={() => setShowAddForm(v => !v)} className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors shadow-sm">
-              <Plus className="w-4 h-4" />Add Flight
+            <button onClick={() => setShowAddForm(v => !v)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl cursor-pointer transition-colors shadow-sm">
+              <Plus className="w-4 h-4" /> Add Flight
             </button>
+          </div>
+
+          {/* Stats strip */}
+          <div className="grid grid-cols-4 gap-3">
+            {([
+              { label: 'Total', value: flightStats.total, color: 'text-slate-700', bg: 'bg-slate-50 border-slate-200', filter: 'all' },
+              { label: 'Active', value: flightStats.active, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', filter: 'active' },
+              { label: 'Delayed', value: flightStats.delayed, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', filter: 'delayed' },
+              { label: 'Cancelled', value: flightStats.cancelled, color: 'text-red-700', bg: 'bg-red-50 border-red-200', filter: 'cancelled' },
+            ] as const).map(s => (
+              <button key={s.filter} onClick={() => setStatusFilter(s.filter)}
+                className={`rounded-xl border p-3 text-center transition-all cursor-pointer ${s.bg} ${statusFilter === s.filter ? 'ring-2 ring-offset-1 ring-blue-400' : 'hover:opacity-80'}`}>
+                <div className={`text-2xl font-extrabold ${s.color}`}>{s.value}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{s.label}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Search + filter bar */}
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                value={flightSearch}
+                onChange={e => setFlightSearch(e.target.value)}
+                placeholder="Search by flight number or airport…"
+                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            {(flightSearch || statusFilter !== 'all') && (
+              <button onClick={() => { setFlightSearch(''); setStatusFilter('all'); }}
+                className="flex items-center gap-1.5 px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-50 cursor-pointer transition-colors">
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+            )}
           </div>
 
           {/* Add flight form */}
           {showAddForm && (
-            <div className="bg-white border border-blue-200 rounded-xl p-5 shadow-sm animate-fade-in space-y-4">
-              <h3 className="text-sm font-bold text-slate-800">New Flight</h3>
-              <form onSubmit={handleSaveFlight} className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+            <div className="bg-white border border-blue-200 rounded-2xl p-6 shadow-sm animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2"><Plus className="w-4 h-4 text-blue-600" /> New Flight</h3>
+                <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
+              </div>
+              <form onSubmit={handleSaveFlight} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[
                   { label: 'Flight No.', key: 'flight_number', placeholder: 'AL-999' },
                   { label: 'Origin', key: 'origin_airport', placeholder: 'LAX' },
                   { label: 'Destination', key: 'destination_airport', placeholder: 'JFK' },
                 ].map(({ label, key, placeholder }) => (
                   <div key={key}>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">{label}</label>
-                    <input required value={(newFlight as any)[key]} onChange={e => setNewFlight(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5">{label}</label>
+                    <input required value={(newFlight as any)[key]} onChange={e => setNewFlight(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
                   </div>
                 ))}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Departure</label>
-                  <input required type="datetime-local" value={newFlight.departure_time} onChange={e => setNewFlight(p => ({ ...p, departure_time: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Departure</label>
+                  <input required type="datetime-local" value={newFlight.departure_time} onChange={e => setNewFlight(p => ({ ...p, departure_time: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Base Price ($)</label>
-                  <input required type="number" min={1} value={newFlight.base_price} onChange={e => setNewFlight(p => ({ ...p, base_price: parseInt(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
-                </div>
-                <div className="flex items-end gap-2">
-                  <button type="submit" disabled={flightSaveLoading} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg cursor-pointer transition-colors">
-                    <Save className="w-3.5 h-3.5" />{flightSaveLoading ? 'Saving...' : 'Save'}
-                  </button>
-                  <button type="button" onClick={() => setShowAddForm(false)} className="flex items-center gap-1 text-slate-500 font-semibold text-xs px-3 py-2.5 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
-                    <X className="w-3.5 h-3.5" />Cancel
-                  </button>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Base Price ($)</label>
+                  <div className="flex gap-2">
+                    <input required type="number" min={1} value={newFlight.base_price} onChange={e => setNewFlight(p => ({ ...p, base_price: parseInt(e.target.value) }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
+                    <button type="submit" disabled={flightSaveLoading} className="shrink-0 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-colors whitespace-nowrap">
+                      <Save className="w-3.5 h-3.5" />{flightSaveLoading ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
           )}
 
-          {/* Delay management modal */}
+          {/* Delay modal */}
           {delayingFlight && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDelayingFlight(null)}>
-              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 p-6 space-y-4 animate-fade-in" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" />
-                    <h3 className="font-bold text-slate-800 text-sm">Mark Flight Delayed</h3>
+                    <div className="w-8 h-8 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">Mark Flight Delayed</h3>
+                      <p className="text-xs text-slate-500">{delayingFlight.flight_number} · {delayingFlight.origin_airport} → {delayingFlight.destination_airport}</p>
+                    </div>
                   </div>
                   <button onClick={() => setDelayingFlight(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
                 </div>
-                <div className="text-xs text-slate-500">Flight <span className="font-bold text-blue-700">{delayingFlight.flight_number}</span> — {delayingFlight.origin_airport} → {delayingFlight.destination_airport}</div>
-                <form onSubmit={handleMarkDelayed} className="space-y-3">
+                <form onSubmit={handleMarkDelayed} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Delay (minutes)</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-2">Delay Duration</label>
                     <div className="grid grid-cols-4 gap-2">
                       {[15, 30, 60, 120].map(m => (
                         <button key={m} type="button" onClick={() => setDelayMinutes(m)}
-                          className={`py-1.5 text-xs font-bold rounded-lg border cursor-pointer transition-all ${delayMinutes === m ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-200 text-slate-600 hover:border-amber-300'}`}>
+                          className={`py-2 text-sm font-bold rounded-xl border cursor-pointer transition-all ${delayMinutes === m ? 'bg-amber-500 border-amber-500 text-white shadow-sm' : 'border-slate-200 text-slate-600 hover:border-amber-300 hover:bg-amber-50'}`}>
                           {m}m
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Reason</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Reason</label>
                     <input required value={delayReason} onChange={e => setDelayReason(e.target.value)} placeholder="e.g. Technical issue, weather, crew delay"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-slate-800" />
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-slate-800" />
                   </div>
-                  <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-2.5 rounded-xl text-sm cursor-pointer transition-colors flex items-center justify-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />Confirm Delay
+                  <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-3 rounded-xl text-sm cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-sm">
+                    <AlertTriangle className="w-4 h-4" /> Confirm Delay
                   </button>
                 </form>
               </div>
             </div>
           )}
 
-          {/* Flights table */}
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-            <div className="grid grid-cols-12 gap-2 px-5 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <div className="col-span-2">Flight</div>
-              <div className="col-span-3">Route</div>
-              <div className="col-span-3">Departure</div>
-              <div className="col-span-1">Price</div>
-              <div className="col-span-1">Status</div>
-              <div className="col-span-2">Actions</div>
-            </div>
-            {flights.length === 0 ? (
-              <div className="text-center py-12 text-slate-400"><Plane className="w-8 h-8 mx-auto mb-2 opacity-30 rotate-90" /><p className="text-sm font-semibold">No flights loaded from API.</p></div>
-            ) : (
-              flights.map(f => {
-                const isEditing = editingFlight?.id === f.id;
-                const delayInfo = delays.find(d => d.flight_number === f.flight_number);
-                return (
-                  <div key={f.id} className={`border-b border-slate-100 last:border-0 ${f.status === 'Cancelled' ? 'opacity-50' : ''}`}>
-                    <div className="grid grid-cols-12 gap-2 px-5 py-4 items-center text-sm">
-                    {isEditing ? (
-                      <>
-                        <div className="col-span-2"><input value={editingFlight.flight_number} onChange={e => setEditingFlight(p => p ? { ...p, flight_number: e.target.value } : p)} className="w-full px-2 py-1 border border-blue-300 rounded text-xs" /></div>
-                        <div className="col-span-3 flex gap-1">
-                          <input value={editingFlight.origin_airport} onChange={e => setEditingFlight(p => p ? { ...p, origin_airport: e.target.value } : p)} className="w-16 px-2 py-1 border border-blue-300 rounded text-xs" />
-                          <input value={editingFlight.destination_airport} onChange={e => setEditingFlight(p => p ? { ...p, destination_airport: e.target.value } : p)} className="w-16 px-2 py-1 border border-blue-300 rounded text-xs" />
+          {/* Flight cards */}
+          <div className="space-y-3">
+            {filteredFlights.length === 0 ? (
+              <div className="text-center py-16 text-slate-400 bg-white border border-slate-200 rounded-2xl">
+                <Plane className="w-10 h-10 mx-auto mb-3 opacity-30 rotate-90" />
+                <p className="font-semibold text-slate-500">No flights match your filters.</p>
+              </div>
+            ) : filteredFlights.map(f => {
+              const isEditing = editingFlight?.id === f.id;
+              const delayInfo = delays.find(d => d.flight_number === f.flight_number);
+              const isCancelled = f.status === 'Cancelled';
+              const dep = new Date(f.departure_time);
+              const isPast = dep < new Date();
+
+              return (
+                <div key={f.id} className={`bg-white border rounded-2xl overflow-hidden transition-all ${isCancelled ? 'border-red-100 opacity-60' : delayInfo ? 'border-amber-200' : 'border-slate-200 hover:border-blue-200 hover:shadow-sm'}`}>
+                  {/* Status accent */}
+                  <div className={`h-1 ${isCancelled ? 'bg-red-400' : delayInfo ? 'bg-amber-400' : isPast ? 'bg-slate-300' : 'bg-emerald-400'}`} />
+
+                  {isEditing ? (
+                    <div className="p-5">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
+                        {[
+                          { label: 'Flight No.', field: 'flight_number' as const },
+                          { label: 'Origin', field: 'origin_airport' as const },
+                          { label: 'Destination', field: 'destination_airport' as const },
+                        ].map(({ label, field }) => (
+                          <div key={field}>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</label>
+                            <input value={editingFlight[field]} onChange={e => setEditingFlight(p => p ? { ...p, [field]: e.target.value } : p)}
+                              className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
+                          </div>
+                        ))}
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Departure</label>
+                          <input type="datetime-local" value={editingFlight.departure_time?.slice(0, 16)} onChange={e => setEditingFlight(p => p ? { ...p, departure_time: e.target.value } : p)}
+                            className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
                         </div>
-                        <div className="col-span-3"><input type="datetime-local" value={editingFlight.departure_time?.slice(0, 16)} onChange={e => setEditingFlight(p => p ? { ...p, departure_time: e.target.value } : p)} className="w-full px-2 py-1 border border-blue-300 rounded text-xs" /></div>
-                        <div className="col-span-1"><input type="number" value={editingFlight.base_price} onChange={e => setEditingFlight(p => p ? { ...p, base_price: parseInt(e.target.value) } : p)} className="w-full px-2 py-1 border border-blue-300 rounded text-xs" /></div>
-                        <div className="col-span-1" />
-                        <div className="col-span-2 flex gap-1">
-                          <button onClick={handleSaveFlight as any} className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><Save className="w-3 h-3" />Save</button>
-                          <button onClick={() => setEditingFlight(null)} className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1 rounded cursor-pointer"><X className="w-3 h-3" /></button>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Price ($)</label>
+                          <input type="number" value={editingFlight.base_price} onChange={e => setEditingFlight(p => p ? { ...p, base_price: parseInt(e.target.value) } : p)}
+                            className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800" />
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="col-span-2 font-mono font-bold text-blue-700 text-xs bg-blue-50 border border-blue-100 px-2 py-1 rounded-lg w-fit">{f.flight_number}</div>
-                        <div className="col-span-3 flex items-center gap-1 font-bold text-slate-800 text-xs">{f.origin_airport}<Plane className="w-3 h-3 text-blue-400 rotate-90" />{f.destination_airport}</div>
-                        <div className="col-span-3 text-xs text-slate-600">{new Date(f.departure_time).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
-                        <div className="col-span-1 font-bold text-slate-800 text-xs">${f.base_price}</div>
-                        <div className="col-span-1">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
-                            f.status === 'Cancelled' ? 'bg-red-50 text-red-600 border-red-200' :
-                            delayInfo ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                            'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }`}>{f.status === 'Cancelled' ? 'Cancelled' : delayInfo ? `+${delayInfo.delay_minutes}m` : 'Active'}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleSaveFlight as any} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-colors">
+                          <Save className="w-3.5 h-3.5" /> Save Changes
+                        </button>
+                        <button onClick={() => setEditingFlight(null)} className="flex items-center gap-1.5 border border-slate-200 text-slate-500 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                          <X className="w-3.5 h-3.5" /> Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        {/* Flight badge */}
+                        <div className="shrink-0 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-center min-w-[80px]">
+                          <div className="text-[9px] text-blue-400 uppercase tracking-widest font-bold">Flight</div>
+                          <div className="text-blue-700 font-mono font-extrabold text-sm mt-0.5">{f.flight_number}</div>
                         </div>
-                        <div className="col-span-2 flex gap-1 flex-wrap">
-                          {f.status !== 'Cancelled' && (
-                            <>
-                              <button onClick={() => setEditingFlight(f)} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><Edit2 className="w-3 h-3" />Edit</button>
-                              {delayInfo ? (
-                                <button onClick={() => handleClearDelay(f.flight_number)} className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><CheckCircle2 className="w-3 h-3" />Clear</button>
-                              ) : (
-                                <button onClick={() => setDelayingFlight(f)} className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><Clock className="w-3 h-3" />Delay</button>
-                              )}
-                              <button onClick={() => handleCancelFlight(f)} className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded cursor-pointer flex items-center gap-0.5"><XCircle className="w-3 h-3" />Cancel</button>
-                            </>
+
+                        {/* Route + time */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1.5">
+                            <div className="text-center">
+                              <div className="text-xl font-extrabold text-slate-900 leading-none">{f.origin_airport}</div>
+                            </div>
+                            <div className="flex flex-col items-center gap-0.5 px-1">
+                              <div className="w-10 h-px bg-gradient-to-r from-blue-200 via-blue-400 to-blue-200 relative">
+                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white flex items-center justify-center">
+                                  <Plane className="w-3 h-3 text-blue-500 rotate-90" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xl font-extrabold text-slate-900 leading-none">{f.destination_airport}</div>
+                            </div>
+                            {/* Status badge */}
+                            <span className={`ml-2 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                              isCancelled ? 'bg-red-50 text-red-600 border-red-200' :
+                              delayInfo ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                              isPast ? 'bg-slate-50 text-slate-500 border-slate-200' :
+                              'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              {isCancelled ? 'Cancelled' : delayInfo ? `Delayed +${delayInfo.delay_minutes}m` : isPast ? 'Departed' : 'Active'}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              {dep.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="font-bold text-slate-700">${Number(f.base_price).toFixed(2)}</span> base fare
+                            </span>
+                          </div>
+                          {delayInfo && !isCancelled && (
+                            <div className="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700 font-semibold w-fit">
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              {delayInfo.delay_minutes}min delay — {delayInfo.reason}
+                            </div>
                           )}
                         </div>
-                      </>
-                    )}
-                    </div>
-                    {delayInfo && f.status !== 'Cancelled' && (
-                      <div className="mx-5 mb-3 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700 font-semibold">
-                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                        Delayed {delayInfo.delay_minutes}min — {delayInfo.reason}
+
+                        {/* Actions */}
+                        {!isCancelled && (
+                          <div className="flex flex-wrap gap-2 shrink-0">
+                            <button onClick={() => setEditingFlight(f)}
+                              className="flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-2 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors">
+                              <Edit2 className="w-3.5 h-3.5" /> Edit
+                            </button>
+                            {delayInfo ? (
+                              <button onClick={() => handleClearDelay(f.flight_number)}
+                                className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Clear Delay
+                              </button>
+                            ) : (
+                              <button onClick={() => setDelayingFlight(f)}
+                                className="flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors">
+                                <Clock className="w-3.5 h-3.5" /> Delay
+                              </button>
+                            )}
+                            <button onClick={() => handleCancelFlight(f)}
+                              className="flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-xl cursor-pointer hover:bg-red-100 transition-colors">
+                              <Ban className="w-3.5 h-3.5" /> Cancel
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

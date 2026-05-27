@@ -1,43 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Plane, MapPin, Calendar, Users, Search, Lock, ShieldCheck,
   Eye, EyeOff, ChevronRight, ConciergeBell, Radio, Shield,
-  Globe, Star, User, LogIn, Loader2, AlertCircle
+  Globe, Star, User, LogIn, Loader2, AlertCircle,
+  ChevronDown, ClipboardList, Ticket, LogOut
 } from 'lucide-react';
-// Shield is used in the staff access modal role selector
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const GATE_CODE = atob('MDc2ODA5NDczNjA3MTIxNDk2NjU=');
 const SESSION_KEY = 'aerolink_demo_access';
 
-const AIRPORTS = [
-  { code: 'CMB', name: 'CMB — Colombo' },
-  { code: 'LAX', name: 'LAX — Los Angeles' },
-  { code: 'JFK', name: 'JFK — New York' },
-  { code: 'LHR', name: 'LHR — London' },
-  { code: 'CDG', name: 'CDG — Paris' },
-  { code: 'SIN', name: 'SIN — Singapore' },
-  { code: 'DXB', name: 'DXB — Dubai' },
-  { code: 'HND', name: 'HND — Tokyo' },
-];
+// Static name lookup — codes are international standards, no need for an API
+const AIRPORT_NAMES: Record<string, string> = {
+  CMB: 'Colombo', LAX: 'Los Angeles', JFK: 'New York', LHR: 'London',
+  CDG: 'Paris', SIN: 'Singapore', DXB: 'Dubai', HND: 'Tokyo',
+  SYD: 'Sydney', FRA: 'Frankfurt', AMS: 'Amsterdam', NRT: 'Tokyo Narita',
+  BOM: 'Mumbai', DEL: 'Delhi', HKG: 'Hong Kong', ICN: 'Seoul',
+  MAD: 'Madrid', FCO: 'Rome', YYZ: 'Toronto', GRU: 'São Paulo',
+};
+
+const airportLabel = (code: string) =>
+  AIRPORT_NAMES[code] ? `${code} — ${AIRPORT_NAMES[code]}` : code;
 
 export default function LandingPage() {
-  const { login, register, loginAs, isAuthenticated, user } = useAuth();
+  const { login, register, loginAs, logout, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   // Search form state
   const [tripType, setTripType] = useState<'round' | 'one-way'>('round');
-  const [origin, setOrigin] = useState('CMB');
-  const [destination, setDestination] = useState('DXB');
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
   const [departureDate, setDepartureDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [passengers, setPassengers] = useState(1);
 
   // Flights & results
   const [flights, setFlights] = useState<any[]>([]);
+  const [flightsLoading, setFlightsLoading] = useState(true);
+  const [flightsError, setFlightsError] = useState(false);
   const [searchResults, setSearchResults] = useState<any[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [browsingAll, setBrowsingAll] = useState(false);
 
   // Passenger login/register modal
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -60,6 +64,10 @@ export default function LandingPage() {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
 
+  // Passenger profile dropdown
+  const [profileOpen, setProfileOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   // Staff access modal (hidden, accessed from footer)
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [staffStep, setStaffStep] = useState<'code' | 'role'>('code');
@@ -77,34 +85,74 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://api.aerolink.transnova.shop';
-    fetch(`${API_BASE}/api/v1/flights/`)
-      .then(res => res.json())
-      .then(data => setFlights(data.data || []))
-      .catch(() => {
-        setFlights([
-          { id: 'fl_1', flight_number: 'AL-102', origin_airport: 'LAX', destination_airport: 'JFK', departure_time: new Date(Date.now() + 86400000).toISOString(), base_price: 350 },
-          { id: 'fl_2', flight_number: 'AL-309', origin_airport: 'LHR', destination_airport: 'SIN', departure_time: new Date(Date.now() + 172800000).toISOString(), base_price: 780 },
-          { id: 'fl_3', flight_number: 'AL-882', origin_airport: 'DXB', destination_airport: 'HND', departure_time: new Date(Date.now() + 259200000).toISOString(), base_price: 920 },
-          { id: 'fl_4', flight_number: 'AL-445', origin_airport: 'CMB', destination_airport: 'DXB', departure_time: new Date(Date.now() + 345600000).toISOString(), base_price: 420 },
-          { id: 'fl_5', flight_number: 'AL-771', origin_airport: 'JFK', destination_airport: 'LHR', departure_time: new Date(Date.now() + 432000000).toISOString(), base_price: 610 },
-        ]);
-      });
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://api.aerolink.transnova.shop';
+    setFlightsLoading(true);
+    setFlightsError(false);
+    fetch(`${API_BASE}/api/v1/flights/`)
+      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+      .then(data => { setFlights(data.data || []); })
+      .catch(() => setFlightsError(true))
+      .finally(() => setFlightsLoading(false));
+  }, []);
+
+  // Unique airports derived from API flights
+  const availableAirports = useMemo(() => {
+    const codes = new Set<string>();
+    flights.forEach(f => { codes.add(f.origin_airport); codes.add(f.destination_airport); });
+    return Array.from(codes).sort();
+  }, [flights]);
+
+  // Seed origin/destination from API data once flights load
+  useEffect(() => {
+    if (availableAirports.length >= 2) {
+      setOrigin(availableAirports[0]);
+      setDestination(availableAirports.find(c => c !== availableAirports[0]) ?? availableAirports[1]);
+    }
+  }, [availableAirports]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Popular routes: cheapest unique route combination from real flights
+  const popularRoutes = useMemo(() => {
+    const routeMap = new Map<string, any>();
+    flights.forEach(f => {
+      const key = `${f.origin_airport}-${f.destination_airport}`;
+      if (!routeMap.has(key) || f.base_price < routeMap.get(key).base_price) {
+        routeMap.set(key, f);
+      }
+    });
+    return Array.from(routeMap.values())
+      .sort((a, b) => a.base_price - b.base_price)
+      .slice(0, 4);
+  }, [flights]);
 
   // Staff are redirected away from "/" by LandingRoute in App.tsx, so only passengers can reach here
   const passengerLoggedIn = isAuthenticated && user?.role === 'passenger';
 
   const handleSearch = () => {
+    setBrowsingAll(false);
     setSearching(true);
     setTimeout(() => {
       const results = flights.filter(f =>
         f.origin_airport.toUpperCase() === origin.toUpperCase() &&
         f.destination_airport.toUpperCase() === destination.toUpperCase()
       );
-      setSearchResults(results.length > 0 ? results : flights);
+      setSearchResults(results);
       setSearching(false);
     }, 600);
+  };
+
+  const handleBrowseAll = () => {
+    setBrowsingAll(true);
+    setSearchResults(flights);
   };
 
   // ── Passenger login ──
@@ -123,7 +171,6 @@ export default function LandingPage() {
     try {
       await login(loginEmail, loginPassword);
       setShowLoginModal(false);
-      navigate('/passenger');
     } catch (err: any) {
       setLoginError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -140,7 +187,6 @@ export default function LandingPage() {
     try {
       await register(regEmail, regPassword, regFirstName, regLastName);
       setShowLoginModal(false);
-      navigate('/passenger');
     } catch (err: any) {
       setRegError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -151,7 +197,6 @@ export default function LandingPage() {
   const handleDemoPassenger = () => {
     loginAs('passenger');
     setShowLoginModal(false);
-    navigate('/passenger');
   };
 
   // ── Staff access (accessed from footer) ──
@@ -194,21 +239,74 @@ export default function LandingPage() {
             {/* Nav links */}
             <nav className="hidden md:flex items-center space-x-8 text-sm font-semibold text-slate-600">
               <a href="#" className="hover:text-blue-600 transition-colors border-b-2 border-blue-600 text-blue-600 pb-0.5">Book a Trip</a>
-              <a href="#" className="hover:text-blue-600 transition-colors">Manage Booking</a>
-              <a href="#" className="hover:text-blue-600 transition-colors">Check-in</a>
+              <button onClick={() => passengerLoggedIn ? navigate('/passenger?tab=mybookings') : openLoginModal()} className="hover:text-blue-600 transition-colors cursor-pointer">Manage Booking</button>
+              <button onClick={() => passengerLoggedIn ? navigate('/passenger?tab=checkin') : openLoginModal()} className="hover:text-blue-600 transition-colors cursor-pointer">Check-in</button>
               <a href="#" className="hover:text-blue-600 transition-colors">Experience</a>
             </nav>
 
             {/* Right: Login / user state — staff are never on this page while logged in */}
             <div className="flex items-center space-x-3">
               {passengerLoggedIn ? (
-                <button
-                  onClick={() => navigate('/passenger')}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors cursor-pointer"
-                >
-                  <User className="w-4 h-4" />
-                  <span>{user?.email?.split('@')[0]}</span>
-                </button>
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setProfileOpen(o => !o)}
+                    className="flex items-center gap-2.5 border border-slate-200 hover:border-blue-300 px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {[user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || (user?.email?.[0] ?? 'P').toUpperCase()}
+                    </div>
+                    <div className="hidden sm:block text-left">
+                      <div className="text-sm font-bold text-slate-800 leading-tight">
+                        {user?.firstName ? `${user.firstName}${user.lastName ? ' ' + user.lastName : ''}`.trim() : user?.email?.split('@')[0] ?? ''}
+                      </div>
+                      <div className="text-[10px] text-slate-400 leading-tight max-w-[120px] truncate">{user?.email}</div>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${profileOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in">
+                      <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-4 text-white">
+                        <div className="w-10 h-10 bg-white/25 rounded-full flex items-center justify-center text-sm font-bold mb-2">
+                          {[user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || (user?.email?.[0] ?? 'P').toUpperCase()}
+                        </div>
+                        <div className="font-bold text-sm">
+                          {user?.firstName ? `${user.firstName}${user.lastName ? ' ' + user.lastName : ''}`.trim() : user?.email?.split('@')[0] ?? ''}
+                        </div>
+                        <div className="text-blue-200 text-xs mt-0.5 truncate">{user?.email}</div>
+                        <div className="text-blue-300 text-[10px] mt-0.5 uppercase tracking-wide font-semibold">Passenger Account</div>
+                      </div>
+                      <div className="p-2">
+                        <button
+                          onClick={() => { setProfileOpen(false); navigate('/passenger?tab=mybookings'); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <ClipboardList className="w-4 h-4" /> My Bookings
+                        </button>
+                        <button
+                          onClick={() => { setProfileOpen(false); navigate('/passenger?tab=booking'); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Ticket className="w-4 h-4" /> Book a Flight
+                        </button>
+                        <button
+                          onClick={() => { setProfileOpen(false); navigate('/passenger?tab=profile'); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <User className="w-4 h-4" /> My Profile
+                        </button>
+                        <div className="border-t border-slate-100 mt-1 pt-1">
+                          <button
+                            onClick={() => { logout(); setProfileOpen(false); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <LogOut className="w-4 h-4" /> Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={() => openLoginModal()}
@@ -255,8 +353,8 @@ export default function LandingPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From</label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-blue-500 z-10 pointer-events-none" />
-                  <select value={origin} onChange={e => setOrigin(e.target.value)} className="w-full pl-9 pr-3 py-3 border border-slate-200 rounded-xl bg-white text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer">
-                    {AIRPORTS.map(a => <option key={a.code} value={a.code}>{a.name}</option>)}
+                  <select value={origin} onChange={e => setOrigin(e.target.value)} disabled={flightsLoading} className="w-full pl-9 pr-3 py-3 border border-slate-200 rounded-xl bg-white text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-60">
+                    {availableAirports.map(code => <option key={code} value={code}>{airportLabel(code)}</option>)}
                   </select>
                 </div>
               </div>
@@ -265,8 +363,8 @@ export default function LandingPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To</label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 z-10 pointer-events-none" />
-                  <select value={destination} onChange={e => setDestination(e.target.value)} className="w-full pl-9 pr-3 py-3 border border-slate-200 rounded-xl bg-white text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer">
-                    {AIRPORTS.filter(a => a.code !== origin).map(a => <option key={a.code} value={a.code}>{a.name}</option>)}
+                  <select value={destination} onChange={e => setDestination(e.target.value)} disabled={flightsLoading} className="w-full pl-9 pr-3 py-3 border border-slate-200 rounded-xl bg-white text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-60">
+                    {availableAirports.filter(c => c !== origin).map(code => <option key={code} value={code}>{airportLabel(code)}</option>)}
                   </select>
                 </div>
               </div>
@@ -298,14 +396,25 @@ export default function LandingPage() {
                       {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} pax</option>)}
                     </select>
                   </div>
-                  <button onClick={handleSearch} disabled={searching} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold px-5 py-3 rounded-xl flex items-center space-x-2 transition-all shadow-md text-sm cursor-pointer whitespace-nowrap">
-                    <Search className="w-4 h-4" />
-                    <span>Search</span>
+                  <button onClick={handleSearch} disabled={searching || flightsLoading} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold px-5 py-3 rounded-xl flex items-center space-x-2 transition-all shadow-md text-sm cursor-pointer whitespace-nowrap">
+                    {searching || flightsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    <span>{flightsLoading ? 'Loading...' : 'Search'}</span>
                   </button>
                 </div>
               </div>
             </div>
           </div>
+          {/* Browse all flights link */}
+          {!flightsLoading && flights.length > 0 && (
+            <div className="text-center mt-4">
+              <button
+                onClick={handleBrowseAll}
+                className="text-blue-200 hover:text-white text-sm font-semibold underline underline-offset-2 cursor-pointer transition-colors"
+              >
+                Browse all {flights.length} available flights →
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -336,47 +445,115 @@ export default function LandingPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-extrabold text-slate-800">
-                  {searchResults.length > 0 ? `${searchResults.length} Flights Found` : 'No Flights on This Route'}
+                  {browsingAll
+                    ? `All Available Flights (${searchResults.length})`
+                    : searchResults.length > 0
+                      ? `${searchResults.length} Flight${searchResults.length > 1 ? 's' : ''} Found`
+                      : 'No Flights on This Route'}
                 </h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  {origin} → {destination} &middot; {passengers} passenger{passengers > 1 ? 's' : ''} &middot; {new Date(departureDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {browsingAll
+                    ? 'Showing all flights in our network'
+                    : `${origin} → ${destination} · ${passengers} passenger${passengers > 1 ? 's' : ''} · ${new Date(departureDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`}
                 </p>
               </div>
-              <button onClick={() => setSearchResults(null)} className="text-sm text-blue-600 hover:text-blue-500 font-semibold underline cursor-pointer">
+              <button onClick={() => { setSearchResults(null); setBrowsingAll(false); }} className="text-sm text-blue-600 hover:text-blue-500 font-semibold underline cursor-pointer">
                 ← New Search
               </button>
             </div>
-            <div className="space-y-4">
-              {searchResults.map(flight => (
-                <div key={flight.id} className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row justify-between items-center gap-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all">
-                  <div className="flex items-center gap-6">
-                    <div className="bg-blue-50 text-blue-700 font-mono font-extrabold px-4 py-3 rounded-xl text-sm border border-blue-100 shrink-0">{flight.flight_number}</div>
-                    <div>
-                      <div className="text-2xl font-extrabold text-slate-900 flex items-center gap-3">
-                        <span>{flight.origin_airport}</span>
-                        <Plane className="w-5 h-5 text-blue-400 rotate-90" />
-                        <span>{flight.destination_airport}</span>
-                      </div>
-                      <div className="text-sm text-slate-500 mt-1">
-                        Departs {new Date(flight.departure_time).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-3">
-                    <div className="text-right">
-                      <div className="text-3xl font-extrabold text-slate-900">${(flight.base_price * passengers).toLocaleString()}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">${flight.base_price} per person</div>
-                    </div>
-                    <button
-                      onClick={() => passengerLoggedIn ? navigate('/passenger') : openLoginModal()}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer shadow-sm"
-                    >
-                      <span>Select Flight</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
+            {/* Sort bar (shown when browsing all flights) */}
+            {browsingAll && searchResults.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sort:</span>
+                {([
+                  { key: 'price', label: 'Cheapest first' },
+                  { key: 'dep', label: 'Earliest first' },
+                ] as const).map(s => (
+                  <button
+                    key={s.key}
+                    onClick={() => setSearchResults([...searchResults].sort((a, b) =>
+                      s.key === 'price'
+                        ? a.base_price - b.base_price
+                        : new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime()
+                    ))}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-600 transition-all cursor-pointer"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {searchResults.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  <Plane className="w-10 h-10 mx-auto mb-3 opacity-30 rotate-90" />
+                  <p className="font-semibold text-slate-500 text-base">No flights found on this route.</p>
+                  <p className="text-sm mt-1">Try different airports or <button onClick={handleBrowseAll} className="text-blue-600 underline cursor-pointer">browse all flights</button>.</p>
                 </div>
-              ))}
+              ) : (
+                searchResults.map(flight => {
+                  const dep = new Date(flight.departure_time);
+                  const totalPrice = (flight.base_price * passengers).toFixed(2);
+                  const perPerson = Number(flight.base_price).toFixed(2);
+                  return (
+                    <div key={flight.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-blue-200 transition-all group">
+                      <div className="h-1 bg-gradient-to-r from-blue-500 to-blue-700 group-hover:from-blue-600 group-hover:to-blue-800 transition-all" />
+                      <div className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        {/* Left: flight info */}
+                        <div className="flex items-center gap-5 flex-1 min-w-0">
+                          <div className="shrink-0 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-center min-w-[72px]">
+                            <div className="text-[9px] text-blue-400 uppercase tracking-widest font-bold">Flight</div>
+                            <div className="text-blue-700 font-mono font-extrabold text-sm mt-0.5">{flight.flight_number}</div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3">
+                              <div className="text-center">
+                                <div className="text-2xl font-extrabold text-slate-900 leading-none">{flight.origin_airport}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{AIRPORT_NAMES[flight.origin_airport] ?? ''}</div>
+                              </div>
+                              <div className="flex flex-col items-center gap-1 px-1">
+                                <div className="w-14 h-px bg-gradient-to-r from-blue-200 via-blue-400 to-blue-200 relative">
+                                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white flex items-center justify-center">
+                                    <Plane className="w-3.5 h-3.5 text-blue-500 rotate-90" />
+                                  </div>
+                                </div>
+                                <span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-0.5">Direct</span>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-2xl font-extrabold text-slate-900 leading-none">{flight.destination_airport}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{AIRPORT_NAMES[flight.destination_airport] ?? ''}</div>
+                              </div>
+                            </div>
+                            <div className="text-xs text-slate-500 mt-2.5 flex items-center gap-1.5">
+                              <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                              {dep.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: price + CTA */}
+                        <div className="flex items-center gap-4 shrink-0 sm:border-l sm:border-slate-100 sm:pl-5">
+                          <div className="text-right">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">from / person</div>
+                            <div className="text-2xl font-extrabold text-slate-900 leading-tight mt-0.5">${perPerson}</div>
+                            {passengers > 1 && (
+                              <div className="text-xs text-blue-600 font-bold mt-0.5">{passengers} pax: ${totalPrice}</div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => passengerLoggedIn ? navigate('/passenger?tab=booking') : openLoginModal()}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer shadow-sm group-hover:shadow-md flex items-center gap-2 whitespace-nowrap"
+                          >
+                            Select
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         ) : (
@@ -445,43 +622,69 @@ export default function LandingPage() {
             <div>
               <span className="inline-block text-xs font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-full mb-3">Destinations</span>
               <h2 className="text-3xl font-extrabold text-slate-800">Popular Routes</h2>
-              <p className="text-slate-500 mt-1 text-sm">Our most-loved destinations. Click any to search instantly.</p>
+              <p className="text-slate-500 mt-1 text-sm">Live fares from our network. Click any to search instantly.</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { from: 'CMB', fromName: 'Colombo', to: 'DXB', toName: 'Dubai', price: 420, tag: 'Best Value', accent: 'blue' },
-              { from: 'LAX', fromName: 'Los Angeles', to: 'JFK', toName: 'New York', price: 350, tag: 'Most Booked', accent: 'slate' },
-              { from: 'LHR', fromName: 'London', to: 'SIN', toName: 'Singapore', price: 780, tag: 'Long Haul', accent: 'blue' },
-              { from: 'DXB', fromName: 'Dubai', to: 'HND', toName: 'Tokyo', price: 920, tag: 'Premium', accent: 'slate' },
-            ].map((route, i) => (
-              <button
-                key={i}
-                onClick={() => { setOrigin(route.from); setDestination(route.to); handleSearch(); }}
-                className="text-left bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer group"
-              >
-                <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-700 group-hover:from-blue-600 group-hover:to-blue-800 transition-all" />
-                <div className="p-5">
-                  <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-3 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full inline-block">{route.tag}</div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl font-extrabold text-slate-900">{route.from}</span>
-                    <Plane className="w-4 h-4 text-blue-400 rotate-90 shrink-0" />
-                    <span className="text-2xl font-extrabold text-slate-900">{route.to}</span>
-                  </div>
-                  <div className="text-xs text-slate-400 mb-4">{route.fromName} → {route.toName}</div>
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className="text-[10px] text-slate-400 uppercase tracking-wide">from</div>
-                      <div className="text-xl font-extrabold text-blue-600">${route.price}</div>
-                    </div>
-                    <div className="w-8 h-8 bg-blue-50 group-hover:bg-blue-600 border border-blue-100 group-hover:border-blue-600 rounded-lg flex items-center justify-center transition-all">
-                      <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
-                    </div>
+
+          {flightsLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {[0, 1, 2, 3].map(i => (
+                <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden animate-pulse">
+                  <div className="h-2 bg-slate-200" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-3 bg-slate-100 rounded w-20" />
+                    <div className="h-8 bg-slate-100 rounded w-32" />
+                    <div className="h-3 bg-slate-100 rounded w-28" />
+                    <div className="h-6 bg-slate-100 rounded w-16 mt-4" />
                   </div>
                 </div>
-              </button>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : flightsError ? (
+            <div className="text-center py-10 text-slate-400">
+              <Plane className="w-10 h-10 mx-auto mb-3 opacity-30 rotate-90" />
+              <p className="text-sm font-semibold">Could not load routes — check your connection.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {popularRoutes.map((flight, i) => {
+                const tags = ['Best Value', 'Most Booked', 'Long Haul', 'Premium'];
+                return (
+                  <button
+                    key={flight.id}
+                    onClick={() => {
+                      setOrigin(flight.origin_airport);
+                      setDestination(flight.destination_airport);
+                      setTimeout(handleSearch, 0);
+                    }}
+                    className="text-left bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-700 group-hover:from-blue-600 group-hover:to-blue-800 transition-all" />
+                    <div className="p-5">
+                      <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-3 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full inline-block">{tags[i] ?? 'Popular'}</div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-2xl font-extrabold text-slate-900">{flight.origin_airport}</span>
+                        <Plane className="w-4 h-4 text-blue-400 rotate-90 shrink-0" />
+                        <span className="text-2xl font-extrabold text-slate-900">{flight.destination_airport}</span>
+                      </div>
+                      <div className="text-xs text-slate-400 mb-4">
+                        {AIRPORT_NAMES[flight.origin_airport] ?? flight.origin_airport} → {AIRPORT_NAMES[flight.destination_airport] ?? flight.destination_airport}
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase tracking-wide">from</div>
+                          <div className="text-xl font-extrabold text-blue-600">${Math.round(flight.base_price)}</div>
+                        </div>
+                        <div className="w-8 h-8 bg-blue-50 group-hover:bg-blue-600 border border-blue-100 group-hover:border-blue-600 rounded-lg flex items-center justify-center transition-all">
+                          <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

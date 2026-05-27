@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Ticket, User, ClipboardList, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import SearchFlights from './pages/SearchFlights';
 import SeatSelection from './pages/SeatSelection';
@@ -11,14 +12,17 @@ import BoardingPass from './pages/BoardingPass';
 import GDPRExport from './pages/GDPRExport';
 import DeleteAccount from './pages/DeleteAccount';
 import MyBookings, { saveBooking } from './pages/MyBookings';
+import CheckIn from './pages/CheckIn';
 
 type BookingStep = 'search' | 'seat-selection' | 'baggage' | 'meal' | 'payment' | 'confirmed';
 
 export default function PassengerPortal() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const activeTab = (searchParams.get('tab') as 'booking' | 'mybookings' | 'checkin' | 'profile') ?? 'booking';
     const [flights, setFlights] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'booking' | 'mybookings' | 'profile'>('booking');
 
     // Booking flow
     const [bookingStep, setBookingStep] = useState<BookingStep>('search');
@@ -47,16 +51,7 @@ export default function PassengerPortal() {
         fetch(`${API_BASE}/api/v1/flights/`)
             .then(res => res.json())
             .then(data => { setFlights(data.data || []); setLoading(false); })
-            .catch(() => {
-                setFlights([
-                    { id: "fl_1", flight_number: "AL-102", origin_airport: "LAX", destination_airport: "JFK", departure_time: new Date(Date.now() + 86400000).toISOString(), base_price: 350 },
-                    { id: "fl_2", flight_number: "AL-309", origin_airport: "LHR", destination_airport: "SIN", departure_time: new Date(Date.now() + 172800000).toISOString(), base_price: 780 },
-                    { id: "fl_3", flight_number: "AL-882", origin_airport: "DXB", destination_airport: "HND", departure_time: new Date(Date.now() + 259200000).toISOString(), base_price: 920 },
-                    { id: "fl_4", flight_number: "AL-441", origin_airport: "SIN", destination_airport: "CMB", departure_time: new Date(Date.now() + 3 * 86400000).toISOString(), base_price: 420 },
-                    { id: "fl_5", flight_number: "AL-773", origin_airport: "CDG", destination_airport: "BOM", departure_time: new Date(Date.now() + 4 * 86400000).toISOString(), base_price: 610 },
-                ]);
-                setLoading(false);
-            });
+            .catch(() => { setLoading(false); });
     }, []);
 
     const handleInitiateBooking = (flight: any, type: 'one-way' | 'round-trip', retDate?: string) => {
@@ -164,25 +159,6 @@ export default function PassengerPortal() {
 
     return (
         <div className="space-y-8 animate-fade-in pb-16">
-            {/* Tabs — hidden during booking sub-steps */}
-            {bookingStep === 'search' && (
-                <div className="flex border-b border-slate-200 dark:border-slate-700 space-x-6 mb-6">
-                    {[
-                        { key: 'booking', icon: Ticket, label: 'Book a Flight' },
-                        { key: 'mybookings', icon: ClipboardList, label: 'My Bookings' },
-                        { key: 'profile', icon: User, label: 'My Profile' },
-                    ].map(({ key, icon: Icon, label }) => (
-                        <button
-                            key={key}
-                            onClick={() => setActiveTab(key as any)}
-                            className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center space-x-2 cursor-pointer ${activeTab === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                        >
-                            <Icon className="w-4 h-4" />
-                            <span>{label}</span>
-                        </button>
-                    ))}
-                </div>
-            )}
 
             {/* ── TAB A: BOOKING ── */}
             {activeTab === 'booking' && (
@@ -293,7 +269,7 @@ export default function PassengerPortal() {
                                 passportNumber={passportNumber}
                                 userEmail={user?.email}
                                 mealPreference={mealPreference}
-                                onReset={() => { setBookingStep('search'); setSelectedFlight(null); setSelectedSeat(null); setActiveTab('mybookings'); }}
+                                onReset={() => { setBookingStep('search'); setSelectedFlight(null); setSelectedSeat(null); navigate('/passenger?tab=mybookings'); }}
                             />
                         </>
                     )}
@@ -302,10 +278,15 @@ export default function PassengerPortal() {
 
             {/* ── TAB B: MY BOOKINGS ── */}
             {activeTab === 'mybookings' && (
-                <MyBookings onBookAgain={() => setActiveTab('booking')} userId={user?.email || 'guest'} userEmail={user?.email} />
+                <MyBookings onBookAgain={() => navigate('/passenger?tab=booking')} userId={user?.email || 'guest'} userEmail={user?.email} />
             )}
 
-            {/* ── TAB C: MY PROFILE ── */}
+            {/* ── TAB C: CHECK-IN ── */}
+            {activeTab === 'checkin' && (
+                <CheckIn userId={user?.email || 'guest'} userEmail={user?.email} />
+            )}
+
+            {/* ── TAB D: MY PROFILE ── */}
             {activeTab === 'profile' && (
                 <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
                     <div>

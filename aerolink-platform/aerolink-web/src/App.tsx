@@ -10,6 +10,7 @@ import GroundDashboard from './features/groundstaff/pages/GroundDashboard';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import SystemMetrics from './features/monitoring/pages/SystemMetrics';
 import DashboardLayout from './app/layouts/DashboardLayout';
+import PassengerAppLayout from './app/layouts/PassengerAppLayout';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -23,7 +24,7 @@ function LandingRoute() {
     if (user?.role === 'admin') return <Navigate to="/admin" replace />;
     if (user?.role === 'airline_operator') return <Navigate to="/operations" replace />;
     if (user?.role === 'ground_staff') return <Navigate to="/agent" replace />;
-    return <Navigate to="/passenger" replace />;
+    // passengers remain on the landing page
   }
   return <LandingPage />;
 }
@@ -35,6 +36,13 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   return <>{children}</>;
 }
 
+function PassengerRoute() {
+  const { user } = useAuth();
+  return user?.role === 'passenger'
+    ? <PassengerAppLayout><PassengerPortal /></PassengerAppLayout>
+    : <DashboardLayout><PassengerPortal /></DashboardLayout>;
+}
+
 function AppRoutes() {
   return (
     <>
@@ -42,7 +50,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<LandingRoute />} />
         <Route path="/flights/status" element={<FlightStatus />} />
-        <Route path="/passenger" element={<ProtectedRoute><DashboardLayout><PassengerPortal /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/passenger" element={<ProtectedRoute><PassengerRoute /></ProtectedRoute>} />
         <Route path="/agent" element={<ProtectedRoute allowedRoles={['admin', 'ground_staff']}><DashboardLayout><GroundDashboard /></DashboardLayout></ProtectedRoute>} />
         <Route path="/operations" element={<ProtectedRoute allowedRoles={['admin', 'airline_operator']}><DashboardLayout><OperationsDashboard /></DashboardLayout></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
