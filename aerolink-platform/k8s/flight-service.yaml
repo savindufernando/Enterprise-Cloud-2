@@ -7,7 +7,6 @@ metadata:
     app: flight-service
     version: v1
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: flight-service
