@@ -31,3 +31,6 @@ walkthrough.md
 # OS
 .DS_Store
 Thumbs.db
+
+# Large submission archives (>100MB GitHub limit)
+*.zip

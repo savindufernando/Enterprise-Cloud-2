@@ -11,7 +11,7 @@ metadata:
   namespace: aerolink
 data:
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-  DATABASE_URL: "postgresql+asyncpg://aerolink_admin:GhQfnaS%3C9Tfa%5D-2LethFukO%3EM%23I%21@aerolink-postgres.czkqg6maoa2o.eu-west-1.rds.amazonaws.com:5432/aerolink_db?ssl=require"
+  DATABASE_URL: "postgresql+asyncpg://aerolink_admin:0LiN2%21EBm%3A%29%21%2AwY8EknxdLp2%29%2A%2Ad@aerolink-postgres.czkqg6maoa2o.eu-west-1.rds.amazonaws.com:5432/aerolink_db?ssl=require"
   REDIS_URL: "redis://redis:6379/0"
   FLIGHT_SERVICE_URL: "http://flight-service:8001"
   BOOKING_SERVICE_URL: "http://booking-service:8002"
