@@ -596,6 +596,61 @@ To isolate CPU-heavy processing from the transactional flight services, passenge
 ### 5.17 Frontend Hosting using Amazon S3
 The React frontend is hosted on Amazon S3 (`s3://aerolink.transnova.shop`). S3 static hosting delivers reliable, serverless static asset distribution with near-zero latency.
 
+#### 5.17.1 Administrative Domain Access Control (Toggling Live Site Access)
+To support maintenance windows, system audits, or security isolation procedures, administrators can instantly toggle access to the live web application code. This is accomplished using declarative Amazon S3 bucket policies that govern public file read operations.
+
+Two preconfigured policy templates are provided in the repository under `aerolink-platform/scripts/`:
+1. `disable-policy.json` (Enforces a global `Deny` block on `s3:GetObject` requests, rendering a standard `403 Forbidden` screen).
+2. `enable-policy.json` (Allows public `s3:GetObject` read access, restoring normal static site delivery).
+
+##### Step A: Preconfigured S3 Bucket Policies
+
+**1. `disable-policy.json` (Disable Access):**
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "BlockAllGetObject",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::aerolink.transnova.shop/*"
+        }
+    ]
+}
+```
+
+**2. `enable-policy.json` (Enable Access):**
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::aerolink.transnova.shop/*"
+        }
+    ]
+}
+```
+
+##### Step B: Administrative CLI Execution Commands
+Navigate to the directory containing the policy files (`aerolink-platform/scripts/`) and run the following AWS CLI commands to update the active bucket access rules:
+
+* **To Disable Domain Access:**
+  ```bash
+  aws s3api put-bucket-policy --bucket aerolink.transnova.shop --policy file://disable-policy.json
+  ```
+
+* **To Enable Domain Access:**
+  ```bash
+  aws s3api put-bucket-policy --bucket aerolink.transnova.shop --policy file://enable-policy.json
+  ```
+
+
 ### 5.18 DNS Management using Route 53
 Route 53 maps incoming traffic:
 * `aerolink.transnova.shop` ➔ S3 static website endpoint.
