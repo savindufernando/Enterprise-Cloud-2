@@ -327,7 +327,7 @@ export default function LandingPage() {
           src="/banner.png"
           alt="AeroLink — Fly Seamlessly. Travel Effortlessly."
           className="w-full object-cover object-center block"
-          style={{ height: '460px' }}
+          style={{ height: 'clamp(200px, 40vw, 460px)' }}
         />
       </div>
 

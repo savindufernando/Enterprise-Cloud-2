@@ -226,7 +226,7 @@ export default function GroundDashboard() {
                     <Shield className="w-3.5 h-3.5" />
                     <span>Ground Staff Gate Terminal</span>
                 </div>
-                <h1 className="text-4xl font-extrabold tracking-tight mb-2">Gate Control Terminal</h1>
+                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">Gate Control Terminal</h1>
                 <p className="text-sm text-slate-500 max-w-lg mx-auto">Validate passenger ticket manifests and coordinate high-frequency baggage scanning drops directly to DynamoDB.</p>
             </div>
 

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import LandingPage from './features/landing/LandingPage';
+import ExperiencePage from './features/landing/ExperiencePage';
 import PassengerPortal from './features/passenger/PassengerPortal';
 import FlightStatus from './features/flights/pages/FlightStatus';
 import OperationsDashboard from './features/operations/pages/OperationsDashboard';
@@ -50,6 +51,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<LandingRoute />} />
         <Route path="/flights/status" element={<FlightStatus />} />
+        <Route path="/experience" element={<ExperiencePage />} />
         <Route path="/passenger" element={<ProtectedRoute><PassengerRoute /></ProtectedRoute>} />
         <Route path="/agent" element={<ProtectedRoute allowedRoles={['admin', 'ground_staff']}><DashboardLayout><GroundDashboard /></DashboardLayout></ProtectedRoute>} />
         <Route path="/operations" element={<ProtectedRoute allowedRoles={['admin', 'airline_operator']}><DashboardLayout><OperationsDashboard /></DashboardLayout></ProtectedRoute>} />

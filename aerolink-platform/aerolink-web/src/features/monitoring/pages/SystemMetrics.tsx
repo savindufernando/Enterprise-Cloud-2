@@ -60,7 +60,7 @@ export default function SystemMetrics() {
                     <Activity className="w-3.5 h-3.5 animate-pulse" />
                     <span>Realtime Observability Deck</span>
                 </div>
-                <h1 className="text-4xl font-extrabold tracking-tight mb-2">Cluster Uptime & Latency</h1>
+                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">Cluster Uptime &amp; Latency</h1>
                 <p className="text-sm text-slate-500 max-w-lg mx-auto">Track EKS mesh latency checks, Prometheus time-series ingestion rates, heap allocations, and active WebSocket feeds.</p>
             </div>
 

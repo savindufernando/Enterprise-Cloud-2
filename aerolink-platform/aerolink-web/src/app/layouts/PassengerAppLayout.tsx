@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Ticket, User, LogOut, ChevronDown, ClipboardList } from 'lucide-react';
+import { Ticket, User, LogOut, ChevronDown, ClipboardList, Menu, X } from 'lucide-react';
 
 interface PassengerAppLayoutProps {
   children: React.ReactNode;
@@ -12,6 +12,7 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const initials = [user?.firstName?.[0], user?.lastName?.[0]]
@@ -33,7 +34,10 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
 
   const activeTab = searchParams.get('tab') ?? 'booking';
 
-  const navTo = (tab: string) => navigate(`/passenger?tab=${tab}`);
+  const navTo = (tab: string) => {
+    setMenuOpen(false);
+    navigate(`/passenger?tab=${tab}`);
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -73,6 +77,15 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
                 My Profile
               </button>
             </nav>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
 
             {/* Profile dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -136,6 +149,26 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
             </div>
           </div>
         </div>
+
+        {/* Mobile nav dropdown */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-1">
+            {[
+              { tab: 'booking', label: 'Book a Trip' },
+              { tab: 'mybookings', label: 'Manage Booking' },
+              { tab: 'checkin', label: 'Check-in' },
+              { tab: 'profile', label: 'My Profile' },
+            ].map(({ tab, label }) => (
+              <button
+                key={tab}
+                onClick={() => navTo(tab)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${activeTab === tab ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Content */}

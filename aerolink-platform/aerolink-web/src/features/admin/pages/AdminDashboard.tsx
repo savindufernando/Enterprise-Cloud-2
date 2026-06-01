@@ -185,7 +185,7 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-16 text-slate-800">
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 space-x-1">
+      <div className="flex border-b border-slate-200 space-x-1 overflow-x-auto">
         {TABS.map(({ key, icon: Icon, label, count }) => (
           <button
             key={key}
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
             <div className="inline-flex items-center space-x-2 bg-cyan-50 border border-cyan-200/50 text-cyan-700 text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-4">
               <Shield className="w-3.5 h-3.5" /><span>System Administration Console</span>
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight mb-2">Cluster &amp; Security Admin</h1>
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">Cluster &amp; Security Admin</h1>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -339,7 +339,8 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+            <div className="min-w-[600px]">
             <div className="grid grid-cols-12 gap-2 px-5 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <div className="col-span-3">Name</div>
               <div className="col-span-4">Email</div>
@@ -430,6 +431,7 @@ export default function AdminDashboard() {
               })
             )}
           </div>
+          </div>
         </div>
       )}
 
@@ -455,7 +457,8 @@ export default function AdminDashboard() {
             <input type="text" placeholder="Search by passenger, flight, or email..." value={bookingSearch} onChange={e => setBookingSearch(e.target.value)} className="w-full max-w-sm pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+            <div className="min-w-[640px]">
             <div className="grid grid-cols-12 gap-2 px-5 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <div className="col-span-2">Flight</div>
               <div className="col-span-2">Route</div>
@@ -493,6 +496,7 @@ export default function AdminDashboard() {
                 </div>
               ))
             )}
+          </div>
           </div>
         </div>
       )}

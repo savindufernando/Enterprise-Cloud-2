@@ -14,7 +14,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout, loginAs } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<'UP' | 'DOWN'>('UP');
   const [darkMode, setDarkMode] = useState(() => {
@@ -67,8 +67,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+      {/* Mobile overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       {/* 🚀 Sleek vertical Sidebar */}
-      <aside className={`w-80 glass-panel border-r border-slate-200 flex flex-col shrink-0 z-30 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 w-80 glass-panel border-r border-slate-200 flex flex-col shrink-0 z-40 transition-transform duration-300 lg:static lg:z-auto lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Branding Header */}
         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -113,6 +120,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="space-y-1">
               <Link
                 to="/passenger"
+                onClick={() => setIsSidebarOpen(false)}
                 className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/passenger' ? 'bg-blue-50 border-blue-500/20 text-blue-600 glow-blue font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}`}
               >
                 <Plane className="w-4 h-4 shrink-0" />
@@ -126,8 +134,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div>
               <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase px-3 mb-2">Ground Operations</div>
               <div className="space-y-1">
-                <Link 
-                  to="/agent" 
+                <Link
+                  to="/agent"
+                  onClick={() => setIsSidebarOpen(false)}
                   className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/agent' ? 'bg-emerald-50 border-emerald-500/20 text-emerald-700 glow-emerald font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}`}
                 >
                   <ConciergeBell className="w-4 h-4 shrink-0" />
@@ -142,8 +151,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div>
               <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase px-3 mb-2">Mission Control</div>
               <div className="space-y-1">
-                <Link 
-                  to="/operations" 
+                <Link
+                  to="/operations"
+                  onClick={() => setIsSidebarOpen(false)}
                   className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/operations' ? 'bg-cyan-50 border-cyan-500/20 text-cyan-700 glow-cyan font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}`}
                 >
                   <Radio className="w-4 h-4 shrink-0" />
@@ -158,8 +168,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div>
               <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase px-3 mb-2">Administration</div>
               <div className="space-y-1">
-                <Link 
-                  to="/admin" 
+                <Link
+                  to="/admin"
+                  onClick={() => setIsSidebarOpen(false)}
                   className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/admin' ? 'bg-blue-50 border-blue-500/20 text-blue-700 glow-blue font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}`}
                 >
                   <Shield className="w-4 h-4 shrink-0" />
@@ -174,8 +185,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div>
               <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase px-3 mb-2">Observability</div>
               <div className="space-y-1">
-                <Link 
-                  to="/monitoring" 
+                <Link
+                  to="/monitoring"
+                  onClick={() => setIsSidebarOpen(false)}
                   className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all border ${location.pathname === '/monitoring' ? 'bg-purple-50 border-purple-500/20 text-purple-700 glow-blue font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}`}
                 >
                   <Activity className="w-4 h-4 shrink-0" />
@@ -215,9 +227,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Dynamic Navigation Header */}
         <header className="h-16 glass-panel border-b border-slate-200 flex items-center justify-between px-6 sm:px-8 relative z-20 shrink-0">
           <div className="flex items-center space-x-4">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 hover:bg-slate-150 rounded-lg text-slate-600"
+              className="flex lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600"
             >
               <Layers className="w-5 h-5" />
             </button>
@@ -235,7 +247,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 className="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-500/20 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all shadow-[0_2px_10px_rgba(37,99,235,0.05)] cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5 rotate-180 animate-spin-slow" />
-                <span>DEMO ROLE SWITCHER</span>
+                <span className="hidden sm:inline">DEMO ROLE SWITCHER</span>
               </button>
 
               {isSwitcherOpen && (

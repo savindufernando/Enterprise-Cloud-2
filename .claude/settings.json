@@ -8,7 +8,8 @@
       "Bash(grep -v \"^$\")",
       "Bash(npm run *)",
       "Bash(curl -s \"http://api.aerolink.transnova.shop/api/v1/flights/\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f['origin_airport'],f['destination_airport'],f['base_price']\\) for f in d['data']]; print\\('Total:', len\\(d['data']\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f['origin_airport'],f['destination_airport'],f['base_price']\\) for f in d['data']]; print\\('Total:', len\\(d['data']\\)\\)\")",
+      "Bash(aws s3 *)"
     ]
   }
 }
