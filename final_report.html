@@ -1656,6 +1656,9 @@ kubectl exec -n aerolink $podName -c flight-service -- python /tmp/seed_flights.
 <li><strong>Active Observability loop:</strong> Live running Pods are scraped by Prometheus, visualized by Grafana, and traced by Jaeger.</li>
 </ol>
 <h3>5.20 Deployment Workflow Diagram</h3>
+<p>The following architectural diagram illustrates the complete end-to-end continuous integration and continuous deployment (CI/CD) workflow implemented for the AeroLink platform, highlighting the automated pipeline phases from developer push to EKS production scheduling and metrics monitoring:</p>
+<p><img src="screenshots/cicd_pipeline_diagram.png" alt="AeroLink Continuous Integration and Continuous Deployment (CI/CD) Workflow Map"><br><em>Figure 5.2: Continuous Integration and Delivery (CI/CD) Workflow Flowchart</em></p>
+<p>The corresponding structural system logic is detailed below via a declarative flowchart sequence:</p>
 <pre><code class="language-mermaid">flowchart TD
     subgraph DevSpace [1. Developer Workspace - Local]
         DevCode[&quot;Developer Writes Code&quot;]

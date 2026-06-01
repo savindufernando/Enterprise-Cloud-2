@@ -695,6 +695,13 @@ The deployment lifecycle operates in a continuous, automated 8-step cycle:
 8. **Active Observability loop:** Live running Pods are scraped by Prometheus, visualized by Grafana, and traced by Jaeger.
 
 ### 5.20 Deployment Workflow Diagram
+The following architectural diagram illustrates the complete end-to-end continuous integration and continuous deployment (CI/CD) workflow implemented for the AeroLink platform, highlighting the automated pipeline phases from developer push to EKS production scheduling and metrics monitoring:
+
+![AeroLink Continuous Integration and Continuous Deployment (CI/CD) Workflow Map](screenshots/cicd_pipeline_diagram.png)
+*Figure 5.2: Continuous Integration and Delivery (CI/CD) Workflow Flowchart*
+
+The corresponding structural system logic is detailed below via a declarative flowchart sequence:
+
 ```mermaid
 flowchart TD
     subgraph DevSpace [1. Developer Workspace - Local]
