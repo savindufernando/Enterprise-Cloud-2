@@ -428,6 +428,9 @@ This chapter documents the infrastructure deployment phase, detailing EKS design
 ### 5.2 Infrastructure Overview
 The production system is deployed on AWS, isolated within a secure Virtual Private Cloud (VPC) spanning public, private application, and database subnets.
 
+![AWS EKS/VPC High-Availability Infrastructure Deployment Map](screenshots/aws_architecture_diagram.png)
+*Figure 5.1: EKS/VPC High-Availability Infrastructure Deployment Map*
+
 ### 5.3 AWS Cloud Services Utilised
 * **Amazon EKS:** Manages Kubernetes worker nodes and pod containers.
 * **Amazon RDS (PostgreSQL):** Hosts relational flight and booking transactions.
