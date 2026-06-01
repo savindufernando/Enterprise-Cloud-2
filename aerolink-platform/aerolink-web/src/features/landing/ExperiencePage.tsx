@@ -14,18 +14,18 @@ const AIRPORT_NAMES: Record<string, string> = {
   SYD: 'Sydney', FRA: 'Frankfurt', AMS: 'Amsterdam',
 };
 
-const DEST_THEMES: Record<string, { grad: string; accent: string; emoji: string }> = {
-  CDG: { grad: 'from-blue-900 to-blue-600',   accent: 'bg-blue-500',   emoji: '🗼' },
-  HND: { grad: 'from-red-900 to-rose-600',    accent: 'bg-red-500',    emoji: '🗾' },
-  SYD: { grad: 'from-cyan-900 to-cyan-600',   accent: 'bg-cyan-500',   emoji: '🦘' },
-  DXB: { grad: 'from-amber-900 to-yellow-600',accent: 'bg-amber-500',  emoji: '🏙' },
-  SIN: { grad: 'from-emerald-900 to-green-600',accent:'bg-emerald-500', emoji: '🦁' },
-  JFK: { grad: 'from-purple-900 to-purple-600',accent:'bg-purple-500', emoji: '🗽' },
-  LHR: { grad: 'from-slate-800 to-slate-600', accent: 'bg-slate-500',  emoji: '🎡' },
-  LAX: { grad: 'from-orange-900 to-orange-600',accent:'bg-orange-500', emoji: '🌴' },
-  AMS: { grad: 'from-indigo-900 to-indigo-600',accent:'bg-indigo-500', emoji: '🌷' },
-  FRA: { grad: 'from-gray-900 to-gray-600',   accent: 'bg-gray-500',   emoji: '🏰' },
-  CMB: { grad: 'from-teal-900 to-teal-600',   accent: 'bg-teal-500',   emoji: '🌴' },
+const DEST_PHOTOS: Record<string, { photo: string; accent: string }> = {
+  CDG: { photo: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80', accent: 'bg-blue-500' },
+  HND: { photo: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80', accent: 'bg-red-500' },
+  SYD: { photo: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&q=80', accent: 'bg-cyan-500' },
+  DXB: { photo: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80', accent: 'bg-amber-500' },
+  SIN: { photo: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&q=80', accent: 'bg-emerald-500' },
+  JFK: { photo: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80', accent: 'bg-purple-500' },
+  LHR: { photo: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80', accent: 'bg-slate-500' },
+  LAX: { photo: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&q=80', accent: 'bg-orange-500' },
+  AMS: { photo: 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&q=80', accent: 'bg-indigo-500' },
+  FRA: { photo: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=80', accent: 'bg-gray-500' },
+  CMB: { photo: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=80', accent: 'bg-teal-500' },
 };
 
 const CABIN_CLASSES = [
@@ -36,7 +36,10 @@ const CABIN_CLASSES = [
     color: 'text-blue-600',
     bg: 'bg-blue-50',
     border: 'border-blue-200',
-    ring: 'ring-blue-500',
+    image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&q=80&fit=crop',
+    imageAlt: 'Economy class cabin interior with rows of seats',
+    badge: 'Most Popular',
+    tagline: 'Smart comfort for every journey',
     perks: [
       { icon: Armchair,       label: 'Seat Pitch',      value: '30" standard recline' },
       { icon: UtensilsCrossed,label: 'Dining',          value: 'Complimentary hot meal' },
@@ -45,8 +48,6 @@ const CABIN_CLASSES = [
       { icon: Tv2,            label: 'Entertainment',   value: '500+ movies & shows' },
       { icon: Headphones,     label: 'Audio',           value: 'Complimentary headphones' },
     ],
-    price: 'From $100',
-    badge: 'Most Popular',
   },
   {
     key: 'business',
@@ -55,7 +56,10 @@ const CABIN_CLASSES = [
     color: 'text-purple-600',
     bg: 'bg-purple-50',
     border: 'border-purple-200',
-    ring: 'ring-purple-500',
+    image: 'https://images.unsplash.com/photo-1540339832862-474599807836?w=1200&q=80&fit=crop',
+    imageAlt: 'Business class lie-flat seat pod with ambient lighting',
+    badge: 'Best Value',
+    tagline: 'Work, rest and arrive refreshed',
     perks: [
       { icon: Armchair,       label: 'Seat',            value: '60" lie-flat pod bed' },
       { icon: UtensilsCrossed,label: 'Dining',          value: 'Chef-curated 4-course menu' },
@@ -64,8 +68,6 @@ const CABIN_CLASSES = [
       { icon: Coffee,         label: 'Lounge Access',   value: 'Premium airport lounge' },
       { icon: CheckCircle2,   label: 'Boarding',        value: 'Priority & dedicated lane' },
     ],
-    price: 'From $450',
-    badge: 'Best Value',
   },
   {
     key: 'first',
@@ -74,7 +76,10 @@ const CABIN_CLASSES = [
     color: 'text-amber-600',
     bg: 'bg-amber-50',
     border: 'border-amber-200',
-    ring: 'ring-amber-500',
+    image: 'https://images.unsplash.com/photo-1612618736568-a2c7e77d5e3e?w=1200&q=80&fit=crop',
+    imageAlt: 'First class private suite with enclosed door and luxury finishes',
+    badge: 'Luxury',
+    tagline: 'An exclusive world above the clouds',
     perks: [
       { icon: Sparkles,       label: 'Suite',           value: 'Private enclosed cabin suite' },
       { icon: UtensilsCrossed,label: 'Dining',          value: 'On-demand gourmet à la carte' },
@@ -83,24 +88,22 @@ const CABIN_CLASSES = [
       { icon: Coffee,         label: 'Lounge',          value: 'Exclusive First Class lounge + spa' },
       { icon: Crown,          label: 'Concierge',       value: 'Personal 24/7 travel concierge' },
     ],
-    price: 'From $1,200',
-    badge: 'Luxury',
   },
 ];
 
 const SERVICES = [
-  { icon: UtensilsCrossed, label: 'Gourmet Dining',      desc: 'Chef-crafted menus with regional and international cuisine on every route.',       color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-  { icon: Tv2,             label: 'In-Flight Entertainment', desc: 'Over 500 movies, TV series, music albums, and games on seatback touchscreens.', color: 'text-blue-600',  bg: 'bg-blue-50',  border: 'border-blue-100'  },
-  { icon: Wifi,            label: 'High-Speed Wi-Fi',    desc: 'Stay connected throughout your journey with our satellite-powered internet service.', color: 'text-cyan-600',  bg: 'bg-cyan-50',  border: 'border-cyan-100'  },
-  { icon: Luggage,         label: 'Flexible Baggage',    desc: 'Generous allowances with easy upgrades, priority handling, and real-time tracking.', color: 'text-indigo-600',bg: 'bg-indigo-50',border: 'border-indigo-100'},
-  { icon: ShieldCheck,     label: 'Travel Insurance',    desc: 'Comprehensive coverage including medical, cancellation, and missed connections.',    color: 'text-emerald-600',bg:'bg-emerald-50',border:'border-emerald-100'},
-  { icon: CheckCircle2,    label: 'Priority Boarding',   desc: 'Skip the queues with dedicated fast-track security and early boarding privileges.',  color: 'text-purple-600',bg: 'bg-purple-50',border: 'border-purple-100'},
+  { icon: UtensilsCrossed, label: 'Gourmet Dining',         desc: 'Chef-crafted menus with regional and international cuisine on every route.',       color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-100',  photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80' },
+  { icon: Tv2,             label: 'In-Flight Entertainment', desc: 'Over 500 movies, TV series, music albums, and games on seatback touchscreens.',   color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-100',   photo: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80' },
+  { icon: Wifi,            label: 'High-Speed Wi-Fi',        desc: 'Stay connected throughout your journey with our satellite-powered internet service.',color: 'text-cyan-600',   bg: 'bg-cyan-50',   border: 'border-cyan-100',   photo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&q=80' },
+  { icon: Luggage,         label: 'Flexible Baggage',        desc: 'Generous allowances with easy upgrades, priority handling, and real-time tracking.',color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', photo: 'https://images.unsplash.com/photo-1553481187-be93c21490a9?w=600&q=80' },
+  { icon: ShieldCheck,     label: 'Travel Insurance',        desc: 'Comprehensive coverage including medical, cancellation, and missed connections.',   color: 'text-emerald-600',bg: 'bg-emerald-50',border: 'border-emerald-100',photo: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&q=80' },
+  { icon: CheckCircle2,    label: 'Priority Boarding',       desc: 'Skip the queues with dedicated fast-track security and early boarding privileges.', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', photo: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80' },
 ];
 
 const TESTIMONIALS = [
-  { name: 'Sarah M.',    route: 'LHR → SIN', rating: 5, text: 'Absolutely seamless from check-in to landing. The business class pod was incredible — I arrived refreshed and ready for my meetings. AeroLink has spoiled me for any other airline.' },
-  { name: 'James T.',   route: 'CDG → DXB', rating: 5, text: 'The online booking was quick, the check-in even faster. The meal selection was genuinely impressive and the Wi-Fi kept me productive the whole flight. Will always choose AeroLink.' },
-  { name: 'Priya K.',   route: 'CMB → HND', rating: 5, text: 'Travelling with my family has never been this easy. The kids loved the entertainment system and the crew was attentive and kind. The baggage handling was spotless too.' },
+  { name: 'Sarah M.',  route: 'LHR → SIN', rating: 5, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80', text: 'Absolutely seamless from check-in to landing. The business class pod was incredible — I arrived refreshed and ready for my meetings. AeroLink has spoiled me for any other airline.' },
+  { name: 'James T.',  route: 'CDG → DXB', rating: 5, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80', text: 'The online booking was quick, the check-in even faster. The meal selection was genuinely impressive and the Wi-Fi kept me productive the whole flight. Will always choose AeroLink.' },
+  { name: 'Priya K.',  route: 'CMB → HND', rating: 5, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&q=80', text: 'Travelling with my family has never been this easy. The kids loved the entertainment system and the crew was attentive and kind. The baggage handling was spotless too.' },
 ];
 
 const LOYALTY_TIERS = [
@@ -227,27 +230,36 @@ export default function ExperiencePage() {
 
           {/* Active class panel */}
           <div className={`border-2 ${activeClassData.border} rounded-3xl overflow-hidden shadow-xl transition-all`}>
-            <div className={`${activeClassData.bg} px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}>
-              <div>
+            {/* Hero image */}
+            <div className="relative h-56 sm:h-72 overflow-hidden">
+              <img
+                src={activeClassData.image}
+                alt={activeClassData.imageAlt}
+                className="w-full h-full object-cover transition-all duration-500"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 p-6 text-white">
                 <div className="flex items-center gap-3 mb-1">
-                  <activeClassData.icon className={`w-6 h-6 ${activeClassData.color}`} />
-                  <h3 className={`text-2xl font-extrabold ${activeClassData.color}`}>{activeClassData.label}</h3>
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${activeClassData.bg} border ${activeClassData.border} ${activeClassData.color} uppercase tracking-wider`}>{activeClassData.badge}</span>
+                  <activeClassData.icon className="w-6 h-6" />
+                  <h3 className="text-2xl font-extrabold">{activeClassData.label}</h3>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 uppercase tracking-wider">
+                    {activeClassData.badge}
+                  </span>
                 </div>
-                <p className="text-slate-500 text-sm">All amenities included. No hidden charges.</p>
+                <p className="text-white/80 text-sm">{activeClassData.tagline}</p>
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-extrabold text-slate-900">{activeClassData.price}</div>
-                <div className="text-xs text-slate-400 mt-0.5">per person, one way</div>
+              <div className="absolute top-4 right-4">
                 <button
                   onClick={() => navigate('/')}
-                  className={`mt-3 flex items-center gap-2 ${activeClassData.color} border ${activeClassData.border} ${activeClassData.bg} font-bold text-sm px-4 py-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity`}
+                  className="flex items-center gap-2 bg-white/90 hover:bg-white backdrop-blur-sm text-slate-800 font-bold text-sm px-4 py-2 rounded-xl cursor-pointer transition-all shadow-lg"
                 >
                   Book Now <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <div className="bg-white p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Perks grid */}
+            <div className="bg-white p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeClassData.perks.map(perk => (
                 <div key={perk.label} className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <div className={`w-10 h-10 ${activeClassData.bg} border ${activeClassData.border} rounded-xl flex items-center justify-center shrink-0`}>
@@ -274,12 +286,19 @@ export default function ExperiencePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {SERVICES.map(s => (
-              <div key={s.label} className={`bg-white border ${s.border} rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group`}>
-                <div className={`w-12 h-12 ${s.bg} border ${s.border} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <s.icon className={`w-6 h-6 ${s.color}`} />
+              <div key={s.label} className={`bg-white border ${s.border} rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all group`}>
+                {/* Photo strip */}
+                <div className="relative h-36 overflow-hidden">
+                  <img src={s.photo} alt={s.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <div className={`absolute bottom-3 left-3 w-10 h-10 ${s.bg} border ${s.border} rounded-xl flex items-center justify-center shadow-md`}>
+                    <s.icon className={`w-5 h-5 ${s.color}`} />
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-slate-800 mb-2">{s.label}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{s.desc}</p>
+                <div className="p-5">
+                  <h3 className="text-base font-bold text-slate-800 mb-1.5">{s.label}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{s.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -303,19 +322,24 @@ export default function ExperiencePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {destinations.map(f => {
-                const theme = DEST_THEMES[f.destination_airport] ?? { grad: 'from-blue-900 to-blue-600', accent: 'bg-blue-500', emoji: '✈️' };
+                const theme = DEST_PHOTOS[f.destination_airport] ?? { photo: '', accent: 'bg-blue-500' };
                 return (
                   <button
                     key={f.id}
                     onClick={() => navigate('/')}
-                    className={`relative bg-gradient-to-br ${theme.grad} text-white rounded-2xl overflow-hidden h-52 text-left group cursor-pointer hover:scale-[1.02] transition-transform shadow-lg`}
+                    className="relative text-white rounded-2xl overflow-hidden h-56 text-left group cursor-pointer hover:scale-[1.02] transition-transform shadow-lg"
                   >
-                    {/* Emoji watermark */}
-                    <div className="absolute right-4 top-4 text-5xl opacity-20 group-hover:opacity-30 transition-opacity">{theme.emoji}</div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    {/* Real photo background */}
+                    {theme.photo ? (
+                      <img src={theme.photo} alt={AIRPORT_NAMES[f.destination_airport] ?? f.destination_airport}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-blue-600" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 p-5">
                       <div className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1">{f.origin_airport} → {f.destination_airport}</div>
-                      <div className="text-2xl font-extrabold leading-none mb-1">{AIRPORT_NAMES[f.destination_airport]}</div>
+                      <div className="text-2xl font-extrabold leading-none mb-2">{AIRPORT_NAMES[f.destination_airport]}</div>
                       <div className="flex items-center gap-2">
                         <span className={`${theme.accent} text-white text-xs font-bold px-2.5 py-1 rounded-full`}>
                           from ${Number(f.base_price).toFixed(0)}
@@ -323,7 +347,7 @@ export default function ExperiencePage() {
                         <span className="text-white/70 text-xs">per person</span>
                       </div>
                     </div>
-                    <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="flex items-center gap-1 text-[11px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-sm">
                         Book Now <ChevronRight className="w-3 h-3" />
                       </span>
@@ -400,9 +424,9 @@ export default function ExperiencePage() {
                 </div>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5 italic">"{t.text}"</p>
                 <div className="flex items-center gap-3 border-t border-slate-100 pt-4">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
-                    {t.name[0]}
-                  </div>
+                  <img src={t.avatar} alt={t.name}
+                    className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-blue-100"
+                    onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
                   <div>
                     <div className="text-sm font-bold text-slate-800">{t.name}</div>
                     <div className="text-xs text-slate-400 flex items-center gap-1"><Plane className="w-3 h-3 rotate-90" /> {t.route}</div>
@@ -415,8 +439,12 @@ export default function ExperiencePage() {
       </section>
 
       {/* ── CTA ── */}
-      <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 py-16 px-4">
-        <div className="max-w-3xl mx-auto text-center text-white">
+      <div className="relative py-16 px-4 overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=1600&q=80"
+          alt="Aerial view above clouds"
+          className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-blue-900/75" />
+        <div className="relative max-w-3xl mx-auto text-center text-white">
           <h2 className="text-3xl font-extrabold mb-3">Ready to Experience AeroLink?</h2>
           <p className="text-blue-100 text-sm mb-7 max-w-lg mx-auto">Join millions of travellers who have chosen AeroLink for a seamless, elevated flying experience.</p>
           <button onClick={() => navigate('/')} className="bg-white hover:bg-blue-50 text-blue-700 font-bold px-10 py-3.5 rounded-xl text-sm transition-all cursor-pointer shadow-lg">

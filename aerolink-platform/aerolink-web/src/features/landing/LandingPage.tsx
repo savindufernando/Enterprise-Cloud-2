@@ -3,7 +3,7 @@ import {
   Plane, MapPin, Calendar, Users, Search, Lock, ShieldCheck,
   Eye, EyeOff, ChevronRight, ConciergeBell, Radio, Shield,
   Globe, Star, User, LogIn, Loader2, AlertCircle,
-  ChevronDown, ClipboardList, Ticket, LogOut
+  ChevronDown, ClipboardList, Ticket, LogOut, Menu, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -63,6 +63,9 @@ export default function LandingPage() {
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
+
+  // Mobile nav menu
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Passenger profile dropdown
   const [profileOpen, setProfileOpen] = useState(false);
@@ -232,20 +235,20 @@ export default function LandingPage() {
       {/* ── Top Navigation Bar ── */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-24">
+          <div className="flex items-center justify-between h-16 sm:h-24">
             {/* Brand */}
-            <img src="/aerolink_logo.png" alt="AeroLink" className="h-20 w-auto" />
+            <img src="/aerolink_logo.png" alt="AeroLink" className="h-10 sm:h-20 w-auto" />
 
-            {/* Nav links */}
+            {/* Desktop nav links */}
             <nav className="hidden md:flex items-center space-x-8 text-sm font-semibold text-slate-600">
               <a href="#" className="hover:text-blue-600 transition-colors border-b-2 border-blue-600 text-blue-600 pb-0.5">Book a Trip</a>
               <button onClick={() => passengerLoggedIn ? navigate('/passenger?tab=mybookings') : openLoginModal()} className="hover:text-blue-600 transition-colors cursor-pointer">Manage Booking</button>
               <button onClick={() => passengerLoggedIn ? navigate('/passenger?tab=checkin') : openLoginModal()} className="hover:text-blue-600 transition-colors cursor-pointer">Check-in</button>
-              <a href="#" className="hover:text-blue-600 transition-colors">Experience</a>
+              <button onClick={() => navigate('/experience')} className="hover:text-blue-600 transition-colors cursor-pointer">Experience</button>
             </nav>
 
-            {/* Right: Login / user state — staff are never on this page while logged in */}
-            <div className="flex items-center space-x-3">
+            {/* Right: hamburger (mobile) + login/profile */}
+            <div className="flex items-center gap-2">
               {passengerLoggedIn ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -316,8 +319,47 @@ export default function LandingPage() {
                   <span>Login</span>
                 </button>
               )}
+
+              {/* Hamburger — mobile only */}
+              <button
+                onClick={() => setMobileMenuOpen(o => !o)}
+                className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           </div>
+
+          {/* Mobile nav dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-slate-100 py-3 space-y-1 animate-fade-in">
+              <a href="#" onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-blue-600 rounded-xl hover:bg-blue-50 transition-colors">
+                Book a Trip
+              </a>
+              <button onClick={() => { setMobileMenuOpen(false); passengerLoggedIn ? navigate('/passenger?tab=mybookings') : openLoginModal(); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-700 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                Manage Booking
+              </button>
+              <button onClick={() => { setMobileMenuOpen(false); passengerLoggedIn ? navigate('/passenger?tab=checkin') : openLoginModal(); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-700 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                Check-in
+              </button>
+              <button onClick={() => { setMobileMenuOpen(false); navigate('/experience'); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-700 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                Experience
+              </button>
+              {!passengerLoggedIn && (
+                <div className="pt-2 px-3">
+                  <button onClick={() => { setMobileMenuOpen(false); openLoginModal(); }}
+                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm py-2.5 rounded-xl transition-all cursor-pointer">
+                    <LogIn className="w-4 h-4" /> Login
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -569,15 +611,21 @@ export default function LandingPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { icon: <Star className="w-6 h-6 text-amber-500" />, iconBg: 'bg-amber-50 border-amber-100', title: 'Best Fare Guarantee', desc: 'We match any lower price you find. Book with confidence knowing you always get the best deal.' },
-                  { icon: <Globe className="w-6 h-6 text-blue-600" />, iconBg: 'bg-blue-50 border-blue-100', title: 'Worldwide Destinations', desc: 'Fly to over 100 destinations across 6 continents with seamless connections through our network.' },
-                  { icon: <ShieldCheck className="w-6 h-6 text-emerald-600" />, iconBg: 'bg-emerald-50 border-emerald-100', title: 'Safe & Reliable', desc: 'Our modern fleet and award-winning crew are committed to your safety and comfort on every flight.' },
-                  { icon: <Plane className="w-6 h-6 text-blue-500" />, iconBg: 'bg-blue-50 border-blue-100', title: 'Flexible Booking', desc: 'Plans change — change or cancel your booking hassle-free with our flexible fare options.' },
+                  { icon: <Star className="w-5 h-5 text-amber-500" />, iconBg: 'bg-amber-50', title: 'Best Fare Guarantee', desc: 'We match any lower price you find. Book with confidence knowing you always get the best deal.', photo: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=600&q=80' },
+                  { icon: <Globe className="w-5 h-5 text-blue-600" />,  iconBg: 'bg-blue-50',  title: 'Worldwide Destinations', desc: 'Fly to over 100 destinations across 6 continents with seamless connections through our network.', photo: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80' },
+                  { icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />, iconBg: 'bg-emerald-50', title: 'Safe & Reliable', desc: 'Our modern fleet and award-winning crew are committed to your safety and comfort on every flight.', photo: 'https://images.unsplash.com/photo-1474302770737-173ee21bab63?w=600&q=80' },
+                  { icon: <Plane className="w-5 h-5 text-blue-500" />,  iconBg: 'bg-blue-50',  title: 'Flexible Booking', desc: 'Plans change — change or cancel your booking hassle-free with our flexible fare options.', photo: 'https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=600&q=80' },
                 ].map((card, i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group">
-                    <div className={`w-11 h-11 ${card.iconBg} border rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>{card.icon}</div>
-                    <h3 className="text-base font-bold text-slate-800 mb-2">{card.title}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">{card.desc}</p>
+                  <div key={i} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                    <div className="relative h-32 overflow-hidden">
+                      <img src={card.photo} alt={card.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      <div className={`absolute bottom-3 left-3 w-9 h-9 ${card.iconBg} rounded-xl flex items-center justify-center shadow-md`}>{card.icon}</div>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="text-base font-bold text-slate-800 mb-2">{card.title}</h3>
+                      <p className="text-sm text-slate-500 leading-relaxed">{card.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -649,6 +697,20 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {popularRoutes.map((flight, i) => {
                 const tags = ['Best Value', 'Most Booked', 'Long Haul', 'Premium'];
+                const DEST_PHOTOS_LANDING: Record<string, string> = {
+                  CDG: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&q=80',
+                  HND: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80',
+                  SYD: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=600&q=80',
+                  DXB: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80',
+                  SIN: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80',
+                  JFK: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=600&q=80',
+                  LHR: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
+                  LAX: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80',
+                  AMS: 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=600&q=80',
+                  FRA: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&q=80',
+                  CMB: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=600&q=80',
+                };
+                const photo = DEST_PHOTOS_LANDING[flight.destination_airport];
                 return (
                   <button
                     key={flight.id}
@@ -659,15 +721,28 @@ export default function LandingPage() {
                     }}
                     className="text-left bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer group"
                   >
-                    <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-700 group-hover:from-blue-600 group-hover:to-blue-800 transition-all" />
-                    <div className="p-5">
-                      <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-3 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full inline-block">{tags[i] ?? 'Popular'}</div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-2xl font-extrabold text-slate-900">{flight.origin_airport}</span>
-                        <Plane className="w-4 h-4 text-blue-400 rotate-90 shrink-0" />
-                        <span className="text-2xl font-extrabold text-slate-900">{flight.destination_airport}</span>
+                    {/* Destination photo */}
+                    <div className="relative h-36 overflow-hidden">
+                      {photo ? (
+                        <img src={photo} alt={AIRPORT_NAMES[flight.destination_airport] ?? flight.destination_airport}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <div className="absolute bottom-2 left-3 text-white">
+                        <div className="flex items-center gap-1.5 font-extrabold text-base leading-none">
+                          {flight.origin_airport}
+                          <Plane className="w-3.5 h-3.5 rotate-90 opacity-70" />
+                          {flight.destination_airport}
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-400 mb-4">
+                      <div className="absolute top-2 right-2">
+                        <span className="text-[10px] font-bold text-white bg-blue-600/80 backdrop-blur-sm px-2 py-0.5 rounded-full uppercase tracking-wider">{tags[i] ?? 'Popular'}</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="text-xs text-slate-400 mb-3">
                         {AIRPORT_NAMES[flight.origin_airport] ?? flight.origin_airport} → {AIRPORT_NAMES[flight.destination_airport] ?? flight.destination_airport}
                       </div>
                       <div className="flex items-end justify-between">

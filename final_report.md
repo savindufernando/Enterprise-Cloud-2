@@ -11,7 +11,7 @@
 *An Enterprise Technical Architecture, Security, Compliance, and Restoration Report*  
 *Submitted in partial fulfillment of the requirements for the Module COMP60010: Enterprise Cloud and Distributed Web Applications.*  
 
-**Author:** [Candidate Name / ID]  
+**Author:** Savindu Fernando  
 **Department:** Department of Computing  
 **Institution:** School of Digital, Technologies and Arts  
 **Submission Date:** Thursday 11 June 2026  
@@ -21,7 +21,7 @@
 ### Declaration of Originality
 I hereby declare that this submission is my own work and that, to the best of my knowledge and belief, it contains no material previously published or written by another person, except where due acknowledgment has been made in the text. I further declare that all sources used in this research have been appropriately cited in accordance with academic standards.
 
-*Signed:* [Candidate Signature]  
+*Signed:* Savindu Fernando  
 *Date:* 25 May 2026  
 
 ---
@@ -226,7 +226,7 @@ Four explicit roles dictate routing authorization inside the client application 
 * **Operational Feasibility:** Automated CI/CD pipelines, Docker compilation, and Terraform IaC standardize environment installations.
 
 ### 2.14 Technology Selection Justification
-We selected **FastAPI** over legacy WSGI frameworks (Flask/Django) because its native event loop handles thousands of concurrent I/O requests on a single OS thread. **PostgreSQL** is utilized for relational integrity on booking workflows, while **Amazon DynamoDB** provides scalable NoSQL structures for high-speed baggage scans.
+**FastAPI** was selected over legacy WSGI frameworks (Flask/Django) because its native event loop handles thousands of concurrent I/O requests on a single OS thread. **PostgreSQL** is utilized for relational integrity on booking workflows, while **Amazon DynamoDB** provides scalable NoSQL structures for high-speed baggage scans.
 
 ---
 
@@ -546,7 +546,7 @@ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}
 ```
 
 #### 5.13.5 Step 4: Deploy Microservices via ArgoCD
-Expose our declarative container configuration to the GitOps sync engine:
+Expose the declarative container configuration to the GitOps sync engine:
 ```powershell
 # Navigate back to base
 cd ..
@@ -581,9 +581,9 @@ Build the React production assets and synchronize them serverlessly to the publi
 
 
 ### 5.14 GitOps Deployment using ArgoCD
-Continuous Deployment (CD) under the GitOps paradigm treats your Git repository as the single source of truth for the desired state of the cloud infrastructure. Continuous Deployment is managed inside the EKS cluster using **ArgoCD**, operating as a pull-based controller:
+Continuous Deployment (CD) under the GitOps paradigm treats the Git repository as the single source of truth for the desired state of the cloud infrastructure. Continuous Deployment is managed inside the EKS cluster using **ArgoCD**, operating as a pull-based controller:
 
-* **Reconciliation Loop:** ArgoCD continuously polls your manifest repository (the `k8s/` folder). It compares the live running configurations inside the EKS cluster with the declared desired configurations on GitHub.
+* **Reconciliation Loop:** ArgoCD continuously polls the declared manifest repository (the `k8s/` folder). It compares the live running configurations inside the EKS cluster with the declared desired configurations on GitHub.
 * **Drift Mitigation:** If a developer manually modifies a running container using `kubectl` commands, ArgoCD immediately detects the configuration drift and overrides the cluster back to the Git specifications (achieving self-healing).
 * **Continuous Delivery vs. Deployment:** The system enforces automated Continuous Deployment upon merging to the `main` branch, updating the live customer pods instantly with zero human intervention.
 
@@ -668,7 +668,7 @@ Continuous Integration (CI) serves as the automated quality inspector. Every cod
 
 #### 5.19.2 Kubernetes Pod & Cluster Architecture
 Kubernetes acts as the central host manager. Application code is not run directly on raw operating systems. Instead:
-* **The Pod:** The smallest deployable unit in Kubernetes. It serves as a containerized wrapper that houses your running Docker microservice image, allocating a private network IP address, resource boundaries (CPU and RAM limits), and storage mappings.
+* **The Pod:** The smallest deployable unit in Kubernetes. It serves as a containerized wrapper that houses the running Docker microservice image, allocating a private network IP address, resource boundaries (CPU and RAM limits), and storage mappings.
 * **Resource Constraints:** Pods are scheduled dynamically across EKS worker nodes, with Kubernetes constantly validating their health status via liveness and readiness probes to restart failed instances automatically.
 
 #### 5.19.3 Comparative Division of Labor (CI vs. CD)
@@ -767,13 +767,13 @@ This chapter presents the design and layout of the AeroLink React frontend, deta
 * **Routing:** React Router v7.
 
 ### 6.3 React + TypeScript Architecture
-TypeScript enforces strict type definitions across your views, defining exact interfaces for flights, passenger bookings, and baggage updates.
+TypeScript enforces strict type definitions across application views, defining exact interfaces for flights, passenger bookings, and baggage updates.
 
 ### 6.4 Vite Build System
 Vite replaces legacy Webpack bundlers, utilizing ESBuild-powered compilers to achieve sub-second development server startup and optimized tree-shaked production builds.
 
 ### 6.5 Tailwind CSS Design System
-Tailwind CSS v4 configures your design tokens inside `src/index.css` using custom `@theme` variables:
+Tailwind CSS v4 configures design tokens inside `src/index.css` using custom `@theme` variables:
 ```css
 @theme {
   --color-primary: #2563eb;
@@ -851,7 +851,7 @@ This chapter documents the FastAPI microservices implementation, Saga coordinate
 * **Circuit Breaker:** pybreaker.
 
 ### 7.3 FastAPI ASGI Framework Justification
-We selected FastAPI because its ASGI event-loop utilizes non-blocking concurrency, delivering high request throughput and self-documenting OpenAPI specifications.
+FastAPI was selected because its ASGI event-loop utilizes non-blocking concurrency, delivering high request throughput and self-documenting OpenAPI specifications.
 
 ### 7.4 Microservices Architecture Overview
 Each microservice is structured with clear segregation: `/api` (routers & schemas), `/models` (SQLAlchemy ORM), and `/services` (business logic).
@@ -1101,7 +1101,7 @@ Swagger interfaces and successful Newman HTML results are compiled in **Appendix
 ## Chapter 10: Security, Compliance & Governance
 
 ### 10.1 Introduction
-This chapter details your zero-trust network policies, bcrypt hashing, GDPR portability, and PCI-DSS compliance audits.
+This chapter details the zero-trust network policies, bcrypt hashing, GDPR portability, and PCI-DSS compliance audits.
 
 ### 10.2 Security Architecture Overview
 The platform isolates microservices container workloads, enforces least privilege access, and secures passenger records.
@@ -1425,7 +1425,7 @@ HPA autoscaling metrics and Grafana performance charts are documented in **Appen
 To maintain strict lifecycle governance and prevent orphan cloud resource expenditures under cloud FinOps practices, the platform defines a standardized decommissioning runbook. This procedure mitigates a common distributed deletion deadlock and ensures safe, block-free resource termination.
 
 #### 12.16.1 The Ingress and LoadBalancer Subnet Deletion Deadlock Trap
-When Kubernetes services of type `LoadBalancer` (such as the Istio Ingress Gateway, ArgoCD Server, and API Gateway) are active in EKS, the AWS cloud controller dynamically provisions Application Load Balancers (ALBs) and network attachments (Elastic Network Interfaces, or ENIs) directly inside your VPC subnets. 
+When Kubernetes services of type `LoadBalancer` (such as the Istio Ingress Gateway, ArgoCD Server, and API Gateway) are active in EKS, the AWS cloud controller dynamically provisions Application Load Balancers (ALBs) and network attachments (Elastic Network Interfaces, or ENIs) directly inside the VPC subnets. 
 
 If a native `terraform destroy` command is executed directly against the workspace first, Terraform will begin tearing down the EKS cluster control plane. However, because these dynamically created ALBs and ENIs are not registered in the local Terraform state file, Terraform cannot delete them. This results in the subnet deletion phase getting indefinitely blocked, stalling the destruction pipeline and creating orphaned, active resources that continue to accrue costs.
 
@@ -1812,13 +1812,13 @@ To exceed standard module expectations and deliver a production-grade enterprise
 ## Chapter 16: Future Improvements & Recommendations
 
 ### 16.1 Introduction
-This chapter outlines your architectural roadmap, active-active Aurora Global Databases, and AI monitoring.
+This chapter outlines the architectural roadmap, active-active Aurora Global Databases, and AI monitoring.
 
 ### 16.2 Multi-Region Database Replication
-We recommend migrating RDS PostgreSQL databases to **Amazon Aurora Global Database**, providing sub-second read replication across regions.
+It is recommended to migrate RDS PostgreSQL databases to **Amazon Aurora Global Database**, providing sub-second read replication across regions.
 
 ### 16.3 Advanced Disaster Recovery Enhancements
-We suggest configuring active-active multi-region failovers, using Route 53 DNS to route traffic during outages.
+It is suggested to configure active-active multi-region failovers, using Route 53 DNS to route traffic during outages.
 
 ### 16.4 AI-Based Predictive Monitoring
 Suggests integrating CloudWatch Anomaly Detection to predict CPU surges and trigger preemptive pod scaling.
@@ -1846,7 +1846,7 @@ Migrating static manifests to Helm charts, implementing Karpenter, and adopting 
 ## Chapter 17: Conclusion
 
 ### 17.1 Summary of Achievements
-We designed, deployed, and validated a cloud-native microservices prototype for AeroLink. The system implements isolated databases, Saga transactions, and zero-trust security.
+The engineering team successfully designed, deployed, and validated a cloud-native microservices prototype for AeroLink. The system implements isolated databases, Saga transactions, and zero-trust security.
 
 ### 17.2 Evaluation of System Objectives
 All objectives are met: EKS scales dynamically under Locust stress tests, mTLS service meshes secure communications, and GDPR/PCI-DSS standards are enforced.
