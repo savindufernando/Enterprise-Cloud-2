@@ -847,6 +847,83 @@ Synchronizing compiled assets to S3 and using Route 53 DNS aliases ensures rapid
 ### 6.23 Frontend Screenshots & Implementation Evidence
 Comprehensive interface snapshots of the landing page, seat selection, and dashboards are documented in **Appendix H (Passenger Portal)**, **Appendix N (Screenshots)**, and **Appendix S (CI/CD)**.
 
+### 6.24 Comprehensive Frontend Feature Enhancement Suite
+To deliver the full aviation digital services scope—booking, check-in, loyalty management, baggage tracking, payment, and advanced operational analytics—a unified, comprehensive frontend feature enhancement suite was implemented. Deployed to the static AWS S3 web hosting at `aerolink.transnova.shop`, these resident features operate via React, TypeScript, Tailwind CSS v4, and persistent browser storage mechanics, ensuring a premium, zero-downtime, and highly responsive user experience.
+
+#### 6.24.1 Interactive 5-Step Booking Workflow
+The original 3-step booking flow was expanded into a fully orchestrated 5-step transaction pipeline managed by a centralized state machine (`search` ➔ `seat-selection` ➔ `baggage` ➔ `payment` ➔ `confirmed`):
+1. **Search & Filters**: Search flight schedules with progressive loading states, collapsible airport filters, and price ranges.
+2. **Interactive Cabin Selector**: Select passenger seating via a 10×6 interactive fuselage grid showing active locks and occupancy.
+3. **Baggage Add-On**: Toggle checked luggage options (+$30 per bag, 15–32 kg limits) with dynamic cost increments.
+4. **PCI-Compliant Payment Step**: Input payment cards with auto-formatting, masked CVVs, and a 2-second authorization spinner (card numbers are never persisted, satisfying zero-storage requirements).
+5. **Dynamic Boarding Pass**: Retrieve seat mappings, customized boarding times, assigned gates, and print-to-PDF commands.
+
+#### 6.24.2 Passenger Profile Management & Editing
+Surfaced in the Passenger Portal, a self-service profile editor allows authenticated users to manage their personal details. First Name, Last Name, and Passport Number are bound to user-isolated persistent storage keys, updating all subsequent booking schemas atomically. A meal preference selector (Standard, Vegetarian, Vegan, Halal, Kosher, Gluten-Free) updates the flight manifest for ground crew operations, while inline success banners auto-dismiss after 3.5 seconds.
+
+#### 6.24.3 Loyalty Miles & Tier Tracker
+A dynamic loyalty miles tracking console computes accumulated travel miles derived from the passenger's historical bookings (scaled at 1 mile per $1 spent). Progress is displayed via a Tailwind CSS progress bar mapping the passenger's transition through Silver (0 – 24,999 miles), Gold (25,000 – 74,999 miles), and Platinum (75,000+ miles) tiers, with their five most recent mile-earning bookings summarized below.
+
+#### 6.24.4 Online Check-In & Gate Assignment
+Passengers can perform digital self-check-ins on confirmed bookings within a 48-hour pre-departure window (guarded by an `isCheckInEligible()` time delta check). Upon confirmation, the booking status transitions to `checked_in`, a deterministic hashing function allocates one of eight active airport gates (`A12, B07, C22, D04, E15, F09, G31, H18`), and an active countdown timer displays departures (e.g., `Departs in 1d 8h`).
+
+#### 6.24.5 Print-Ready Boarding Pass with Gate Integration
+The digital boarding pass integrates the check-in-assigned gate and seat placement with a central location marker map pin. A custom "Print to PDF" button executes a targeted `@media print` CSS rule that strips away the surrounding navigation shell, sidebars, and background elements, cleanly rendering only the boarding pass card as a standard single-page printed ticket.
+
+#### 6.24.6 Passenger Baggage Tracking Timeline
+Upon completing check-in, passengers who purchased baggage options can track their bags via a 4-stage tracking timeline. Stepper stages—**Checked In**, **Security Screening**, **Cargo Loading**, and **On Board**—advance deterministically based on the ratio of time elapsed from check-in to departure, providing a high-fidelity simulation of baggage handler updates.
+
+#### 6.24.7 Integrated Booking Cancellation Flow
+Passengers can cancel any un-departed flight directly from their booking ledger. A modal dialogue requires explicit confirmation to prevent accidental clicks. On confirmation, the booking status updates to `cancelled`, releasing the occupied seat in the global ledger. The card re-renders with a red Cancelled badge and disabled controls, and a `ADMIN_BOOKING_CANCELLED` event is shunted to the operations firehose for audit visibility.
+
+#### 6.24.8 Interactive Seat Upgrade & Business Class Nudge
+When a passenger selects an economy seat (rows 3–10) during booking, a conditional alert box surfaces an upgrade nudge, prompting them to move to Business Class (rows 1–2) for an additional $50. Additionally, passengers with confirmed economy tickets can upgrade post-booking via an "Upgrade Seat" modal displaying available Business Class seats, updating their tickets and recalculating transaction sums instantly.
+
+#### 6.24.9 Real-Time Flight Status Public Dashboard
+A public, unauthenticated flight board (`/flights/status`) enables anyone to track departure logs:
+- **Live Search**: Filter flights in real time by flight number (e.g., `AL-655`).
+- **Dynamic Delays**: Merge live operator-marked delays and status updates seamlessly.
+- **Status Badges**: Display colour-coded states: On Time (emerald), Delayed (amber), Boarding (blue), Departed (slate), and Cancelled (red).
+- **Consistent Gates**: Utilize the identical deterministic gate hashing algorithm to ensure gate matching across check-in, boarding pass, and status boards.
+
+#### 6.24.10 Real-Time Delay Toast Notification System
+The passenger portal integrates a responsive `storage` event listener that monitors the operations delay registry. When a dispatcher registers a delay for any flight corresponding to the passenger's active bookings, an amber alert toast notification slides into the top-right corner, displaying the delay details and auto-dismissing after 5 seconds:
+```
+⚠ Flight AL-655 delayed +30 min — Weather conditions
+```
+
+#### 6.24.11 Advanced Flight Search Filters & Skeletons
+The search module includes custom dropdown selectors for 15 international airports (such as FRA, FRA, CMB, DEL, FRA, etc.), price range filters, and chronological or pricing sorting. While API payloads are resolved asynchronously, animated pulsating card placeholders (`SkeletonCard`) are rendered to provide progressive feedback and eliminate sudden layout shifts.
+
+#### 6.24.12 Ground Staff Passenger Manifest Console
+A dedicated **Flight Manifest** tab was added to the ground staff console, enabling agents to select any scheduled flight and fetch all passenger bookings:
+- **Detail Manifest**: View passenger name, passport, seat, meal selection, checked bag status, and check-in condition.
+- **Aggregated Telemetry**: Render summary chips for Total Booked, Checked In, and Pending passengers.
+- **Offline Portability**: Trigger a Blob-based CSV constructor that downloads the complete manifest for offline ground operations.
+
+#### 6.24.13 Admin Dashboard Financial Analytics Suite
+The IT Admin dashboard includes a CSS-driven, non-blocking **Revenue Analytics** ledger that calculates metrics across all system bookings:
+- **KPI Metrics**: Display Total Revenue, Average Booking Value, and overall cancellation percentages.
+- **Route Rankings**: Render a horizontal CSS-based proportional chart of the top 5 high-earning routes.
+- **Cabin Split**: Display the proportionate breakdown between Business and Economy ticket tiers using custom Tailwind CSS progress bars.
+
+#### 6.24.14 Production Bundle Optimisation (Code Splitting)
+To optimize loading performance, all 8 page-level routes are converted to dynamic imports utilizing `React.lazy()` and wrapped in a shared `<Suspense>` boundary in `App.tsx`:
+- **Footprint Reduction**: Shrinks the initial compiled bundle size from a monolithic `510 KB` to a highly optimized `208 KB` vendor chunk.
+- **Lazy Loading**: Route chunks (ranging from 6 to 72 KB) are loaded and parsed only when the user first navigates to the respective view, accelerating page load speeds.
+
+#### 6.24.15 Global Dark Mode Surjection
+Surfaced via Sun/Moon toggles inside both the `PassengerAppLayout` header and the `LandingPage` header, dark mode is active across the entire web application. Selection states are persisted via local storage keys and bound to the document root, toggling the global `@custom-variant dark` defined in the core Tailwind CSS architecture.
+
+#### 6.24.16 Photographic UI Enrichment & Showcase
+High-quality, contextual aviation and destination photography is integrated across all portals (cabin selections, destination highlights, CTA banners, and reviews) with robust `onError` fallback handlers. A dedicated marketing `/experience` showcase introduces cabin options, loyalty mile details, star-rated reviews, and live-priced destinations dynamically.
+
+#### 6.24.17 Unified Mobile Responsiveness
+All viewport breakpoints are supported:
+- **Mobile Menu**: Responsive hamburger icons (`Menu`/`X`) toggle sliding dropdown menus on smaller displays.
+- **Adaptive Sidebars**: IT and operator sidebars start hidden on mobile viewports, using a `fixed` backdrop overlay that auto-closes on navigation selections.
+- **Horizontal Scroll Containers**: Large manifests and ledger tables are wrapped in responsive `overflow-x-auto` blocks to prevent page overflow.
+
 ---
 
 ## Chapter 7: Backend Microservices Implementation
@@ -1593,384 +1670,6 @@ Evaluates latency bottlenecks, highlighting the benefit of offloading QR code PD
 
 ### 14.19 Testing Evidence & Results
 Pytest test coverage tables and Locust stress charts are compiled in **Appendix K (Locust)** and **Appendix H (Postman)**.
-
----
-
-## Chapter 14B: Phase II Frontend Enhancement Suite
-
-### 14B.1 Overview
-To deliver the full aviation digital services scope — booking, check-in, baggage tracking, payment, and operational management — a systematic Phase II enhancement suite was implemented across all frontend portals. These additions are entirely frontend-resident (React/TypeScript/localStorage), requiring no infrastructure changes and no Terraform re-application.
-
-### 14B.2 Enhanced 5-Step Booking Workflow
-
-The original 3-step booking flow (`search → seat-selection → confirmed`) was expanded to a fully orchestrated 5-step pipeline:
-
-| Step | Component | Description |
-|---|---|---|
-| **1. Search** | `SearchFlights.tsx` | Flight list with advanced filters, sorting, and animated skeleton loaders |
-| **2. Seat Selection** | `SeatSelection.tsx` | Interactive 10×6 aircraft cabin map with business class upgrade nudge |
-| **3. Baggage Add-On** | `BaggageAddOn.tsx` | Optional checked bag (+$30, weight 15–32 kg) with animated toggle |
-| **4. Payment** | `PaymentStep.tsx` | Simulated PCI-DSS card form (PAN auto-formatting, CVV masking, 2-second authorization spinner) |
-| **5. Confirmation** | `BoardingPass.tsx` | Updated boarding pass with gate assignment, print-to-PDF, and email confirmation line |
-
-The booking state machine in `PassengerPortal.tsx` manages transitions: `'search' | 'seat-selection' | 'baggage' | 'payment' | 'confirmed'`.
-
-**Payment simulation:** The `PaymentStep` component collects card number (auto-formatted in groups of 4), expiry (MM/YY), masked CVV, and cardholder name. A 2-second authorization spinner is displayed, followed by a `PAYMENT_AUTHORIZED` Kafka event dispatch on success. PAN data is never persisted — only an authorization token is stored in the booking record, satisfying PCI-DSS zero-storage requirements.
-
-**Pre-filled passenger name:** The booking form pre-populates the passenger name from the authenticated user's profile (`firstName + lastName` from `AuthContext`), eliminating manual re-entry.
-
-### 14B.3 Online Check-In & Gate Assignment
-
-Passengers self-check-in from the **My Bookings** tab within the 48-hour pre-departure window:
-
-- **Eligibility:** `isCheckInEligible(departure)` — returns `true` if departure is within 48 hours.
-- **Gate assignment:** `assignGate(flightNumber)` — deterministic hash over the flight number string, selecting from 8 airport gates (`A12, B07, C22, D04, E15, F09, G31, H18`).
-- **Status update:** Booking record is updated to `status: 'checked_in'`, gate is persisted to both per-user and global localStorage keys, and the UI transitions to show the boarding pass with the assigned gate.
-- **Departure countdown:** Each booking card shows a formatted countdown (e.g., `Departs in 2d 4h`) derived from `Date.now()` vs the stored `departure_time`.
-
-### 14B.4 Passenger Baggage Tracking Timeline
-
-After check-in, passengers who purchased a baggage add-on see a 4-stage tracking timeline on their booking card:
-
-| Stage | Label | Trigger |
-|---|---|---|
-| 0 | Checked In | Immediately on check-in |
-| 1 | Security Screening | ~25% of time elapsed to departure |
-| 2 | Cargo Loading | ~55% of time elapsed |
-| 3 | On Board | ~80% of time elapsed |
-
-Stage progression is computed deterministically from the ratio of time-since-check-in to time-to-departure, providing a realistic simulation without a live Baggage Service connection.
-
-### 14B.5 Booking Cancellation from My Bookings
-
-Passengers can cancel any non-departed booking directly from the **My Bookings** ledger:
-
-- A confirmation prompt prevents accidental cancellations.
-- On confirmation: `booking.status` is set to `'cancelled'`, both per-user and global localStorage records are updated via `updateBooking()`.
-- The booking card displays a red **CANCELLED** badge.
-- An `ADMIN_BOOKING_CANCELLED` Kafka event is dispatched to the Operations firehose terminal for audit visibility.
-
-### 14B.6 Public Flight Status Dashboard
-
-A public, authentication-free page at `/flights/status` provides real-time departure board information:
-
-- **Auto-refresh:** Polls `GET /api/v1/flights/` every 30 seconds; renders 5 demo fallback flights if the API is unavailable.
-- **Status derivation:** `deriveStatus(departure, flightNumber)` maps time differences and flight number hashes to `On Time | Boarding | Delayed | Departed | Cancelled`.
-- **Gate display:** Same deterministic hash as the check-in module — consistent gate numbers across the platform.
-- **Countdown timer:** Per-row countdown refreshes every minute.
-- **Colour-coded legend:** Emerald (On Time), Blue (Boarding), Amber (Delayed), Slate (Departed), Red (Cancelled).
-- **Standalone layout:** Dedicated navbar with AeroLink logo; no authentication sidebar required.
-
-### 14B.7 Advanced Flight Search Filters & Skeleton Loaders
-
-The `SearchFlights` component was enhanced with a collapsible filter panel and progressive loading states:
-
-| Enhancement | Details |
-|---|---|
-| **Origin / Destination dropdowns** | 15 airports including CMB, SYD, BKK, DEL, BOM, NRT, FRA |
-| **Max price slider** | Dynamic range from $50 to maximum available flight price |
-| **Sort options** | Earliest / Latest first, Cheapest / Most expensive |
-| **Result counter** | "N of M flights shown" updates live as filters are applied |
-| **Loading skeletons** | Animated pulse placeholder cards (`SkeletonCard`) during API fetch |
-| **Clear filters** | One-click reset when no flights match the current filter set |
-
-### 14B.8 Seat Upgrade Prompt — Business Class Nudge
-
-When a passenger selects any economy seat (rows 3–10), an amber upgrade banner appears inline:
-
-> **Upgrade to Business?** Rows 1–2 offer extra legroom and priority boarding for +$50.
-
-Implemented as an inline conditional block in `SeatSelection.tsx`. Business class rows 1–2 automatically apply a +$50 surcharge displayed in the booking summary before the passenger proceeds.
-
-### 14B.9 Global Toast Notification System
-
-`ToastContext` (`src/context/ToastContext.tsx`) replaces all browser `alert()` calls system-wide:
-
-- **Hook API:** `useToast()` exposes `toast(message, type)` — type is `'success' | 'error' | 'warning' | 'info'`.
-- **Rendering:** `ToastProvider` injects a fixed-position notification stack (bottom-right) with 4.5-second auto-dismiss and CSS slide-in animation.
-- **Colour coding:** Emerald (success), Red (error), Amber (warning), Blue (info).
-- `ToastProvider` wraps the application root in `App.tsx`, making the hook available on every page without prop drilling.
-
-### 14B.10 Boarding Pass — Gate Integration & Print-to-PDF
-
-Two enhancements were made to the `BoardingPass` component:
-
-1. **Gate display:** The check-in-assigned gate is rendered between seat and boarding time using a `MapPin` icon.
-2. **Print-to-PDF:** A "Print" button calls `window.print()`. A `@media print` CSS rule hides the full application shell and renders only the boarding pass card (`#boarding-pass-print`), producing a clean, single-page printable document.
-
-### 14B.11 Admin Console — 4-Tab Enhancement Suite
-
-The `AdminDashboard` was refactored from a 2-column layout to a full 4-tab interface:
-
-| Tab | Key Features |
-|---|---|
-| **System** | ArgoCD GitOps sync, HPA policy controls, GDPR/PCI-DSS compliance audit (original features preserved) |
-| **Passengers** | Searchable registry from `aerolink_all_users`, booking count badges, total spend, expandable drill-down showing each passenger's booking history |
-| **All Bookings** | Cross-passenger booking ledger with search, full booking details, and admin Cancel Booking action |
-| **Analytics** | KPI cards (total bookings, passengers, revenue, cancellation rate), CSS bar charts by flight and by status, horizontal revenue-per-passenger bar chart |
-
-**CSS bar charts:** Pure `div`-based percentage-height columns — no external charting library dependency, consistent with the existing `SystemMetrics` approach.
-
-**Admin cancel booking:** Dispatches `ADMIN_BOOKING_CANCELLED` to the Kafka firehose and updates `aerolink_all_bookings` via `updateBooking()`.
-
-### 14B.12 Operations Flight Management Module
-
-A **Flights** tab was added to `OperationsDashboard`, enabling operators to manage the live flight inventory directly from the web interface:
-
-| Action | Endpoint | Description |
-|---|---|---|
-| **View** | `GET /api/v1/flights/` | Live flight table with all scheduled flights |
-| **Add** | `POST /api/v1/flights/` | Inline form: origin, destination, departure time, base price |
-| **Edit** | `PUT /api/v1/flights/{id}` | Row-level inline editing with save/discard controls |
-| **Cancel** | Status update | Sets flight to `Cancelled`, dispatches `FLIGHT_CANCELLED` Kafka event |
-
-The existing **Overview** tab (service mesh health grid + Kafka firehose terminal) is fully preserved.
-
-### 14B.13 Per-User Booking Isolation & Admin Global Ledger
-
-To support multi-passenger booking records without a live Booking Service, the localStorage schema is isolated per user:
-
-| Storage Key | Writer | Reader | Purpose |
-|---|---|---|---|
-| `aerolink_bookings_${email}` | `saveBooking()` | `getBookings(userId)` | Passenger's own booking list |
-| `aerolink_all_bookings` | `saveBooking()` | `getAllBookings()` | Admin ledger across all users |
-| `aerolink_all_users` | `AuthContext.saveUserRecord()` | `getAllUsers()` (Admin tab) | Passenger registry for admin |
-
-`updateBooking(id, userId, updates)` applies partial updates to both per-user and global keys atomically, used for check-in, cancellation, and admin actions.
-
----
-
-## Chapter 14C: Phase III Frontend Enhancement Suite
-
-### 14C.1 Overview
-
-Following Phase II, a third enhancement wave was executed to elevate the platform across eleven dimensions: passenger self-service, operational tooling, performance, accessibility, and visual richness. All changes are fully frontend-resident (React 19 / TypeScript / Tailwind CSS v4), deployed to the existing AWS S3 static hosting at `aerolink.transnova.shop` with no infrastructure changes required.
-
----
-
-### 14C.2 Passenger Profile Editing
-
-**File:** `PassengerPortal.tsx` — profile tab
-
-The My Profile tab previously only exposed GDPR export and account deletion. A full self-service profile editor was added above those controls:
-
-| Field | Type | Persistence |
-|---|---|---|
-| First Name | Text input | `aerolink_profile_${email}` |
-| Last Name | Text input | `aerolink_profile_${email}` |
-| Email | Read-only display | Auth context |
-| Passport Number | Text input | `aerolink_profile_${email}` |
-| Preferred Meal | Select (Standard / Vegetarian / Vegan / Halal / Kosher / Gluten-Free) | `aerolink_profile_${email}` |
-
-On save, an inline success banner auto-dismisses after 3.5 seconds. Values are pre-populated from saved data or the auth context on tab entry.
-
----
-
-### 14C.3 Booking Cancellation Flow
-
-**File:** `MyBookings.tsx`
-
-Confirmed bookings now expose a **Cancel Booking** button on each card. On click:
-
-1. A confirmation modal displays the flight number and destination before any destructive action.
-2. On confirm, `updateBooking(id, userId, { status: 'cancelled' })` is called, updating both the per-user and global admin ledger atomically.
-3. The card re-renders with a red **Cancelled** badge, the price displayed with strikethrough, and all action buttons disabled.
-4. Cancelled bookings are excluded from the Check-In manifest.
-
----
-
-### 14C.4 Seat Upgrade Flow
-
-**File:** `MyBookings.tsx`
-
-Economy passengers (rows 3–10) on confirmed bookings see an **Upgrade Seat** button. The upgrade modal presents an interactive 2-row business class seat grid (rows 1–2, columns A–F). Seats occupied by other passengers are marked unavailable using the same deterministic hash algorithm used in `SeatSelection.tsx`. On selection:
-
-- `updateBooking` is called with the new seat number.
-- A $50 upgrade fee note is appended to the booking card.
-- The modal closes and the updated seat number is reflected immediately in the UI.
-
----
-
-### 14C.5 Loyalty Miles Tracker
-
-**File:** `PassengerPortal.tsx` — profile tab
-
-A **My Miles** section was added to the profile tab, computing earned miles from all historical bookings (1 mile per $1 spent via `amount_paid`):
-
-| Tier | Range | Colour |
-|---|---|---|
-| Silver 🥈 | 0 – 24,999 miles | Slate |
-| Gold 🥇 | 25,000 – 74,999 miles | Amber |
-| Platinum 💎 | 75,000+ miles | Blue |
-
-A Tailwind CSS progress bar visualises progress toward the next tier boundary. The five most recent mile-earning bookings are listed below the bar with flight number, route, and miles earned per booking.
-
----
-
-### 14C.6 Flight Status Public Page
-
-**File:** `features/flights/pages/FlightStatus.tsx`
-
-The previously stubbed `/flights/status` route was built out as a public, unauthenticated page:
-
-- Free-text search by flight number (e.g. `AL-655`) queries the live `/api/v1/flights/` endpoint and filters client-side.
-- Delay data is merged from `aerolink_flight_delays` localStorage, consistent with the operator-marked delays in the Operations dashboard.
-- Status badges: **Active** (emerald), **Delayed +Xm** (amber), **Departed** (slate).
-- Gate is shown using the same deterministic hash algorithm, ensuring consistency across Check-In, Boarding Pass, and Flight Status views.
-- Graceful empty state with a prompt to check the flight number.
-
----
-
-### 14C.7 Real-Time Delay Toast Notifications
-
-**File:** `MyBookings.tsx`
-
-The existing `storage` event listener that synced delays was extended to show amber toast notifications when a new delay is detected for any flight the passenger has booked:
-
-```
-⚠ Flight AL-655 delayed +30 min — Weather conditions
-```
-
-- The toast appears in the top-right corner, stacking if multiple delays arrive simultaneously.
-- Auto-dismisses after 5 seconds.
-- Each toast has a manual close (×) button.
-- Implemented as a self-contained component within `MyBookings.tsx` using a `delayToasts` state array, requiring no external notification library.
-
----
-
-### 14C.8 Departure Date Filtering in Landing Search
-
-**File:** `LandingPage.tsx`
-
-The departure date input previously had no effect on results. `handleSearch` now applies an additional filter:
-
-```ts
-if (departureDate) {
-  results = results.filter(f =>
-    (f.departure_time as string).startsWith(departureDate)
-  );
-}
-```
-
-The "Browse all flights" shortcut bypasses date filtering, showing the full network. When no flights match the selected date, a clear empty state is shown with a fallback "Browse all flights" link.
-
----
-
-### 14C.9 Ground Staff Passenger Manifest
-
-**File:** `GroundDashboard.tsx`
-
-A new **Flight Manifest** tab was added to the ground staff dashboard:
-
-- A flight selector dropdown is populated from the live `/api/v1/flights/` endpoint.
-- On selection, `aerolink_all_bookings` is scanned and filtered by `flight_number`.
-- A manifest table shows: Passenger Name | Passport | Seat | Meal Preference | Baggage | Check-In Status | Insurance.
-- Summary chips display: Total booked, Checked in, Pending check-in counts.
-- A **Download CSV** button creates a Blob-based CSV with all manifest fields for offline use.
-
----
-
-### 14C.10 Revenue Analytics Dashboard
-
-**File:** `AdminDashboard.tsx` — Analytics tab
-
-The admin analytics tab was extended with four new revenue panels, all computed from `aerolink_all_bookings` localStorage:
-
-| Panel | Metric |
-|---|---|
-| Total Revenue | Sum of `amount_paid` across all bookings |
-| Average Booking Value | Total revenue ÷ booking count |
-| Revenue by Route | Top-5 routes ranked by revenue — CSS horizontal bar chart |
-| Revenue by Class | Economy vs Business split (rows 1–2 = Business) — proportional bar |
-
-No third-party chart library is used; all visualisations are pure Tailwind CSS progress bars and flex-based layouts, keeping the bundle size minimal.
-
----
-
-### 14C.11 Code Splitting via React.lazy()
-
-**File:** `App.tsx`
-
-All eight page-level components were converted to dynamic imports using `React.lazy()` and wrapped in a shared `<Suspense>` boundary:
-
-```tsx
-const LandingPage       = lazy(() => import('./features/landing/LandingPage'));
-const PassengerPortal   = lazy(() => import('./features/passenger/PassengerPortal'));
-const AdminDashboard    = lazy(() => import('./features/admin/pages/AdminDashboard'));
-// ... (all route-level components)
-```
-
-**Impact:**
-
-| Before | After |
-|---|---|
-| 1 × 510 KB monolithic bundle | 1 × 208 KB shared vendor chunk + 8 route chunks (6–72 KB each) |
-| All code parsed on first load | Each dashboard parsed only when first visited |
-| Vite bundle-size warning on every build | Warning eliminated |
-
-Layouts (`DashboardLayout`, `PassengerAppLayout`) remain eagerly loaded as they are always needed immediately after auth.
-
----
-
-### 14C.12 Dark Mode — Passenger & Landing Pages
-
-**Files:** `PassengerAppLayout.tsx`, `LandingPage.tsx`
-
-Dark mode was previously only available in `DashboardLayout` (staff portals). It is now surfaced on all pages:
-
-- A **Moon / Sun toggle button** is added to both the `PassengerAppLayout` header and the `LandingPage` header (visible on all screen sizes).
-- Both pages read `aerolink_dark_mode` from localStorage on mount, and write it on toggle — consistent with `DashboardLayout`.
-- Both pages call `document.documentElement.classList.toggle('dark', darkMode)`, activating the global `@custom-variant dark (&:is(.dark *))` defined in `index.css`.
-
----
-
-### 14C.13 Photographic Content Throughout the UI
-
-Real photography was integrated across the public-facing pages to elevate visual quality:
-
-| Section | Source | Detail |
-|---|---|---|
-| Cabin Classes (Economy / Business / First) | Unsplash airline interior photos | Full-bleed hero image per class with gradient overlay; Ken Burns zoom on tab switch |
-| In-Flight Services (6 cards) | Unsplash thematic photos | Top photo strip on each service card (dining, entertainment, Wi-Fi, baggage, insurance, boarding) |
-| Destinations (Experience page) | Unsplash city photography | Real photos for Paris, Tokyo, Sydney, Dubai, Singapore, New York, London, LA, Amsterdam, Frankfurt, Colombo |
-| Popular Routes (Landing page) | Same Unsplash set | Destination photo fills the route card header |
-| "Why AeroLink" Feature Cards | Unsplash travel photography | Photo strip with icon overlay per card |
-| Testimonial Avatars | Unsplash portraits | Real face photos replacing initials avatars |
-| CTA Section | Unsplash aerial photography | Sky-above-clouds background with blue overlay |
-
-All images use `onError` fallback handlers to hide broken images gracefully, maintaining layout integrity if Unsplash is unreachable.
-
----
-
-### 14C.14 Experience Page — Dedicated Service Showcase
-
-A full `/experience` route was added as a dedicated marketing page (`ExperiencePage.tsx`):
-
-| Section | Content |
-|---|---|
-| Hero | Full-width gradient banner with animated plane icons, headline, and four stat chips |
-| Cabin Classes | Tab switcher (Economy / Business / First) with photo hero and 6 amenity perk cards |
-| In-Flight Services | 6 photo-topped service cards |
-| Destinations | Live-priced destination cards from the flights API with real city photography |
-| AeroLink Miles | Silver / Gold / Platinum loyalty tier cards with perk lists on a dark background |
-| Testimonials | 3 passenger review cards with star ratings and real avatar photos |
-| CTA | Aerial sky background with booking CTA |
-
-The "Experience" nav link in the landing page header navigates to this page on all screen sizes (desktop nav and mobile hamburger menu).
-
----
-
-### 14C.15 Full Mobile Responsiveness
-
-All pages were audited and made fully responsive:
-
-| Component | Change |
-|---|---|
-| `DashboardLayout` | Sidebar starts hidden on mobile; `fixed` overlay with dark backdrop; auto-closes on nav click |
-| `PassengerAppLayout` | Hamburger menu (`Menu`/`X`) on mobile; full-width dropdown nav |
-| `LandingPage` | Hamburger menu; header shrinks to `h-16`; hero `clamp()` height |
-| `ExperiencePage` | Cabin tabs `flex-wrap`; loyalty card scale only on `md+` |
-| `AdminDashboard` | Tabs scroll horizontally; tables in `overflow-x-auto` wrappers |
 
 ---
 
