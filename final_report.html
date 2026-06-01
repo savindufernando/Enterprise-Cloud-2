@@ -2481,96 +2481,157 @@ aws dynamodb list-tables --region eu-west-1
 <p>Securing PII in stdout logs requires custom regex middleware filters to redact sensitive data before forwarding to CloudWatch.</p>
 <h3>15.8 Cloud Economics &amp; Dual-Budget Cost Considerations</h3>
 <p>To deliver a rigorous evaluation of cloud engineering economics, this section presents a <strong>Dual-Cost Comparison Framework</strong>. It contrasts the <strong>Cost-Optimized Student-Scope Dev Prototype</strong> (actively deployed and validated in the AWS sandbox) against the <strong>Proposed Enterprise-Grade Production System</strong> (designed for full-scale commercial operations). </p>
-<p>While the compute sizes and managed service tiers differ to respect sandbox budgets, both systems run the <strong>exact same declarative software and functional microservices architecture</strong>.</p>
+<p>Both configurations run the <strong>exact same declarative software and functional microservices architecture</strong>, optimized dynamically for resource constraints.</p>
+<h4>15.8.1 Compact Cost Comparison: Dev Prototype vs. Enterprise Production</h4>
+<p><em>(Optimized for standard A4 document formatting)</em></p>
 <table>
 <thead>
 <tr>
 <th align="left">AWS Service Group</th>
-<th align="left">Student Dev Prototype (Active Setup) Specification &amp; Cost</th>
-<th align="left">Proposed Enterprise Production Specification &amp; Cost</th>
-<th align="left">Architectural &amp; FinOps Justification</th>
+<th align="left">Student Dev Prototype (Active)</th>
+<th align="left">Proposed Enterprise Production</th>
+<th align="left">Monthly Cost Delta</th>
 </tr>
 </thead>
 <tbody><tr>
-<td align="left"><strong>AWS EKS</strong></td>
-<td align="left">1 x EKS Cluster Control Plane (Ireland)<br>➔ <strong>$73.00 / month</strong></td>
-<td align="left">2 x EKS Control Planes (Ireland + Frankfurt DR)<br>➔ <strong>$146.00 / month</strong></td>
-<td align="left">The student setup runs a single cluster for dev validation. Production adds a second managed control plane in the DR region for geo-resiliency.</td>
+<td align="left"><strong>1. AWS EKS (Control Plane)</strong></td>
+<td align="left">$73.00 / month</td>
+<td align="left">$146.00 / month</td>
+<td align="left">+$73.00</td>
 </tr>
 <tr>
-<td align="left"><strong>EKS EC2 Nodes</strong></td>
-<td align="left">4 x <code>t3.small</code> nodes (2 vCPUs, 2 GiB RAM)<br>➔ <strong>$60.74 / month</strong></td>
-<td align="left">4 x <code>m5.large</code> instances (Primary) + Warm DR (0 nodes)<br>➔ <strong>$143.08 / month</strong></td>
-<td align="left">The student setup uses cheap <code>t3.small</code> instances. Production upgrades compute to memory-optimized <code>m5.large</code> instances to handle enterprise load spikes.</td>
+<td align="left"><strong>2. EKS Compute (EC2 Nodes)</strong></td>
+<td align="left">$60.74 / month</td>
+<td align="left">$143.08 / month</td>
+<td align="left">+$82.34</td>
 </tr>
 <tr>
-<td align="left"><strong>EBS Storage</strong></td>
-<td align="left">4 x 40 GB GP3 storage volumes<br>➔ <strong>$14.08 / month</strong></td>
-<td align="left">4 x 80 GB GP3 volumes with daily snapshots<br>➔ <strong>$65.95 / month</strong></td>
-<td align="left">Storage scales up in production to support high-volume metrics aggregation, logs, and snapshot failover data.</td>
+<td align="left"><strong>3. Cluster Storage (EBS GP3)</strong></td>
+<td align="left">$14.08 / month</td>
+<td align="left">$65.95 / month</td>
+<td align="left">+$51.87</td>
 </tr>
 <tr>
-<td align="left"><strong>Relational DB</strong></td>
-<td align="left">1 x Amazon RDS PostgreSQL <code>db.t3.micro</code><br>➔ <strong>$12.40 / month</strong> <em>(Free-Tier)</em></td>
-<td align="left">Amazon Aurora PostgreSQL <code>db.t3.medium</code> Multi-Region Replica<br>➔ <strong>$177.83 / month</strong></td>
-<td align="left"><strong>Critical FinOps Standby Optimization</strong>: Primary database runs as <code>db.r5.large</code> Multi-AZ. The Frankfurt replica is scaled down to <code>db.t3.medium</code> during normal operations, saving <strong>$135.78/month</strong>.</td>
+<td align="left"><strong>4. Relational Database (RDS/Aurora)</strong></td>
+<td align="left">$12.40 / month</td>
+<td align="left">$177.83 / month</td>
+<td align="left">+$165.43</td>
 </tr>
 <tr>
-<td align="left"><strong>Aurora Storage</strong></td>
-<td align="left">N/A <em>(Standard RDS included above)</em></td>
-<td align="left">200 GB Storage + Cross-Region I/O Operations<br>➔ <strong>$1.15 / month</strong> <em>(Basic Standard S3 Storage)</em></td>
-<td align="left">Configured with storage auto-scaling, starting at a lean 100 GB baseline to avoid paying for pre-allocated empty disk space.</td>
+<td align="left"><strong>5. Database Storage &amp; I/O</strong></td>
+<td align="left">$0.00 / month <em>(Included)</em></td>
+<td align="left">$1.15 / month</td>
+<td align="left">+$1.15</td>
 </tr>
 <tr>
-<td align="left"><strong>NoSQL Database</strong></td>
-<td align="left">Amazon DynamoDB (On-Demand Mode)<br>➔ <strong>$5.00 / month</strong></td>
-<td align="left">Amazon DynamoDB with Active-Active Global Replication<br>➔ <strong>$26.14 / month</strong> <em>(plus $180 upfront)</em></td>
-<td align="left">Production enables <strong>DynamoDB Global Tables</strong> to replicate passenger baggage tracking records instantly between Ireland and Frankfurt.</td>
+<td align="left"><strong>6. NoSQL Database (DynamoDB)</strong></td>
+<td align="left">$5.00 / month</td>
+<td align="left">$26.14 / month <em>(+$180 upfront)</em></td>
+<td align="left">+$21.14</td>
 </tr>
 <tr>
-<td align="left"><strong>Event Broker</strong></td>
-<td align="left">Apache Kafka deployed in-cluster on EKS (<code>emptyDir</code>)<br>➔ <strong>$0.00 / month</strong></td>
-<td align="left">Amazon MSK Managed Kafka Cluster (<code>kafka.m5.large</code>)<br>➔ <strong>$489.90 / month</strong></td>
-<td align="left"><strong>Critical FinOps Strategy</strong>: To bypass the high cost of Amazon MSK, the student prototype runs Kafka brokers directly inside EKS. Production uses managed MSK for durability.</td>
+<td align="left"><strong>7. Event Broker (Kafka/MSK)</strong></td>
+<td align="left">$0.00 / month <em>(In-cluster)</em></td>
+<td align="left">$489.90 / month</td>
+<td align="left">+$489.90</td>
 </tr>
 <tr>
-<td align="left"><strong>VPC Networking</strong></td>
-<td align="left">1 x NAT Gateway + VPC Endpoints (Single-AZ)<br>➔ <strong>$32.85 / month</strong></td>
-<td align="left">VPC NAT Gateways + data processing (Multi-AZ HA egress)<br>➔ <strong>$254.16 / month</strong></td>
-<td align="left">Dev uses a single NAT gateway to save money. Production utilizes 3 NAT Gateways (one per AZ) to protect egress pathways from zone outages.</td>
+<td align="left"><strong>8. VPC Networking &amp; NAT Gateway</strong></td>
+<td align="left">$32.85 / month</td>
+<td align="left">$254.16 / month</td>
+<td align="left">+$221.31</td>
 </tr>
 <tr>
-<td align="left"><strong>Ingress &amp; DNS</strong></td>
-<td align="left">1 x ALB + standard Route 53 subdomain<br>➔ <strong>$25.00 / month</strong></td>
-<td align="left">2 x ALBs + Route 53 Geo-Latency Failover Policies<br>➔ <strong>$41.95 / month</strong> <em>(ALB $40.85 + Route 53 $1.10)</em></td>
-<td align="left">Production implements active geo-routing to balance users between regional application load balancers.</td>
+<td align="left"><strong>9. Ingress Load Balancers &amp; DNS</strong></td>
+<td align="left">$25.00 / month</td>
+<td align="left">$41.95 / month</td>
+<td align="left">+$16.95</td>
 </tr>
 <tr>
-<td align="left"><strong>S3 &amp; CDN</strong></td>
-<td align="left">Serverless static hosting (eu-west-1)<br>➔ <strong>$2.00 / month</strong></td>
-<td align="left">S3 Serverless + Global CloudFront CDN Edge Caching<br>➔ <strong>$22.40 / month</strong> <em>(S3 $1.15 + CloudFront $21.25)</em></td>
-<td align="left">Production adds CloudFront to edge-cache frontend assets, lowering S3 request costs.</td>
+<td align="left"><strong>10. Serverless Frontend (S3 &amp; CDN)</strong></td>
+<td align="left">$2.00 / month</td>
+<td align="left">$22.40 / month</td>
+<td align="left">+$20.40</td>
 </tr>
 <tr>
-<td align="left"><strong>Observability</strong></td>
-<td align="left">Prometheus, Grafana, Jaeger in-cluster<br>➔ <strong>$15.00 / month</strong></td>
-<td align="left">AWS Managed Prometheus &amp; Grafana + CloudWatch Logs<br>➔ <strong>$51.45 / month</strong></td>
-<td align="left">Production offloads metrics storage to managed AWS Prometheus to ensure telemetry persistence.</td>
+<td align="left"><strong>11. Observability Telemetry Suite</strong></td>
+<td align="left">$15.00 / month</td>
+<td align="left">$51.45 / month</td>
+<td align="left">+$36.45</td>
 </tr>
 <tr>
-<td align="left"><strong>Cross-Region Egress</strong></td>
-<td align="left">Basic single-region transit<br>➔ <strong>$1.00 / month</strong></td>
-<td align="left">Dedicated WAN Data Transfer (Ireland to Frankfurt)<br>➔ <strong>$60.00 / month</strong></td>
-<td align="left">Database replication packets are optimized via column compression prior to cross-region WAN routing.</td>
+<td align="left"><strong>12. Dedicated Cross-Region WAN</strong></td>
+<td align="left">$1.00 / month</td>
+<td align="left">$60.00 / month</td>
+<td align="left">+$59.00</td>
 </tr>
 <tr>
-<td align="left"><strong>TOTALS</strong></td>
+<td align="left"><strong>ESTIMATED TOTALS</strong></td>
 <td align="left"><strong><code>$245.07 USD / month</code></strong></td>
 <td align="left"><strong><code>$1,478.86 USD / month</code></strong></td>
-<td align="left"><strong>FinOps result: The Student Scope is 83.4% cheaper, allowing robust validation on a micro-budget.</strong></td>
+<td align="left"><strong>+$1,233.79</strong></td>
 </tr>
 </tbody></table>
-<h4><strong>15.8.2 Cloud Economics &amp; Sandbox Limitation Justification</strong></h4>
+<hr>
+<h4>15.8.2 Technical Sizing &amp; FinOps Cost Justifications</h4>
+<ol>
+<li><strong>AWS EKS Control Plane</strong>:<ul>
+<li><em>Student Dev</em>: Deploys a single cluster in the primary region (<code>eu-west-1</code> Ireland) for runtime validation.</li>
+<li><em>Enterprise Production</em>: Deploys twin clusters across two regions (Primary + Frankfurt Standby) to guarantee control-plane survivability.</li>
+</ul>
+</li>
+<li><strong>EKS Compute Nodes</strong>:<ul>
+<li><em>Student Dev</em>: Runs 4 cost-optimized <code>t3.small</code> nodes (2 vCPUs, 2 GiB RAM per node) to fit within development limits.</li>
+<li><em>Enterprise Production</em>: Runs 4 production-grade <code>m5.large</code> instances (2 vCPUs, 8 GiB RAM per node) in the primary region. The standby region EKS node group is kept scaled to <strong>0 active replicas</strong> (Pilot Light pattern), incurring $0.00 compute charges during normal standby.</li>
+</ul>
+</li>
+<li><strong>Cluster Storage (EBS)</strong>:<ul>
+<li><em>Student Dev</em>: Restricts volume sizing to 40 GB per node using basic GP3.</li>
+<li><em>Enterprise Production</em>: Allocates 80 GB per node with automated daily snapshots and incremental backup rules to ensure persistent metrics storage.</li>
+</ul>
+</li>
+<li><strong>Relational Database (PostgreSQL)</strong>:<ul>
+<li><em>Student Dev</em>: Runs a single, cost-free eligible RDS PostgreSQL <code>db.t3.micro</code> instance.</li>
+<li><em>Enterprise Production</em>: Deploys a high-performance <strong>Amazon Aurora Global Database</strong> cluster. The primary database runs as a <code>db.r5.large</code> Multi-AZ cluster. The secondary standby read replica in Frankfurt is scaled down to a <strong><code>db.t3.medium</code></strong> (saving <strong>$135.78/month</strong> in standby costs) and is promoted and scaled up only during active regional failovers.</li>
+</ul>
+</li>
+<li><strong>NoSQL Database (DynamoDB)</strong>:<ul>
+<li><em>Student Dev</em>: Single table on On-Demand billing, incurring zero idle costs.</li>
+<li><em>Enterprise Production</em>: Enables <strong>DynamoDB Global Tables</strong> for active-active cross-region data replication, ensuring sub-second baggage scanning logs are synchronized between Ireland and Germany.</li>
+</ul>
+</li>
+<li><strong>Event Broker (Apache Kafka)</strong>:<ul>
+<li><em>Student Dev</em>: Deploys lightweight Kafka brokers directly inside EKS using <code>emptyDir</code> local volumes, incurring $0.00 in managed service charges.</li>
+<li><em>Enterprise Production</em>: Deploys <strong>Amazon MSK</strong> (Managed Streaming for Kafka) using a 3-broker <code>kafka.m5.large</code> configuration spanning multiple availability zones to ensure transactional durability under the Saga choreography.</li>
+</ul>
+</li>
+<li><strong>VPC Networking &amp; NAT Gateway</strong>:<ul>
+<li><em>Student Dev</em>: Operates a single public NAT gateway in a Single-AZ subnet to save networking charges.</li>
+<li><em>Enterprise Production</em>: Provisions 3 active NAT Gateways (one per Availability Zone) in the primary VPC to eliminate single points of failure. High-volume inter-service data transfer bypasses NAT charges using free private <strong>VPC Endpoints</strong> for S3 and DynamoDB.</li>
+</ul>
+</li>
+<li><strong>Ingress &amp; DNS</strong>:<ul>
+<li><em>Student Dev</em>: Employs 1 Application Load Balancer (ALB) and standard subdomain mappings.</li>
+<li><em>Enterprise Production</em>: Deploys dual Application Load Balancers (one per region) managed globally via Route 53 Latency-Based Geo-DNS routing.</li>
+</ul>
+</li>
+<li><strong>S3 &amp; CDN</strong>:<ul>
+<li><em>Student Dev</em>: Basic serverless hosting directly from an S3 bucket.</li>
+<li><em>Enterprise Production</em>: Combines serverless S3 storage with an Amazon CloudFront CDN distribution, caching static assets globally across 400+ Edge Locations to lower latency and minimize S3 retrieval charges.</li>
+</ul>
+</li>
+<li><strong>Observability Telemetry</strong>:<ul>
+<li><em>Student Dev</em>: In-cluster Prometheus, Grafana, and Jaeger instances storing data in-memory.</li>
+<li><em>Enterprise Production</em>: Offloads metrics and log aggregations to AWS Managed Prometheus and CloudWatch Logs Insights, running log lifecycle rules to automatically expire data after 14 days.</li>
+</ul>
+</li>
+<li><strong>Cross-Region Egress</strong>:<ul>
+<li><em>Student Dev</em>: Basic single-region Internet traffic.</li>
+<li><em>Enterprise Production</em>: Models 3 TB of dedicated WAN replication traffic between Ireland and Germany (charged at $0.02 per GB), optimizing data transfers using column-level payload compression.</li>
+</ul>
+</li>
+</ol>
+<h4>15.8.3 Cloud Economics &amp; Sandbox Limitation Justification</h4>
 <p>During the defense of the AeroLink architectural lifecycle, the selection of the cost-optimized <strong>Student Dev Prototype</strong> is operationally justified under the following constraints:</p>
 <ol>
 <li><strong>AWS Academy Sandbox Restrictions</strong>:<br>The academic sandbox enforces a hard <strong>$100.00 USD total budget limit</strong> and a maximum <strong>vCPU quota of 32</strong>. Running the proposed <strong>Enterprise Production System ($1,478.86/month)</strong> would have consumed the entire budget in less than <strong>48 hours</strong> and triggered an immediate, automatic suspension of the AWS account. </li>
