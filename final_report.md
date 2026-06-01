@@ -1506,7 +1506,7 @@ The table below documents the empirical results from the active pod demolition w
 
 
 ### 12.15 Fault Tolerance Evidence & Screenshots
-HPA autoscaling metrics and Grafana performance charts are documented in **Appendix N (Grafana Dashboard)** and **Appendix K (Locust Results)**.
+HPA autoscaling metrics and Grafana performance charts are documented in **Appendix I (Grafana Monitoring Dashboards)** and **Appendix K (Locust Load Testing Results)**.
 
 ### 12.16 Safe Infrastructure Decommissioning Plan (Terraform Destroy)
 To maintain strict lifecycle governance and prevent orphan cloud resource expenditures under cloud FinOps practices, the platform defines a standardized decommissioning runbook. This procedure mitigates a common distributed deletion deadlock and ensures safe, block-free resource termination.
