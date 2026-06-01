@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Plane, CalendarDays, Armchair, BadgeCheck, Inbox, Ticket, X,
   LogIn, XCircle, Luggage, MapPin, CheckCircle2, Clock, AlertCircle,
-  UtensilsCrossed, ShieldCheck, AlertTriangle
+  UtensilsCrossed, ShieldCheck, AlertTriangle, ArrowUpCircle
 } from 'lucide-react';
 import BoardingPass from './BoardingPass';
 
@@ -27,6 +27,7 @@ export interface Booking {
   trip_type?: 'one-way' | 'round-trip';
   return_date?: string;
   amount_paid?: number;
+  upgrade_note?: string;
 }
 
 export interface FlightDelay {
@@ -126,6 +127,37 @@ function assignGate(flightNumber: string): string {
 
 const BAG_STAGES = ['Checked In', 'Security Screening', 'Cargo Loading', 'On Board'];
 
+// Generate all Business class seats (rows 1-2, cols A-F)
+const BUSINESS_SEATS = ['1A','1B','1C','1D','1E','1F','2A','2B','2C','2D','2E','2F'];
+
+// ── Feature 6: Delay Toast ──
+interface DelayToast {
+  id: string;
+  message: string;
+}
+
+function DelayToastContainer({ toasts, onDismiss }: { toasts: DelayToast[]; onDismiss: (id: string) => void }) {
+  return (
+    <div className="fixed top-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none">
+      {toasts.map(t => (
+        <div
+          key={t.id}
+          className="pointer-events-auto flex items-start gap-3 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl px-4 py-3 shadow-lg animate-fade-in min-w-[280px] max-w-sm"
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+          <span className="text-xs font-semibold flex-1">{t.message}</span>
+          <button
+            onClick={() => onDismiss(t.id)}
+            className="text-amber-400 hover:text-amber-600 cursor-pointer shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface MyBookingsProps {
   onBookAgain: () => void;
   userId: string;
@@ -138,6 +170,17 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [delays, setDelays] = useState<FlightDelay[]>(() => getFlightDelays());
+
+  // Feature 3: Upgrade modal state
+  const [upgradingBooking, setUpgradingBooking] = useState<Booking | null>(null);
+  const [upgradeSuccess, setUpgradeSuccess] = useState<string | null>(null); // new seat
+
+  // Feature 6: Delay toasts
+  const [delayToasts, setDelayToasts] = useState<DelayToast[]>([]);
+  const prevDelaysRef = useRef<FlightDelay[]>(delays);
+
+  // Dismiss a toast
+  const dismissToast = (id: string) => setDelayToasts(ts => ts.filter(t => t.id !== id));
 
   // Refresh countdown every minute + re-poll delays
   useEffect(() => {
@@ -154,6 +197,27 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  // Feature 6: Detect new delays and fire toasts
+  useEffect(() => {
+    const prev = prevDelaysRef.current;
+    const userFlightNumbers = new Set(bookings.filter(b => b.status !== 'cancelled').map(b => b.flight_number));
+    const newDelays = delays.filter(d =>
+      userFlightNumbers.has(d.flight_number) &&
+      !prev.find(p => p.flight_number === d.flight_number && p.marked_at === d.marked_at)
+    );
+    if (newDelays.length > 0) {
+      const toasts: DelayToast[] = newDelays.map(d => ({
+        id: `${d.flight_number}-${d.marked_at}`,
+        message: `⚠️ Flight ${d.flight_number} delayed +${d.delay_minutes}min — ${d.reason}`,
+      }));
+      setDelayToasts(ts => [...ts, ...toasts]);
+      toasts.forEach(toast => {
+        setTimeout(() => dismissToast(toast.id), 5000);
+      });
+    }
+    prevDelaysRef.current = delays;
+  }, [delays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCheckIn = (booking: Booking) => {
     const gate = assignGate(booking.flight_number);
@@ -179,6 +243,32 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
     }));
   };
 
+  // Feature 3: Handle seat upgrade
+  const handleUpgrade = (booking: Booking, newSeat: string) => {
+    const upgradeFee = 50;
+    const newAmount = (booking.amount_paid ?? booking.base_price) + upgradeFee;
+    updateBooking(booking.id, userId, {
+      seat: newSeat,
+      amount_paid: newAmount,
+      upgrade_note: `Upgraded to Business seat ${newSeat} (+$${upgradeFee})`,
+    });
+    setBookings(getBookings(userId));
+    setUpgradeSuccess(newSeat);
+    window.dispatchEvent(new CustomEvent('aerolink_new_event', {
+      detail: {
+        event: 'SEAT_UPGRADE_SUCCESS',
+        payload: { booking_id: booking.id, old_seat: booking.seat, new_seat: newSeat, fee: upgradeFee, upgraded_at: new Date().toISOString() }
+      }
+    }));
+  };
+
+  // Compute occupied business seats per flight
+  const getOccupiedBusinessSeats = (flightNumber: string): string[] => {
+    return getAllBookings()
+      .filter(b => b.flight_number === flightNumber && b.status !== 'cancelled' && parseInt(b.seat) <= 2)
+      .map(b => b.seat);
+  };
+
   if (bookings.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
@@ -197,6 +287,9 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
 
   return (
     <>
+      {/* Feature 6: Delay Toasts */}
+      <DelayToastContainer toasts={delayToasts} onDismiss={dismissToast} />
+
       {/* Boarding Pass Modal */}
       {viewingBooking && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
@@ -220,6 +313,78 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
         </div>
       )}
 
+      {/* Feature 3: Seat Upgrade Modal */}
+      {upgradingBooking && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <div>
+                <h3 className="font-extrabold text-slate-800">Upgrade to Business Class</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Select a Business seat — +$50 upgrade fee</p>
+              </div>
+              <button
+                onClick={() => { setUpgradingBooking(null); setUpgradeSuccess(null); }}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5">
+              {upgradeSuccess ? (
+                <div className="text-center py-6">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+                  <div className="text-lg font-extrabold text-slate-800">Upgraded to Seat {upgradeSuccess}!</div>
+                  <div className="text-sm text-slate-500 mt-1">Business class — enjoy the flight ✈️</div>
+                  <button
+                    onClick={() => { setUpgradingBooking(null); setUpgradeSuccess(null); }}
+                    className="mt-5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm cursor-pointer transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Business Class Seats (Rows 1–2)</div>
+                  {/* Seat grid */}
+                  {(() => {
+                    const occupied = getOccupiedBusinessSeats(upgradingBooking.flight_number);
+                    return (
+                      <div className="grid grid-cols-6 gap-2">
+                        {BUSINESS_SEATS.map(seat => {
+                          const isOccupied = occupied.includes(seat);
+                          const isCurrent = seat === upgradingBooking.seat;
+                          return (
+                            <button
+                              key={seat}
+                              disabled={isOccupied || isCurrent}
+                              onClick={() => handleUpgrade(upgradingBooking, seat)}
+                              className={`py-2.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                                isCurrent
+                                  ? 'bg-blue-100 border-blue-300 text-blue-700 cursor-not-allowed'
+                                  : isOccupied
+                                  ? 'bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
+                              }`}
+                            >
+                              {seat}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                  <div className="mt-4 flex gap-3 text-[11px] text-slate-400 font-semibold">
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-white border border-slate-300 inline-block" />Available</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-slate-100 border border-slate-200 inline-block" />Occupied</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-300 inline-block" />Your seat</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-5 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
@@ -233,13 +398,16 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
         </div>
 
         {bookings.map(booking => {
-          const isBusinessClass = parseInt(booking.seat) <= 2;
+          const seatRow = parseInt(booking.seat);
+          const isBusinessClass = seatRow <= 2;
+          const isEconomyUpgradeable = !isBusinessClass && seatRow >= 3 && seatRow <= 10;
           const depDate = new Date(booking.departure_time);
           const isPast = depDate < new Date();
           const isCancelled = booking.status === 'cancelled';
           const isCheckedIn = booking.status === 'checked_in';
           const canCheckIn = !isPast && !isCancelled && !isCheckedIn && isCheckInEligible(booking.departure_time);
           const canCancel = !isPast && !isCancelled && !isCheckedIn;
+          const canUpgrade = isEconomyUpgradeable && !isCancelled && !isCheckedIn && !isPast;
           const countdown = getCountdown(booking.departure_time);
           const delayInfo = delays.find(d => d.flight_number === booking.flight_number);
           // tick is used to force re-render for countdown
@@ -305,6 +473,9 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
                         Passenger: <span className="font-semibold text-slate-600">{booking.passenger_name}</span>
                         &nbsp;·&nbsp;Booked {new Date(booking.booked_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
+                      {booking.upgrade_note && (
+                        <div className="text-[11px] text-blue-600 font-semibold mt-1">{booking.upgrade_note}</div>
+                      )}
                       {/* Countdown */}
                       {!isCancelled && (
                         <div className={`inline-flex items-center gap-1 mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-full ${isPast ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -318,8 +489,17 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
                   {/* Right: price + status + actions */}
                   <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-between gap-3 shrink-0">
                     <div className="text-right">
-                      <div className="text-2xl font-extrabold text-slate-900">${booking.amount_paid ?? booking.base_price}</div>
-                      <div className="text-[10px] text-slate-400 uppercase tracking-wide mt-0.5">Total paid</div>
+                      {isCancelled ? (
+                        <>
+                          <div className="text-2xl font-extrabold text-slate-400 line-through">${booking.amount_paid ?? booking.base_price}</div>
+                          <div className="text-[10px] text-red-500 uppercase tracking-wide mt-0.5 font-bold">Cancelled</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-2xl font-extrabold text-slate-900">${booking.amount_paid ?? booking.base_price}</div>
+                          <div className="text-[10px] text-slate-400 uppercase tracking-wide mt-0.5">Total paid</div>
+                        </>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       {/* Status badge */}
@@ -333,7 +513,7 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
                         {isCancelled ? 'Cancelled' : isCheckedIn ? 'Checked In' : isPast ? 'Completed' : 'Confirmed'}
                       </span>
                       {/* Action buttons */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap justify-end">
                         {!isCancelled && (
                           <button onClick={() => setViewingBooking(booking)} className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-500 border border-blue-200 hover:border-blue-300 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
                             <Ticket className="w-3.5 h-3.5" />
@@ -346,6 +526,16 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
                             Check In
                           </button>
                         )}
+                        {/* Feature 3: Upgrade Seat button */}
+                        {canUpgrade && (
+                          <button
+                            onClick={() => { setUpgradingBooking(booking); setUpgradeSuccess(null); }}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 hover:text-purple-600 border border-purple-200 hover:border-purple-300 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                          >
+                            <ArrowUpCircle className="w-3.5 h-3.5" />
+                            Upgrade
+                          </button>
+                        )}
                         {canCancel && cancellingId !== booking.id && (
                           <button onClick={() => setCancellingId(booking.id)} className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-500 border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
                             <XCircle className="w-3.5 h-3.5" />
@@ -353,13 +543,28 @@ export default function MyBookings({ onBookAgain, userId, userEmail }: MyBooking
                           </button>
                         )}
                       </div>
-                      {/* Cancel confirmation */}
+                      {/* Feature 2: Confirmation modal inline */}
                       {cancellingId === booking.id && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs space-y-2 max-w-[200px]">
-                          <p className="text-red-700 font-semibold">Cancel this booking?</p>
-                          <div className="flex gap-1.5">
-                            <button onClick={() => handleCancel(booking)} className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded cursor-pointer text-[11px]">Yes, Cancel</button>
-                            <button onClick={() => setCancellingId(null)} className="bg-white border border-slate-200 text-slate-600 font-bold px-3 py-1 rounded cursor-pointer text-[11px]">Keep</button>
+                        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-fade-in">
+                            <h3 className="text-base font-extrabold text-slate-800 mb-2">Cancel Booking?</h3>
+                            <p className="text-sm text-slate-500 mb-5">
+                              Are you sure you want to cancel flight <span className="font-bold text-slate-700">{booking.flight_number}</span>? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() => handleCancel(booking)}
+                                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-sm cursor-pointer transition-colors"
+                              >
+                                Yes, Cancel
+                              </button>
+                              <button
+                                onClick={() => setCancellingId(null)}
+                                className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-xl text-sm cursor-pointer transition-colors"
+                              >
+                                Keep Booking
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}

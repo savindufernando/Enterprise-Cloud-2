@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plane, RefreshCw, Clock, CheckCircle2, AlertTriangle, XCircle, MapPin } from 'lucide-react';
+import { Plane, RefreshCw, Clock, CheckCircle2, AlertTriangle, XCircle, MapPin, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getFlightDelays } from '../../passenger/pages/MyBookings';
+import type { FlightDelay } from '../../passenger/pages/MyBookings';
 
 interface Flight {
   id: string;
@@ -11,9 +13,11 @@ interface Flight {
   base_price: number;
 }
 
-type FlightStatus = 'On Time' | 'Boarding' | 'Departed' | 'Delayed' | 'Cancelled';
+type FlightStatusType = 'On Time' | 'Boarding' | 'Departed' | 'Delayed' | 'Cancelled';
 
-function deriveStatus(departure: string, flightNumber: string): FlightStatus {
+function deriveStatus(departure: string, flightNumber: string, delays: FlightDelay[]): FlightStatusType {
+  // Check localStorage delays first
+  if (delays.find(d => d.flight_number === flightNumber)) return 'Delayed';
   const diff = new Date(departure).getTime() - Date.now();
   const hash = flightNumber.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   if (diff < 0) return 'Departed';
@@ -37,7 +41,7 @@ function getCountdown(departure: string): string {
   return d > 0 ? `${d}d ${h % 24}h` : `${h}h`;
 }
 
-const statusStyle: Record<FlightStatus, string> = {
+const statusStyle: Record<FlightStatusType, string> = {
   'On Time': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'Boarding': 'bg-blue-50 text-blue-700 border-blue-200',
   'Departed': 'bg-slate-100 text-slate-500 border-slate-200',
@@ -45,7 +49,7 @@ const statusStyle: Record<FlightStatus, string> = {
   'Cancelled': 'bg-red-50 text-red-700 border-red-200',
 };
 
-const StatusIcon = ({ status }: { status: FlightStatus }) => {
+const StatusIcon = ({ status }: { status: FlightStatusType }) => {
   if (status === 'On Time' || status === 'Departed') return <CheckCircle2 className="w-3.5 h-3.5" />;
   if (status === 'Boarding') return <Plane className="w-3.5 h-3.5 rotate-90" />;
   if (status === 'Delayed') return <AlertTriangle className="w-3.5 h-3.5" />;
@@ -68,6 +72,11 @@ export default function FlightStatus() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [tick, setTick] = useState(0);
+  const [delays, setDelays] = useState<FlightDelay[]>(() => getFlightDelays());
+
+  // Feature 5: Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searched, setSearched] = useState(false);
 
   const fetchFlights = () => {
     setLoading(true);
@@ -87,12 +96,27 @@ export default function FlightStatus() {
 
   useEffect(() => {
     fetchFlights();
-    const refresh = setInterval(fetchFlights, 30000);
+    const refresh = setInterval(() => { fetchFlights(); setDelays(getFlightDelays()); }, 30000);
     const ticker = setInterval(() => setTick(n => n + 1), 60000);
     return () => { clearInterval(refresh); clearInterval(ticker); };
   }, []);
 
   void tick;
+
+  // Feature 5: Filter logic
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearched(true);
+  };
+
+  const displayFlights = searched && searchQuery.trim()
+    ? flights.filter(f =>
+        f.flight_number.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : flights;
+
+  const searchedFlight = (searched && searchQuery.trim() && displayFlights.length === 1) ? displayFlights[0] : null;
+  const searchDelayInfo = searchedFlight ? delays.find(d => d.flight_number === searchedFlight.flight_number) : null;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -119,9 +143,93 @@ export default function FlightStatus() {
           <p className="text-slate-500 text-sm mt-1">Real-time departure and arrival information. Refreshes automatically every 30 seconds.</p>
         </div>
 
+        {/* Feature 5: Search bar */}
+        <form onSubmit={handleSearch} className="flex gap-3 mb-6">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); if (!e.target.value.trim()) setSearched(false); }}
+              placeholder='Search flight number (e.g. "AL-655")'
+              className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer"
+          >
+            Search
+          </button>
+          {searched && searchQuery.trim() && (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); setSearched(false); }}
+              className="text-sm text-slate-500 hover:text-slate-700 font-semibold px-3 cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
+        </form>
+
+        {/* Feature 5: Single flight detail card */}
+        {searchedFlight && (
+          <div className="mb-6 bg-white border border-blue-200 rounded-2xl p-5 shadow-sm animate-fade-in">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="font-mono font-extrabold text-blue-700 text-lg bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl">{searchedFlight.flight_number}</span>
+                  <span className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1 rounded-full border ${statusStyle[deriveStatus(searchedFlight.departure_time, searchedFlight.flight_number, delays)]}`}>
+                    <StatusIcon status={deriveStatus(searchedFlight.departure_time, searchedFlight.flight_number, delays)} />
+                    {deriveStatus(searchedFlight.departure_time, searchedFlight.flight_number, delays)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-extrabold text-2xl text-slate-900">
+                  <span>{searchedFlight.origin_airport}</span>
+                  <Plane className="w-5 h-5 text-blue-400 rotate-90" />
+                  <span>{searchedFlight.destination_airport}</span>
+                </div>
+                <div className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  {new Date(searchedFlight.departure_time).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+              <div className="text-right space-y-1">
+                <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  Gate {getGate(searchedFlight.flight_number)}
+                </div>
+                <div className="text-sm text-slate-500 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {getCountdown(searchedFlight.departure_time)}
+                </div>
+                <div className="text-sm font-bold text-slate-700">From ${searchedFlight.base_price}</div>
+              </div>
+            </div>
+            {searchDelayInfo && (
+              <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-700 font-semibold">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                <div>
+                  <div className="font-bold">Delayed +{searchDelayInfo.delay_minutes} minutes</div>
+                  <div className="font-normal mt-0.5">{searchDelayInfo.reason}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Feature 5: Empty state when no flight found */}
+        {searched && searchQuery.trim() && displayFlights.length === 0 && (
+          <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm animate-fade-in">
+            <Plane className="w-10 h-10 mx-auto mb-3 opacity-30 rotate-90 text-slate-400" />
+            <p className="font-bold text-slate-600 text-base">No flight found for &quot;{searchQuery}&quot;</p>
+            <p className="text-sm text-slate-400 mt-1">Try a different flight number like &quot;AL-102&quot; or &quot;AL-309&quot;.</p>
+          </div>
+        )}
+
         {/* Status legend */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {(['On Time', 'Boarding', 'Departed', 'Delayed', 'Cancelled'] as FlightStatus[]).map(s => (
+          {(['On Time', 'Boarding', 'Departed', 'Delayed', 'Cancelled'] as FlightStatusType[]).map(s => (
             <span key={s} className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${statusStyle[s]}`}>
               <StatusIcon status={s} />
               {s}
@@ -143,14 +251,14 @@ export default function FlightStatus() {
 
           {loading ? (
             <><SkeletonRow /><SkeletonRow /><SkeletonRow /><SkeletonRow /></>
-          ) : flights.length === 0 ? (
+          ) : displayFlights.length === 0 && !searched ? (
             <div className="text-center py-16 text-slate-400">
               <Plane className="w-10 h-10 mx-auto mb-3 opacity-30 rotate-90" />
               <p className="font-semibold">No flights available right now.</p>
             </div>
-          ) : (
-            flights.map(flight => {
-              const status = deriveStatus(flight.departure_time, flight.flight_number);
+          ) : displayFlights.length === 0 ? null : (
+            displayFlights.map(flight => {
+              const status = deriveStatus(flight.departure_time, flight.flight_number, delays);
               const gate = getGate(flight.flight_number);
               const depDate = new Date(flight.departure_time);
               return (

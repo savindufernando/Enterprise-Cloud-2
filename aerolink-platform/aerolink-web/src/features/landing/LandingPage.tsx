@@ -3,7 +3,7 @@ import {
   Plane, MapPin, Calendar, Users, Search, Lock, ShieldCheck,
   Eye, EyeOff, ChevronRight, ConciergeBell, Radio, Shield,
   Globe, Star, User, LogIn, Loader2, AlertCircle,
-  ChevronDown, ClipboardList, Ticket, LogOut, Menu, X
+  ChevronDown, ClipboardList, Ticket, LogOut, Menu, X, Moon, Sun
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +26,15 @@ const airportLabel = (code: string) =>
 export default function LandingPage() {
   const { login, register, loginAs, logout, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+
+  // Feature 11: Dark mode
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('aerolink_dark_mode') === 'true'; } catch { return false; }
+  });
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('aerolink_dark_mode', String(darkMode));
+  }, [darkMode]);
 
   // Search form state
   const [tripType, setTripType] = useState<'round' | 'one-way'>('round');
@@ -144,10 +153,16 @@ export default function LandingPage() {
     setBrowsingAll(false);
     setSearching(true);
     setTimeout(() => {
-      const results = flights.filter(f =>
+      let results = flights.filter(f =>
         f.origin_airport.toUpperCase() === origin.toUpperCase() &&
         f.destination_airport.toUpperCase() === destination.toUpperCase()
       );
+      // Feature 7: filter by departure date if set
+      if (departureDate) {
+        results = results.filter(f =>
+          (f.departure_time as string).startsWith(departureDate)
+        );
+      }
       setSearchResults(results);
       setSearching(false);
     }, 600);
@@ -231,7 +246,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
       {/* ── Top Navigation Bar ── */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -247,7 +262,7 @@ export default function LandingPage() {
               <button onClick={() => navigate('/experience')} className="hover:text-blue-600 transition-colors cursor-pointer">Experience</button>
             </nav>
 
-            {/* Right: hamburger (mobile) + login/profile */}
+            {/* Right: dark mode toggle + hamburger (mobile) + login/profile */}
             <div className="flex items-center gap-2">
               {passengerLoggedIn ? (
                 <div className="relative" ref={dropdownRef}>
@@ -319,6 +334,15 @@ export default function LandingPage() {
                   <span>Login</span>
                 </button>
               )}
+
+              {/* Dark mode toggle */}
+              <button
+                onClick={() => setDarkMode(d => !d)}
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
+                title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
 
               {/* Hamburger — mobile only */}
               <button

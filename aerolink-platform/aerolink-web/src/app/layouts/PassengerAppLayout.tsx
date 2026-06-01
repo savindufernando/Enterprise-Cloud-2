@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Ticket, User, LogOut, ChevronDown, ClipboardList, Menu, X } from 'lucide-react';
+import { Ticket, User, LogOut, ChevronDown, ClipboardList, Menu, X, Moon, Sun } from 'lucide-react';
 
 interface PassengerAppLayoutProps {
   children: React.ReactNode;
@@ -14,6 +14,15 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Feature 11: Dark mode
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('aerolink_dark_mode') === 'true'; } catch { return false; }
+  });
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('aerolink_dark_mode', String(darkMode));
+  }, [darkMode]);
 
   const initials = [user?.firstName?.[0], user?.lastName?.[0]]
     .filter(Boolean).join('').toUpperCase() || (user?.email?.[0] ?? 'P').toUpperCase();
@@ -40,9 +49,9 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
       {/* Header — matches landing page style */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Brand */}
@@ -77,6 +86,15 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
                 My Profile
               </button>
             </nav>
+
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setDarkMode(d => !d)}
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
 
             {/* Mobile hamburger */}
             <button
@@ -172,7 +190,7 @@ export default function PassengerAppLayout({ children }: PassengerAppLayoutProps
       </header>
 
       {/* Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dark:bg-slate-900">
         {children}
       </main>
     </div>

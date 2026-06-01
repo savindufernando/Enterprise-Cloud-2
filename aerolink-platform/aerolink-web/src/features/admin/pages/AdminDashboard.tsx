@@ -170,6 +170,30 @@ export default function AdminDashboard() {
   };
   const totalRevenue = allBookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + (b.amount_paid || b.base_price), 0);
 
+  // Feature 9: Revenue analytics
+  const activeBookings = allBookings.filter(b => b.status !== 'cancelled');
+  const avgBookingValue = activeBookings.length > 0 ? Math.round(totalRevenue / activeBookings.length) : 0;
+
+  // Revenue by route (top 5)
+  const revenueByRoute = activeBookings.reduce<Record<string, number>>((acc, b) => {
+    const route = `${b.origin_airport}→${b.destination_airport}`;
+    acc[route] = (acc[route] || 0) + (b.amount_paid || b.base_price);
+    return acc;
+  }, {});
+  const topRoutes = Object.entries(revenueByRoute)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const maxRouteRevenue = topRoutes.length > 0 ? topRoutes[0][1] : 1;
+
+  // Revenue by class (rows 1-2 = Business)
+  const businessRevenue = activeBookings
+    .filter(b => parseInt(b.seat) <= 2)
+    .reduce((s, b) => s + (b.amount_paid || b.base_price), 0);
+  const economyRevenue = activeBookings
+    .filter(b => parseInt(b.seat) > 2)
+    .reduce((s, b) => s + (b.amount_paid || b.base_price), 0);
+  const totalClassRevenue = businessRevenue + economyRevenue || 1;
+
   const mockLogs = [
     { timestamp: '2026-05-23T04:10:01Z', service: 'passenger-service', event: 'PASSENGER_REGISTRATION_SUCCESS', raw: '{"email": "savindunipun30@gmail.com", "first_name": "Savindu", "passport": "N8938171"}', masked: '{"email": "[REDACTED_EMAIL]", "first_name": "Savindu", "passport": "[REDACTED_PII]"}' },
     { timestamp: '2026-05-23T04:10:15Z', service: 'payment-service', event: 'PAYMENT_AUTHORIZED', raw: '{"passenger_id": "usr_99839", "amount": 250.0, "card_number": "4111 2222 3333 4444", "cvv": "123"}', masked: '{"passenger_id": "usr_99839", "amount": 250.0, "card_number": "[TOKENIZED_PAN]", "cvv": "[REDACTED_PII]"}' },
@@ -514,8 +538,8 @@ export default function AdminDashboard() {
             {[
               { label: 'Total Bookings', value: allBookings.length, color: 'text-blue-600', bg: 'bg-blue-50' },
               { label: 'Active Passengers', value: users.filter(u => u.role === 'passenger').length, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { label: 'Total Revenue', value: `$${totalRevenue}`, color: 'text-slate-800', bg: 'bg-slate-50' },
-              { label: 'Cancellations', value: allBookings.filter(b => b.status === 'cancelled').length, color: 'text-red-600', bg: 'bg-red-50' },
+              { label: 'Total Revenue', value: `$${totalRevenue.toLocaleString()}`, color: 'text-slate-800', bg: 'bg-slate-50' },
+              { label: 'Avg Booking Value', value: `$${avgBookingValue}`, color: 'text-blue-700', bg: 'bg-blue-50' },
             ].map(({ label, value, color, bg }) => (
               <div key={label} className={`${bg} border border-slate-200 p-5 rounded-xl shadow-sm`}>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{label}</div>
@@ -579,6 +603,54 @@ export default function AdminDashboard() {
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />Under 50%</span>
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />50–80%</span>
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />Over 80%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Feature 9: Revenue by Route */}
+          {topRoutes.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-800 mb-4">Revenue by Route (Top 5)</h3>
+              <div className="space-y-3">
+                {topRoutes.map(([route, rev]) => (
+                  <div key={route} className="flex items-center gap-3">
+                    <div className="w-28 text-xs font-bold text-blue-700 font-mono shrink-0">{route}</div>
+                    <div className="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="bg-blue-500 h-3 rounded-full transition-all"
+                        style={{ width: `${(rev / maxRouteRevenue) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-16 text-xs font-bold text-right text-slate-800">${rev.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Feature 9: Revenue by Class */}
+          {activeBookings.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-800 mb-4">Revenue by Class</h3>
+              <div className="space-y-4">
+                {[
+                  { label: 'Business (Rows 1–2)', rev: businessRevenue, color: 'bg-blue-600' },
+                  { label: 'Economy (Rows 3–10)', rev: economyRevenue, color: 'bg-emerald-500' },
+                ].map(({ label, rev, color }) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                      <span>{label}</span>
+                      <span className="font-bold text-slate-800">${rev.toLocaleString()} ({Math.round((rev / totalClassRevenue) * 100)}%)</span>
+                    </div>
+                    <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
+                      <div className={`${color} h-4 rounded-full transition-all`} style={{ width: `${(rev / totalClassRevenue) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between text-sm">
+                <span className="text-slate-500 font-semibold">Total Revenue</span>
+                <span className="font-extrabold text-slate-800">${totalRevenue.toLocaleString()}</span>
               </div>
             </div>
           )}

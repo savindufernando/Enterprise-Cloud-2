@@ -1,17 +1,28 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import LandingPage from './features/landing/LandingPage';
-import ExperiencePage from './features/landing/ExperiencePage';
-import PassengerPortal from './features/passenger/PassengerPortal';
-import FlightStatus from './features/flights/pages/FlightStatus';
-import OperationsDashboard from './features/operations/pages/OperationsDashboard';
-import GroundDashboard from './features/groundstaff/pages/GroundDashboard';
-import AdminDashboard from './features/admin/pages/AdminDashboard';
-import SystemMetrics from './features/monitoring/pages/SystemMetrics';
 import DashboardLayout from './app/layouts/DashboardLayout';
 import PassengerAppLayout from './app/layouts/PassengerAppLayout';
+
+// Feature 10: Code splitting — lazy load all page components (not layouts)
+const LandingPage = lazy(() => import('./features/landing/LandingPage'));
+const ExperiencePage = lazy(() => import('./features/landing/ExperiencePage'));
+const PassengerPortal = lazy(() => import('./features/passenger/PassengerPortal'));
+const FlightStatus = lazy(() => import('./features/flights/pages/FlightStatus'));
+const OperationsDashboard = lazy(() => import('./features/operations/pages/OperationsDashboard'));
+const GroundDashboard = lazy(() => import('./features/groundstaff/pages/GroundDashboard'));
+const AdminDashboard = lazy(() => import('./features/admin/pages/AdminDashboard'));
+const SystemMetrics = lazy(() => import('./features/monitoring/pages/SystemMetrics'));
+
+// Shared loading spinner
+function PageSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -46,7 +57,7 @@ function PassengerRoute() {
 
 function AppRoutes() {
   return (
-    <>
+    <Suspense fallback={<PageSpinner />}>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<LandingRoute />} />
@@ -59,7 +70,7 @@ function AppRoutes() {
         <Route path="/monitoring" element={<ProtectedRoute allowedRoles={['admin', 'airline_operator', 'ground_staff']}><DashboardLayout><SystemMetrics /></DashboardLayout></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
+    </Suspense>
   );
 }
 

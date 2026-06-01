@@ -1730,6 +1730,240 @@ To support multi-passenger booking records without a live Booking Service, the l
 
 ---
 
+## Chapter 14C: Phase III Frontend Enhancement Suite
+
+### 14C.1 Overview
+
+Following Phase II, a third enhancement wave was executed to elevate the platform across eleven dimensions: passenger self-service, operational tooling, performance, accessibility, and visual richness. All changes are fully frontend-resident (React 19 / TypeScript / Tailwind CSS v4), deployed to the existing AWS S3 static hosting at `aerolink.transnova.shop` with no infrastructure changes required.
+
+---
+
+### 14C.2 Passenger Profile Editing
+
+**File:** `PassengerPortal.tsx` — profile tab
+
+The My Profile tab previously only exposed GDPR export and account deletion. A full self-service profile editor was added above those controls:
+
+| Field | Type | Persistence |
+|---|---|---|
+| First Name | Text input | `aerolink_profile_${email}` |
+| Last Name | Text input | `aerolink_profile_${email}` |
+| Email | Read-only display | Auth context |
+| Passport Number | Text input | `aerolink_profile_${email}` |
+| Preferred Meal | Select (Standard / Vegetarian / Vegan / Halal / Kosher / Gluten-Free) | `aerolink_profile_${email}` |
+
+On save, an inline success banner auto-dismisses after 3.5 seconds. Values are pre-populated from saved data or the auth context on tab entry.
+
+---
+
+### 14C.3 Booking Cancellation Flow
+
+**File:** `MyBookings.tsx`
+
+Confirmed bookings now expose a **Cancel Booking** button on each card. On click:
+
+1. A confirmation modal displays the flight number and destination before any destructive action.
+2. On confirm, `updateBooking(id, userId, { status: 'cancelled' })` is called, updating both the per-user and global admin ledger atomically.
+3. The card re-renders with a red **Cancelled** badge, the price displayed with strikethrough, and all action buttons disabled.
+4. Cancelled bookings are excluded from the Check-In manifest.
+
+---
+
+### 14C.4 Seat Upgrade Flow
+
+**File:** `MyBookings.tsx`
+
+Economy passengers (rows 3–10) on confirmed bookings see an **Upgrade Seat** button. The upgrade modal presents an interactive 2-row business class seat grid (rows 1–2, columns A–F). Seats occupied by other passengers are marked unavailable using the same deterministic hash algorithm used in `SeatSelection.tsx`. On selection:
+
+- `updateBooking` is called with the new seat number.
+- A $50 upgrade fee note is appended to the booking card.
+- The modal closes and the updated seat number is reflected immediately in the UI.
+
+---
+
+### 14C.5 Loyalty Miles Tracker
+
+**File:** `PassengerPortal.tsx` — profile tab
+
+A **My Miles** section was added to the profile tab, computing earned miles from all historical bookings (1 mile per $1 spent via `amount_paid`):
+
+| Tier | Range | Colour |
+|---|---|---|
+| Silver 🥈 | 0 – 24,999 miles | Slate |
+| Gold 🥇 | 25,000 – 74,999 miles | Amber |
+| Platinum 💎 | 75,000+ miles | Blue |
+
+A Tailwind CSS progress bar visualises progress toward the next tier boundary. The five most recent mile-earning bookings are listed below the bar with flight number, route, and miles earned per booking.
+
+---
+
+### 14C.6 Flight Status Public Page
+
+**File:** `features/flights/pages/FlightStatus.tsx`
+
+The previously stubbed `/flights/status` route was built out as a public, unauthenticated page:
+
+- Free-text search by flight number (e.g. `AL-655`) queries the live `/api/v1/flights/` endpoint and filters client-side.
+- Delay data is merged from `aerolink_flight_delays` localStorage, consistent with the operator-marked delays in the Operations dashboard.
+- Status badges: **Active** (emerald), **Delayed +Xm** (amber), **Departed** (slate).
+- Gate is shown using the same deterministic hash algorithm, ensuring consistency across Check-In, Boarding Pass, and Flight Status views.
+- Graceful empty state with a prompt to check the flight number.
+
+---
+
+### 14C.7 Real-Time Delay Toast Notifications
+
+**File:** `MyBookings.tsx`
+
+The existing `storage` event listener that synced delays was extended to show amber toast notifications when a new delay is detected for any flight the passenger has booked:
+
+```
+⚠ Flight AL-655 delayed +30 min — Weather conditions
+```
+
+- The toast appears in the top-right corner, stacking if multiple delays arrive simultaneously.
+- Auto-dismisses after 5 seconds.
+- Each toast has a manual close (×) button.
+- Implemented as a self-contained component within `MyBookings.tsx` using a `delayToasts` state array, requiring no external notification library.
+
+---
+
+### 14C.8 Departure Date Filtering in Landing Search
+
+**File:** `LandingPage.tsx`
+
+The departure date input previously had no effect on results. `handleSearch` now applies an additional filter:
+
+```ts
+if (departureDate) {
+  results = results.filter(f =>
+    (f.departure_time as string).startsWith(departureDate)
+  );
+}
+```
+
+The "Browse all flights" shortcut bypasses date filtering, showing the full network. When no flights match the selected date, a clear empty state is shown with a fallback "Browse all flights" link.
+
+---
+
+### 14C.9 Ground Staff Passenger Manifest
+
+**File:** `GroundDashboard.tsx`
+
+A new **Flight Manifest** tab was added to the ground staff dashboard:
+
+- A flight selector dropdown is populated from the live `/api/v1/flights/` endpoint.
+- On selection, `aerolink_all_bookings` is scanned and filtered by `flight_number`.
+- A manifest table shows: Passenger Name | Passport | Seat | Meal Preference | Baggage | Check-In Status | Insurance.
+- Summary chips display: Total booked, Checked in, Pending check-in counts.
+- A **Download CSV** button creates a Blob-based CSV with all manifest fields for offline use.
+
+---
+
+### 14C.10 Revenue Analytics Dashboard
+
+**File:** `AdminDashboard.tsx` — Analytics tab
+
+The admin analytics tab was extended with four new revenue panels, all computed from `aerolink_all_bookings` localStorage:
+
+| Panel | Metric |
+|---|---|
+| Total Revenue | Sum of `amount_paid` across all bookings |
+| Average Booking Value | Total revenue ÷ booking count |
+| Revenue by Route | Top-5 routes ranked by revenue — CSS horizontal bar chart |
+| Revenue by Class | Economy vs Business split (rows 1–2 = Business) — proportional bar |
+
+No third-party chart library is used; all visualisations are pure Tailwind CSS progress bars and flex-based layouts, keeping the bundle size minimal.
+
+---
+
+### 14C.11 Code Splitting via React.lazy()
+
+**File:** `App.tsx`
+
+All eight page-level components were converted to dynamic imports using `React.lazy()` and wrapped in a shared `<Suspense>` boundary:
+
+```tsx
+const LandingPage       = lazy(() => import('./features/landing/LandingPage'));
+const PassengerPortal   = lazy(() => import('./features/passenger/PassengerPortal'));
+const AdminDashboard    = lazy(() => import('./features/admin/pages/AdminDashboard'));
+// ... (all route-level components)
+```
+
+**Impact:**
+
+| Before | After |
+|---|---|
+| 1 × 510 KB monolithic bundle | 1 × 208 KB shared vendor chunk + 8 route chunks (6–72 KB each) |
+| All code parsed on first load | Each dashboard parsed only when first visited |
+| Vite bundle-size warning on every build | Warning eliminated |
+
+Layouts (`DashboardLayout`, `PassengerAppLayout`) remain eagerly loaded as they are always needed immediately after auth.
+
+---
+
+### 14C.12 Dark Mode — Passenger & Landing Pages
+
+**Files:** `PassengerAppLayout.tsx`, `LandingPage.tsx`
+
+Dark mode was previously only available in `DashboardLayout` (staff portals). It is now surfaced on all pages:
+
+- A **Moon / Sun toggle button** is added to both the `PassengerAppLayout` header and the `LandingPage` header (visible on all screen sizes).
+- Both pages read `aerolink_dark_mode` from localStorage on mount, and write it on toggle — consistent with `DashboardLayout`.
+- Both pages call `document.documentElement.classList.toggle('dark', darkMode)`, activating the global `@custom-variant dark (&:is(.dark *))` defined in `index.css`.
+
+---
+
+### 14C.13 Photographic Content Throughout the UI
+
+Real photography was integrated across the public-facing pages to elevate visual quality:
+
+| Section | Source | Detail |
+|---|---|---|
+| Cabin Classes (Economy / Business / First) | Unsplash airline interior photos | Full-bleed hero image per class with gradient overlay; Ken Burns zoom on tab switch |
+| In-Flight Services (6 cards) | Unsplash thematic photos | Top photo strip on each service card (dining, entertainment, Wi-Fi, baggage, insurance, boarding) |
+| Destinations (Experience page) | Unsplash city photography | Real photos for Paris, Tokyo, Sydney, Dubai, Singapore, New York, London, LA, Amsterdam, Frankfurt, Colombo |
+| Popular Routes (Landing page) | Same Unsplash set | Destination photo fills the route card header |
+| "Why AeroLink" Feature Cards | Unsplash travel photography | Photo strip with icon overlay per card |
+| Testimonial Avatars | Unsplash portraits | Real face photos replacing initials avatars |
+| CTA Section | Unsplash aerial photography | Sky-above-clouds background with blue overlay |
+
+All images use `onError` fallback handlers to hide broken images gracefully, maintaining layout integrity if Unsplash is unreachable.
+
+---
+
+### 14C.14 Experience Page — Dedicated Service Showcase
+
+A full `/experience` route was added as a dedicated marketing page (`ExperiencePage.tsx`):
+
+| Section | Content |
+|---|---|
+| Hero | Full-width gradient banner with animated plane icons, headline, and four stat chips |
+| Cabin Classes | Tab switcher (Economy / Business / First) with photo hero and 6 amenity perk cards |
+| In-Flight Services | 6 photo-topped service cards |
+| Destinations | Live-priced destination cards from the flights API with real city photography |
+| AeroLink Miles | Silver / Gold / Platinum loyalty tier cards with perk lists on a dark background |
+| Testimonials | 3 passenger review cards with star ratings and real avatar photos |
+| CTA | Aerial sky background with booking CTA |
+
+The "Experience" nav link in the landing page header navigates to this page on all screen sizes (desktop nav and mobile hamburger menu).
+
+---
+
+### 14C.15 Full Mobile Responsiveness
+
+All pages were audited and made fully responsive:
+
+| Component | Change |
+|---|---|
+| `DashboardLayout` | Sidebar starts hidden on mobile; `fixed` overlay with dark backdrop; auto-closes on nav click |
+| `PassengerAppLayout` | Hamburger menu (`Menu`/`X`) on mobile; full-width dropdown nav |
+| `LandingPage` | Hamburger menu; header shrinks to `h-16`; hero `clamp()` height |
+| `ExperiencePage` | Cabin tabs `flex-wrap`; loyalty card scale only on `md+` |
+| `AdminDashboard` | Tabs scroll horizontally; tables in `overflow-x-auto` wrappers |
+
+---
+
 ## Chapter 15: Critical Evaluation, Challenges & Limitations
 
 ### 15.1 Introduction

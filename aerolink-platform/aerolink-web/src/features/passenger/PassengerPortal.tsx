@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Save, CheckCircle2, Star, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -11,10 +11,22 @@ import PaymentStep from './pages/PaymentStep';
 import BoardingPass from './pages/BoardingPass';
 import GDPRExport from './pages/GDPRExport';
 import DeleteAccount from './pages/DeleteAccount';
-import MyBookings, { saveBooking } from './pages/MyBookings';
+import MyBookings, { saveBooking, getBookings } from './pages/MyBookings';
+import type { Booking } from './pages/MyBookings';
 import CheckIn from './pages/CheckIn';
 
 type BookingStep = 'search' | 'seat-selection' | 'baggage' | 'meal' | 'payment' | 'confirmed';
+
+// ── Tier config ──
+const TIERS = [
+    { name: 'Silver', min: 0, max: 25000, color: 'text-slate-500', bg: 'bg-slate-100', bar: 'bg-slate-400', icon: '🥈' },
+    { name: 'Gold', min: 25000, max: 75000, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-400', icon: '🥇' },
+    { name: 'Platinum', min: 75000, max: Infinity, color: 'text-blue-600', bg: 'bg-blue-50', bar: 'bg-blue-500', icon: '💎' },
+];
+
+function getTier(miles: number) {
+    return TIERS.find(t => miles >= t.min && miles < t.max) ?? TIERS[0];
+}
 
 export default function PassengerPortal() {
     const { user, logout } = useAuth();
@@ -46,6 +58,17 @@ export default function PassengerPortal() {
     const [gdprLoading, setGdprLoading] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(false);
 
+    // ── Feature 1: Profile edit state ──
+    const profileKey = `aerolink_profile_${user?.email}`;
+    const [profileFirstName, setProfileFirstName] = useState('');
+    const [profileLastName, setProfileLastName] = useState('');
+    const [profilePassport, setProfilePassport] = useState('');
+    const [profileMeal, setProfileMeal] = useState('standard');
+    const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+
+    // ── Feature 4: Loyalty miles ──
+    const [userBookings, setUserBookings] = useState<Booking[]>([]);
+
     useEffect(() => {
         const API_BASE = import.meta.env.VITE_API_URL || 'http://api.aerolink.transnova.shop';
         fetch(`${API_BASE}/api/v1/flights/`)
@@ -53,6 +76,38 @@ export default function PassengerPortal() {
             .then(data => { setFlights(data.data || []); setLoading(false); })
             .catch(() => { setLoading(false); });
     }, []);
+
+    // Load saved profile when switching to profile tab
+    useEffect(() => {
+        if (activeTab === 'profile') {
+            try {
+                const saved = JSON.parse(localStorage.getItem(profileKey) || '{}');
+                setProfileFirstName(saved.firstName ?? user?.firstName ?? '');
+                setProfileLastName(saved.lastName ?? user?.lastName ?? '');
+                setProfilePassport(saved.passportNumber ?? '');
+                setProfileMeal(saved.mealPreference ?? 'standard');
+            } catch {
+                setProfileFirstName(user?.firstName ?? '');
+                setProfileLastName(user?.lastName ?? '');
+            }
+            // Load bookings for miles tracker
+            if (user?.email) {
+                setUserBookings(getBookings(user.email));
+            }
+        }
+    }, [activeTab, user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleProfileSave = (e: React.FormEvent) => {
+        e.preventDefault();
+        localStorage.setItem(profileKey, JSON.stringify({
+            firstName: profileFirstName,
+            lastName: profileLastName,
+            passportNumber: profilePassport,
+            mealPreference: profileMeal,
+        }));
+        setProfileSaveSuccess(true);
+        setTimeout(() => setProfileSaveSuccess(false), 3500);
+    };
 
     const handleInitiateBooking = (flight: any, type: 'one-way' | 'round-trip', retDate?: string) => {
         setSelectedFlight(flight);
@@ -157,6 +212,20 @@ export default function PassengerPortal() {
         setDeleteConfirm(false);
     };
 
+    // ── Loyalty miles calculation ──
+    const totalMiles = userBookings
+        .filter(b => b.status !== 'cancelled')
+        .reduce((sum, b) => sum + (b.amount_paid ?? b.base_price ?? 0), 0);
+    const currentTier = getTier(totalMiles);
+    const nextTier = TIERS.find(t => t.min > currentTier.min);
+    const progressPct = nextTier
+        ? Math.min(((totalMiles - currentTier.min) / (nextTier.min - currentTier.min)) * 100, 100)
+        : 100;
+    const recentMileBookings = [...userBookings]
+        .filter(b => b.status !== 'cancelled')
+        .sort((a, b) => new Date(b.booked_at).getTime() - new Date(a.booked_at).getTime())
+        .slice(0, 3);
+
     return (
         <div className="space-y-8 animate-fade-in pb-16">
 
@@ -164,7 +233,7 @@ export default function PassengerPortal() {
             {activeTab === 'booking' && (
                 <>
                     {bookingStep === 'search' && (
-                        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-600 to-blue-500 px-8 py-8 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-600 to-blue-500 px-8 py-8 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4 dark:from-blue-800 dark:to-blue-700">
                             <div>
                                 <h1 className="text-2xl font-extrabold text-white">Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!</h1>
                                 <p className="text-blue-100 text-sm mt-1">Where would you like to fly today?</p>
@@ -293,6 +362,151 @@ export default function PassengerPortal() {
                         <h2 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">My Profile</h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your account details and preferences.</p>
                     </div>
+
+                    {/* ── Feature 1: Profile Edit Form ── */}
+                    <div className="p-6 rounded-xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 shadow-sm">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-5 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3">
+                            <Save className="w-4 h-4 text-blue-600" />
+                            Edit Profile
+                        </h3>
+                        {profileSaveSuccess && (
+                            <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg px-4 py-2.5 text-sm font-semibold animate-fade-in">
+                                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                Profile saved successfully!
+                            </div>
+                        )}
+                        <form onSubmit={handleProfileSave} className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">First Name</label>
+                                    <input
+                                        type="text"
+                                        value={profileFirstName}
+                                        onChange={e => setProfileFirstName(e.target.value)}
+                                        placeholder="First name"
+                                        className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={profileLastName}
+                                        onChange={e => setProfileLastName(e.target.value)}
+                                        placeholder="Last name"
+                                        className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+                                <input
+                                    type="email"
+                                    value={user?.email ?? ''}
+                                    readOnly
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500 text-sm cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Passport Number</label>
+                                <input
+                                    type="text"
+                                    value={profilePassport}
+                                    onChange={e => setProfilePassport(e.target.value)}
+                                    placeholder="e.g. N8938171"
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Preferred Meal</label>
+                                <select
+                                    value={profileMeal}
+                                    onChange={e => setProfileMeal(e.target.value)}
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                >
+                                    <option value="standard">Standard</option>
+                                    <option value="vegetarian">Vegetarian</option>
+                                    <option value="vegan">Vegan</option>
+                                    <option value="halal">Halal</option>
+                                    <option value="kosher">Kosher</option>
+                                </select>
+                            </div>
+                            <div className="pt-1">
+                                <button
+                                    type="submit"
+                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-lg text-sm transition-colors cursor-pointer shadow-sm"
+                                >
+                                    <Save className="w-4 h-4" />
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* ── Feature 4: Loyalty Miles Tracker ── */}
+                    <div className="p-6 rounded-xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 shadow-sm">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-5 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3">
+                            <Star className="w-4 h-4 text-amber-500" />
+                            My Miles
+                        </h3>
+                        <div className="flex flex-col sm:flex-row gap-6 items-start">
+                            {/* Tier badge */}
+                            <div className={`flex flex-col items-center justify-center w-28 h-28 rounded-2xl border-2 ${currentTier.bg} shrink-0`}>
+                                <span className="text-3xl">{currentTier.icon}</span>
+                                <span className={`text-xs font-extrabold mt-1 ${currentTier.color}`}>{currentTier.name}</span>
+                                <span className="text-[10px] text-slate-400 font-mono mt-0.5">MEMBER</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">
+                                    {totalMiles.toLocaleString()} <span className="text-base font-bold text-slate-400">miles</span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">1 mile earned per $1 spent on flights</p>
+
+                                {/* Progress bar */}
+                                {nextTier && (
+                                    <div className="mt-4">
+                                        <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+                                            <span className="font-semibold">{currentTier.name} — {totalMiles.toLocaleString()} miles</span>
+                                            <span>{nextTier.name} at {nextTier.min.toLocaleString()}</span>
+                                        </div>
+                                        <div className="h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-2.5 rounded-full transition-all ${currentTier.bar}`}
+                                                style={{ width: `${progressPct}%` }}
+                                            />
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+                                            <TrendingUp className="w-3 h-3" />
+                                            {(nextTier.min - totalMiles).toLocaleString()} miles to {nextTier.name}
+                                        </p>
+                                    </div>
+                                )}
+                                {!nextTier && (
+                                    <div className="mt-3 text-xs font-bold text-blue-600">You've reached the highest tier! 🎉</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Recent mile bookings */}
+                        {recentMileBookings.length > 0 && (
+                            <div className="mt-5 border-t border-slate-100 dark:border-slate-700 pt-4">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Recent Mile-Earning Flights</div>
+                                <div className="space-y-2">
+                                    {recentMileBookings.map((b: Booking) => (
+                                        <div key={b.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/40 rounded-lg px-3 py-2 text-xs">
+                                            <span className="font-mono font-bold text-blue-600">{b.flight_number}</span>
+                                            <span className="text-slate-600 dark:text-slate-300">{b.origin_airport} → {b.destination_airport}</span>
+                                            <span className="font-bold text-emerald-600">+{(b.amount_paid ?? b.base_price ?? 0).toLocaleString()} mi</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {recentMileBookings.length === 0 && (
+                            <p className="text-sm text-slate-400 mt-4 text-center">No flights yet — book your first flight to start earning miles!</p>
+                        )}
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="md:col-span-2">
                             <GDPRExport user={user} gdprLoading={gdprLoading} onExport={handleGdprExport} />
