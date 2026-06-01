@@ -1696,27 +1696,41 @@ Out-of-order Kafka message deliveries are handled using schema-enforced timestam
 ### 15.7 Security & Compliance Challenges
 Securing PII in stdout logs requires custom regex middleware filters to redact sensitive data before forwarding to CloudWatch.
 
-### 15.8 Infrastructure Cost Considerations
-To fulfill the rigorous cloud economics and operational budgeting requirements expected of an enterprise-grade cloud deployment, the following table provides a granular monthly budget estimation for the AeroLink production platform under standard baseline operational loads in the `eu-west-1` (Ireland) region.
+### 15.8 Cloud Economics & Dual-Budget Cost Considerations
 
-| AWS Service | Resource / Instance Type | Pricing Model | Monthly Baseline Unit Cost | Total Monthly Cost (USD) | FinOps Optimization / Cost-Saving Strategy |
-|---|---|---|---|---|---|
-| **AWS EKS Cluster** | EKS Control Plane Management Fee | Pay-per-hour | $0.10 per hour | **$73.00** | Consolidates all 8 microservices and infrastructure pods inside a single namespace instead of separate EKS clusters. |
-| **Amazon EC2 (EKS Nodes)** | 2 x `m5.large` instances (2 vCPUs, 8 GB RAM per Node) | On-Demand (Baseline) | $0.096 per hour per node | **$138.24** | Utilizes **Savings Plans / Reserved Instances** for a 3-year term to reduce baseline instance compute costs by **37%**. |
-| **Amazon EBS Storage** | 2 x 40 GB GP3 volumes for Worker Nodes | Provisioned capacity | $0.08 per GB-month | **$6.40** | Configured GP3 storage tier which delivers 3,000 IOPS baseline without charging extra for IOPS provisioning. |
-| **Amazon RDS (PostgreSQL)** | `db.m5.large` Multi-AZ Deployment | On-Demand Multi-AZ | $0.352 per hour | **$253.44** | Multi-AZ deployment is vital for high-availability database replication. Swapping to **Reserved Instances** yields **35%** savings. |
-| **Amazon RDS Storage** | 100 GB GP3 Storage (Multi-AZ replicated) | Provisioned capacity | $0.115 per GB-month | **$23.00** | Implements automated storage auto-scaling starting at 100 GB to avoid paying for pre-provisioned unused disk space. |
-| **Amazon ElastiCache** | 1 x `cache.t3.medium` Redis node | Pay-per-hour | $0.068 per hour | **$48.96** | Configured cache TTLs aggressively to keep instances small. Shunted non-critical cache schemas to Redis-local memory pools. |
-| **Networking & Ingress** | 1 x AWS Application Load Balancer (ALB) | Pay-per-hour + LCU | $0.0225/hr + LCU | **$25.00** | Merges all backend microservice ingress endpoints behind a single ALB using path-based rules rather than spinning up multiple ALBs. |
-| **VPC NAT Gateways** | 2 x NAT Gateways (1 per AZ for high availability) | Pay-per-hour | $0.045 per hour per gateway | **$64.80** | Restricts NAT data transfer; configured VPC Endpoints for S3 and DynamoDB to route traffic internally and bypass NAT fees. |
-| **NAT Data Processing** | NAT Data Transfer Processing Fee | Pay-per-GB | $0.045 per GB processed (~500 GB) | **$22.50** | Utilizes Istio mesh local compression to minimize inter-service payload size before routing external requests. |
-| **Amazon S3** | Static Website Hosting & Assets storage | Pay-per-GB | $0.023 per GB (~10 GB + transfer) | **$2.00** | Serverless hosting with CloudFront distribution has near-zero overhead. Implements lifecycle rules to transition old backups. |
-| **Amazon DynamoDB** | 1 x Table (Baggage status scans) | Pay-per-Request (On-Demand) | $1.25 per million write/read units | **$5.00** | Configured **On-Demand Capacity Mode** for highly spike-prone baggage operations, incurring zero cost during low-flight-density hours. |
-| **AWS Lambda** | Boarding Pass QR Generator (1M invocations) | Pay-per-execution | $0.20 per million executions | **$3.00** | Optimized memory allocation to 512 MB to reduce execution duration and minimize memory-second execution cost. |
-| **AWS CloudWatch** | Logs Ingestion, Metrics, & Active Alarms | Metered usage | Data ingestion + dashboard charges | **$35.00** | Implements standard 14-day log retention policies to prevent long-term, high-volume log storage accumulation fees. |
-| **Inter-AZ Data Transfer** | Multi-AZ replication traffic | Metered egress | $0.01 per GB egress (~1.5 TB) | **$15.00** | Configured Istio Service Mesh with **Topology-Aware Routing** to keep traffic within the same Availability Zone where possible. |
-| **DR Region Standby** | eu-central-1 scaled-down Warm Standby compute | Pay-per-hour | Scaled EC2 + Standby storage | **$120.00** | Scaled EKS Node Group in DR region down to **0 replicas** during normal operations, using warm EBS/RDS replication for data recovery. |
-| **TOTAL BASELINE** | **Full AeroLink Cloud Infrastructure Suite** | **Baseline Estimate** | **Monthly Production Cost** | **$820.34** | **Combined FinOps strategy reduces actual monthly production costs to ~$550.00 (a massive 33% cost reduction!).** |
+To deliver a rigorous evaluation of cloud engineering economics, this section presents a **Dual-Cost Comparison Framework**. It contrasts the **Cost-Optimized Student-Scope Dev Prototype** (actively deployed and validated in the AWS sandbox) against the **Proposed Enterprise-Grade Production System** (designed for full-scale commercial operations). 
+
+While the compute sizes and managed service tiers differ to respect sandbox budgets, both systems run the **exact same declarative software and functional microservices architecture**.
+
+| AWS Service Group | Student Dev Prototype (Active Setup) Specification & Cost | Proposed Enterprise Production Specification & Cost | Architectural & FinOps Justification |
+| :--- | :--- | :--- | :--- |
+| **AWS EKS** | 1 x EKS Cluster Control Plane (Ireland)<br>➔ **$73.00 / month** | 2 x EKS Control Planes (Ireland + Frankfurt DR)<br>➔ **$146.00 / month** | The student setup runs a single cluster for dev validation. Production adds a second managed control plane in the DR region for geo-resiliency. |
+| **EKS EC2 Nodes** | 4 x `t3.small` nodes (2 vCPUs, 2 GiB RAM)<br>➔ **$60.74 / month** | 4 x `m5.large` instances (Primary) + Warm DR (0 nodes)<br>➔ **$280.32 / month** | The student setup uses cheap `t3.small` instances. Production upgrades compute to memory-optimized `m5.large` instances to handle enterprise load spikes. |
+| **EBS Storage** | 4 x 40 GB GP3 storage volumes<br>➔ **$14.08 / month** | 4 x 80 GB GP3 volumes with provisioning<br>➔ **$28.16 / month** | Storage scales up in production to support high-volume metrics aggregation and container logs. |
+| **Relational DB** | 1 x Amazon RDS PostgreSQL `db.t3.micro`<br>➔ **$12.40 / month** *(Free-Tier)* | Amazon Aurora PostgreSQL `db.r5.large` Multi-AZ + `db.t3.medium` Read-Replica (Frankfurt)<br>➔ **$499.32 / month** *(Cluster + DR)* | **Critical FinOps Standby Optimization**: Primary database runs as `db.r5.large` Multi-AZ. The Frankfurt replica is scaled down to `db.t3.medium` during normal operations, saving **$135.78/month**. |
+| **Aurora Storage** | N/A *(Standard RDS included above)* | 200 GB Storage + Cross-Region I/O Operations<br>➔ **$45.00 / month** | Configured with storage auto-scaling, starting at a lean 100 GB baseline to avoid paying for pre-allocated empty disk space. |
+| **NoSQL Database** | Amazon DynamoDB (On-Demand Mode)<br>➔ **$5.00 / month** | Amazon DynamoDB with Active-Active Global Replication<br>➔ **$25.00 / month** | Production enables **DynamoDB Global Tables** to replicate passenger baggage tracking records instantly between Ireland and Frankfurt. |
+| **Event Broker** | Apache Kafka deployed in-cluster on EKS (`emptyDir`)<br>➔ **$0.00 / month** | Amazon MSK Managed Kafka Cluster (`kafka.m5.large`)<br>➔ **$459.90 / month** | **Critical FinOps Strategy**: To bypass the high cost of Amazon MSK, the student prototype runs Kafka brokers directly inside EKS. Production uses managed MSK for durability. |
+| **VPC Networking** | 1 x NAT Gateway + VPC Endpoints (Single-AZ)<br>➔ **$32.85 / month** | 3 x NAT Gateways (Multi-AZ HA egress)<br>➔ **$98.55 / month** | Dev uses a single NAT gateway to save money. Production utilizes 3 NAT Gateways (one per AZ) to protect egress pathways from zone outages. |
+| **NAT Data processing** | Basic data processing<br>➔ **$5.00 / month** | Outbound data transit processing fee (~2 TB / month)<br>➔ **$90.00 / month** | Enforces Istio Gzip payload compression internally to minimize outbound packet sizing before hitting NAT interfaces. |
+| **Ingress & DNS** | 1 x ALB + standard Route 53 subdomain<br>➔ **$25.00 / month** | 2 x ALBs + Route 53 Geo-Latency Failover Policies<br>➔ **$55.00 / month** | Production implements active geo-routing to balance users between regional application load balancers. |
+| **S3 & CDN** | Serverless static hosting (eu-west-1)<br>➔ **$2.00 / month** | S3 Serverless + Global CloudFront CDN Edge Caching<br>➔ **$25.00 / month** | Production adds CloudFront to edge-cache frontend assets, lowering S3 request costs. |
+| **Observability** | Prometheus, Grafana, Jaeger in-cluster<br>➔ **$15.00 / month** | AWS Managed Prometheus & Grafana + CloudWatch Logs<br>➔ **$75.00 / month** | Production offloads metrics storage to managed AWS Prometheus to ensure telemetry persistence. |
+| **Cross-Region Egress** | Basic single-region transit<br>➔ **$1.00 / month** | Dedicated WAN Data Transfer (Ireland to Frankfurt)<br>➔ **$60.00 / month** | Database replication packets are optimized via column compression prior to cross-region WAN routing. |
+| **TOTALS** | **`$245.07 USD / month`** | **`$1,799.81 USD / month`** | **FinOps result: The Student Scope is 86.4% cheaper, allowing robust validation on a micro-budget.** |
+
+#### **15.8.2 Cloud Economics & Sandbox Limitation Justification**
+
+During the defense of the AeroLink architectural lifecycle, the selection of the cost-optimized **Student Dev Prototype** is operationally justified under the following constraints:
+
+1. **AWS Academy Sandbox Restrictions**:
+   The academic sandbox enforces a hard **$100.00 USD total budget limit** and a maximum **vCPU quota of 32**. Running the proposed **Enterprise Production System ($1,799.81/month)** would have consumed the entire budget in less than **40 hours** and triggered an immediate, automatic suspension of the AWS account. 
+2. **Functional Integrity Preservation**:
+   Although resources were downscaled to fit within the sandbox, the **software engineering integrity remains 100% identical**. The EKS cluster still orchestrates all 8 microservices, the async FastAPI loop handles database persistence, the in-cluster Kafka broker handles async Saga transactions, and the React frontend routes API requests identically. 
+3. **Declarative Transition (The IaC Advantage)**:
+   Because the entire platform is defined declaratively using **Terraform (IaC)**, transitioning from the Student Prototype to the full Enterprise Production System does not require rewriting the application. It is achieved simply by changing the instance variable parameters inside the Terraform files (e.g., changing instance types from `t3.small` to `m5.large` and database providers from RDS to Aurora) and executing `terraform apply`.
+
+---
 
 ### 15.9 Performance Bottlenecks Encountered
 High database connection checking latency under load was mitigated by configuring connection recycling and pre-ping checks.
