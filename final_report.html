@@ -1268,6 +1268,10 @@ rectangle AeroLink_System {
         Gateway --&gt;|aioredis| Redis[(Amazon ElastiCache Redis)]
     end
 </code></pre>
+<h3>4.4.1 Choreography-Based Saga Distributed Transaction Sequence Map</h3>
+<p>To ensure data consistency across the isolated databases of the microservices boundary (Database-per-Service pattern), the platform utilizes an event-driven, choreographed Saga transaction workflow with robust compensating transactions under failures. </p>
+<p>The sequence map below illustrates the chronological propagation of events (e.g. flight seat locking, PCI-DSS card billing, and compensation releases) orchestrated across the services through Apache Kafka topics:</p>
+<p><img src="screenshots/saga_sequence_diagram.png" alt="Choreography-Based Saga Distributed Transaction Sequence Map"><br><em>Figure 4.2: Choreography-Based Saga Distributed Transaction Sequence Map</em></p>
 <h3>4.5 Bounded Context Design</h3>
 <p>Using Domain-Driven Design, the system is decomposed into 8 distinct bounded contexts:</p>
 <ul>
