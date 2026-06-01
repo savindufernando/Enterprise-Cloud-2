@@ -323,14 +323,6 @@ graph TD
     end
 ```
 
-### 4.4.1 Choreography-Based Saga Distributed Transaction Sequence Map
-To ensure data consistency across the isolated databases of the microservices boundary (Database-per-Service pattern), the platform utilizes an event-driven, choreographed Saga transaction workflow with robust compensating transactions under failures. 
-
-The sequence map below illustrates the chronological propagation of events (e.g. flight seat locking, PCI-DSS card billing, and compensation releases) orchestrated across the services through Apache Kafka topics:
-
-![Choreography-Based Saga Distributed Transaction Sequence Map](screenshots/saga_sequence_diagram.png)
-*Figure 4.2: Choreography-Based Saga Distributed Transaction Sequence Map*
-
 ### 4.5 Bounded Context Design
 Using Domain-Driven Design, the system is decomposed into 8 distinct bounded contexts:
 * **API Gateway Context:** Manages system entries, reverse proxying, JWT validation, rate limiting, and health checks.
@@ -1103,7 +1095,7 @@ Automated daily snapshots are retained for 35 days, enabling point-in-time recov
 Services check datastore health dynamically via liveness probes, querying `SELECT 1` to confirm active pool availability.
 
 ### 8.17 Database Evidence & Screenshots
-RDS Console active databases and pgAdmin tables are documented in **Appendix I (RDS Database)** and **Appendix L (ERD & Schema)**.
+RDS Console active databases, security groupings, and relational tables are fully documented with screenshots in **Appendix L (Database Schema & ERD)**.
 
 ---
 
