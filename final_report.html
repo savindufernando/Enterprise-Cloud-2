@@ -2664,7 +2664,11 @@ aws dynamodb list-tables --region eu-west-1
 <hr>
 <h2>Appendices</h2>
 <h3>Appendix A: High-Level Architecture Diagrams</h3>
-<p><em>Details C4 Level 2 Container decompositions, bounded contexts, and inter-service dependencies. Maps the AWS Virtual Private Cloud subnet architecture.</em><br><img src="screenshots/aws_architecture_diagram.png" alt="AWS Cloud Architecture Overview"></p>
+<p><em>Details the proposed multi-region production cloud environment and contrasts it with the cost-optimized sandbox implementation created to validate the code.</em></p>
+<h4>Figure A.1: Proposed Enterprise-Grade Cloud Architecture (Multi-Region Target System)</h4>
+<p><img src="screenshots/proposed_aws_full_architecture.png" alt="Proposed Enterprise-Grade Cloud Architecture (Multi-Region Target System)"><br><em>This diagram illustrates the full proposed production environment across multiple regions (eu-west-1 and eu-central-1) featuringRoute 53 active-passive failover, CloudFront CDN, WAF, AWS Cognito auth, a Shared Services messaging hub, a Data Analytics platform (Glue, Athena, Redshift, QuickSight), monitoring, security compliance controls, and database replication (RDS Read Replicas &amp; DynamoDB Global Tables).</em></p>
+<h4>Figure A.2: Validated Dev Sandbox Prototype Architecture (Single-Region Dev Cluster)</h4>
+<p><img src="screenshots/aws_architecture_diagram.png" alt="Validated Dev Sandbox Prototype Architecture (Single-Region Dev Cluster)"><br><em>This diagram illustrates the cost-optimized single-region deployment actively run and tested within the $100 AWS Sandbox environment. It contains a Multi-AZ EKS cluster running the microservice containers, a single primary RDS PostgreSQL database, Kafka, Redis, and Istio Service Mesh, maintaining full feature compatibility while remaining within academic budget limits.</em></p>
 <h3>Appendix B: Kubernetes Cluster Evidence</h3>
 <p><em>Verification of EKS cluster deployments, replica configurations, namespaces, and node group statuses.</em><br><img src="screenshots/media__1779443647875.png" alt="Active EKS Services and Pods Status"></p>
 <h3>Appendix C: Docker Container Deployment Evidence</h3>

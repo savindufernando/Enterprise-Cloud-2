@@ -1846,8 +1846,15 @@ The AeroLink Airline Systems Platform serves as a robust architectural prototype
 ## Appendices
 
 ### Appendix A: High-Level Architecture Diagrams
-*Details C4 Level 2 Container decompositions, bounded contexts, and inter-service dependencies. Maps the AWS Virtual Private Cloud subnet architecture.*
-![AWS Cloud Architecture Overview](screenshots/aws_architecture_diagram.png)
+*Details the proposed multi-region production cloud environment and contrasts it with the cost-optimized sandbox implementation created to validate the code.*
+
+#### Figure A.1: Proposed Enterprise-Grade Cloud Architecture (Multi-Region Target System)
+![Proposed Enterprise-Grade Cloud Architecture (Multi-Region Target System)](screenshots/proposed_aws_full_architecture.png)
+*This diagram illustrates the full proposed production environment across multiple regions (eu-west-1 and eu-central-1) featuringRoute 53 active-passive failover, CloudFront CDN, WAF, AWS Cognito auth, a Shared Services messaging hub, a Data Analytics platform (Glue, Athena, Redshift, QuickSight), monitoring, security compliance controls, and database replication (RDS Read Replicas & DynamoDB Global Tables).*
+
+#### Figure A.2: Validated Dev Sandbox Prototype Architecture (Single-Region Dev Cluster)
+![Validated Dev Sandbox Prototype Architecture (Single-Region Dev Cluster)](screenshots/aws_architecture_diagram.png)
+*This diagram illustrates the cost-optimized single-region deployment actively run and tested within the $100 AWS Sandbox environment. It contains a Multi-AZ EKS cluster running the microservice containers, a single primary RDS PostgreSQL database, Kafka, Redis, and Istio Service Mesh, maintaining full feature compatibility while remaining within academic budget limits.*
 
 ### Appendix B: Kubernetes Cluster Evidence
 *Verification of EKS cluster deployments, replica configurations, namespaces, and node group statuses.*
