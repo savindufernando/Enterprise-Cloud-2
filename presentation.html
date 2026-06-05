@@ -974,36 +974,21 @@
         </div>
       </div><div class="slide " id="slide-1">
         <div class="slide-body">
-          <h1>Slide 1: Introduction &amp; Monolithic Architectural Challenges</h1>
+          <h1>Introduction &amp; Legacy Monolithic Challenges</h1>
 <p>AeroLink is a global aviation systems provider supporting high-velocity flight operations, check-in schedules, baggage tracking, and financial transactions.</p>
 <h3>Legacy Monolithic Bottlenecks</h3>
 <ul>
-<li><strong>Single Point of Failure:</strong> An outage in the billing domain collapses flight search operations and airport manifests.</li>
-<li><strong>Database Coupling:</strong> Shared tables block schema adjustments and create performance degradation under parallel connections.</li>
-<li><strong>Scalability Limitations:</strong> Scaling requires replicating the entire application, wasting cloud resources and storage.</li>
-<li><strong>Lack of Real-Time Telemetry:</strong> Monolithic logging files block distributed audit trails and prevent real-time seat lock views.</li>
+<li><strong>Single Point of Failure:</strong> An outage in the payment domain collapses the entire system, preventing passenger check-ins and flight scheduling.</li>
+<li><strong>Database Coupling:</strong> <code>Flights</code> and <code>Bookings</code> tables share direct foreign key constraints in a single database, blocking schema updates and degrading performance.</li>
+<li><strong>Scalability Limitations:</strong> Scaling the monolithic app duplicates all modules, wasting resources on idle modules.</li>
+<li><strong>Lack of Real-Time Telemetry:</strong> Traditional file logging prevents real-time seat lock tracking and distributed audits.</li>
+<li><strong>Business Impact:</strong> Relational locks under peak sales waves trigger timeout errors, resulting in ticket sales failures and passenger delays.</li>
 </ul>
         </div>
       </div><div class="slide " id="slide-2">
         <div class="slide-body">
-          <h1>Slide 2: Core Engineering Aim &amp; Project Deliverables</h1>
-<p>This project details the complete rehosting of the AeroLink monolith into a production-grade, highly available, microservices-based cloud platform.</p>
-<h3>Key Implementation Deliverables</h3>
-<ul>
-<li><strong>Requirement 1:</strong> Serverless global static web hosting with custom subdomain routing.</li>
-<li><strong>Requirement 2:</strong> EKS container orchestration using managed worker groups.</li>
-<li><strong>Requirement 3:</strong> Zero-trust mTLS service mesh routing and GDPR regulatory compliance.</li>
-<li><strong>Requirement 4:</strong> Real-time WebSockets event dispatchers and Apache Kafka streams.</li>
-<li><strong>Requirement 5:</strong> Self-healing deployments and automated Horizontal Pod Autoscalers.</li>
-<li><strong>Requirement 6:</strong> Stress-testing validations executing 3,600+ requests.</li>
-<li><strong>Requirement 7:</strong> OpenTelemetry tracing, Prometheus scraping, and Grafana matrices.</li>
-<li><strong>Requirement 8:</strong> Automated Pytest coverages and Postman end-to-end collections.</li>
-</ul>
-        </div>
-      </div><div class="slide " id="slide-3">
-        <div class="slide-body">
-          <h1>Slide 3: Proposed Cloud-Native Architecture</h1>
-<p>The system transitions to a clean <strong>Database-per-Service</strong> design, isolating bounded contexts and decoupling operations via event choreography.</p>
+          <h1>Part 1: Cloud-Based Web Application Design (Rubric Task 1)</h1>
+<p>The platform is designed around 8 independent microservices interacting through synchronous APIs and asynchronous event-driven choreographies.</p>
 <pre><code class="language-mermaid">graph TD
     Client[Web Browser / React Frontend] --&gt;|HTTP / WS| Gateway[API Gateway - Port 8000]
     
@@ -1031,30 +1016,40 @@
         PassengerSvc --&gt;|Async SQLAlchemy| PostgreSQL
         PaymentSvc --&gt;|Async SQLAlchemy| PostgreSQL
         BaggageSvc --&gt;|aioboto3 Async SDK| DynamoDB[(Amazon DynamoDB)]
-        Gateway --&gt;|aioredis| Redis[(Amazon ElastiCache Redis)]
+        Gateway --&gt;|aioredis| Redis[(Amazon ElastiCache Redis - Rate Limiter Store)]
     end
 </code></pre>
         </div>
+      </div><div class="slide " id="slide-3">
+        <div class="slide-body">
+          <h1>Part 1: Proposed Enterprise-Grade Architecture (Rubric Task 1)</h1>
+<p>Theoretical multi-region deployment designed to support high availability and global scalability requirements.</p>
+<p><img src="screenshots/proposed_aws_full_architecture.png" alt="Proposed Multi-Region Architecture"></p>
+<h3>Enterprise Target Specifications</h3>
+<ul>
+<li><strong>Active-Passive Routing:</strong> Route 53 DNS routes traffic to <code>eu-west-1</code> (Primary) with automated failover to <code>eu-central-1</code> (Standby) in under 30 minutes.</li>
+<li><strong>Global Load Balancing &amp; Security:</strong> AWS CloudFront CDN + WAF protects public endpoints, with AWS Cognito providing secure IAM.</li>
+<li><strong>Stateful Replication:</strong> Amazon RDS PostgreSQL synchronizes data asynchronously to the passive standby region (RPO/RTO considerations), while DynamoDB Global Tables replicate baggage scanners.</li>
+<li><strong>Shared Analytics Layer:</strong> Central services connect to AWS Glue, Athena, and Redshift for offline financial operations reporting.</li>
+</ul>
+        </div>
       </div><div class="slide " id="slide-4">
         <div class="slide-body">
-          <h1>Slide 4: Loose Coupling &amp; Bounded Contexts</h1>
-<p>Each microservice owns its domain schema, completely eliminating database coupling.</p>
-<h3>Microservice Specifications</h3>
+          <h1>Part 1: Validated Dev Sandbox Architecture (Rubric Task 1)</h1>
+<p>A cost-optimized, fully deployed single-region cluster utilized to validate all platform code under the $100 AWS academic budget limits.</p>
+<p><img src="screenshots/aws_architecture_diagram.png" alt="Validated Sandbox Prototype Architecture"></p>
+<h3>Sandbox Validation Configuration</h3>
 <ul>
-<li><strong>API Gateway:</strong> Reverse proxying, JWT validation, and Redis-backed rate limiting.</li>
-<li><strong>Flight Service:</strong> Flight inventory scheduling and pricing bounds using RDS PostgreSQL.</li>
-<li><strong>Booking Service:</strong> Reservation tracking, ticket state machines, and Saga orchestration.</li>
-<li><strong>Passenger Service:</strong> GDPR rights, user registers, and secure password sessions.</li>
-<li><strong>Baggage Service:</strong> High-frequency baggage location scans writing directly to serverless DynamoDB.</li>
-<li><strong>Payment Service:</strong> Payment token authorization auditing under secure PCI-DSS constraints.</li>
-<li><strong>Notification Service:</strong> Outbound customer email dispatches driven by Kafka event consumption.</li>
-<li><strong>Realtime Service:</strong> WebSockets connections broadcasting live seat changes.</li>
+<li><strong>Budget Conformance:</strong> Deployed entirely in <code>eu-west-1</code> (Ireland) to remain within sandbox limits while ensuring high availability.</li>
+<li><strong>Single EKS Node Group:</strong> Scales across 2–5 EC2 worker nodes (<code>m5.large</code>) in private subnets, managing the application pod mesh.</li>
+<li><strong>Self-Hosted Infrastructure:</strong> Apache Kafka, Zookeeper, and Redis run as containerized pods inside EKS to avoid the high costs of managed services.</li>
+<li><strong>Persistent DB Tier:</strong> Single primary RDS PostgreSQL instance and isolated local DynamoDB partitions serve stateful data.</li>
 </ul>
         </div>
       </div><div class="slide " id="slide-5">
         <div class="slide-body">
-          <h1>Slide 5: Hybrid Cloud Compute Topology</h1>
-<p>To balance operational latencies, compute performance, and cloud budget rules, the platform adopts a hybrid compute model.</p>
+          <h1>Part 1: Hybrid Compute Paradigm (Server-Based &amp; Serverless Coexistence) (Rubric Task 1)</h1>
+<p>To optimize operational costs, system performance, and sandbox resource usage, the platform adopts a hybrid compute paradigm combining server-based EKS hosting with serverless AWS components (100% inside AWS).</p>
 <h3>1. Server-Based Core: AWS EKS with Managed EC2 Nodes</h3>
 <ul>
 <li>Core services (FastAPI backends, Kafka brokers, Redis caches) are containerized in EKS.</li>
@@ -1064,60 +1059,63 @@
 <ul>
 <li><strong>S3 Static Website Hosting:</strong> The React frontend is compiled and hosted serverlessly to eliminate idle host expenses.</li>
 <li><strong>DynamoDB:</strong> Baggage updates run on an On-Demand table, scaling up during flight waves and down to zero at night.</li>
-<li><strong>AWS Lambda:</strong> Boarding pass QR code generation is offloaded to a stateless Lambda handler, preventing EKS CPU fatigue.</li>
+<li><strong>AWS Lambda:</strong> Boarding pass QR code generation is offloaded to a stateless Lambda handler, triggered via a secure, authenticated AWS Lambda Function URL.</li>
 </ul>
         </div>
       </div><div class="slide " id="slide-6">
         <div class="slide-body">
-          <h1>Slide 6: Multi-AZ High Availability &amp; Resilience</h1>
-<p>The infrastructure is engineered to survive physical datacenter collapses, routing traffic via isolated Multi-AZ network boundaries.</p>
-<p><img src="screenshots/aws_full_architecture.png" alt="AeroLink AWS Full-Scale Architecture Diagram"></p>
-<h3>Multi-Availability Zone Topology</h3>
-<ul>
-<li><strong>Public Ingress Subnets:</strong> AWS Application Load Balancer distributes public HTTPS traffic across availability zones.</li>
-<li><strong>Private EKS Application Subnets:</strong> Replicas are scheduled across <code>eu-west-1a</code> and <code>eu-west-1b</code> subnets using PodAntiAffinity constraints.</li>
-<li><strong>Isolated Database Subnets:</strong> Amazon RDS PostgreSQL master database synchronizes transaction logs in real time to an active-passive standby database in an independent zone.</li>
-<li><strong>Network Security boundaries:</strong> NAT Gateways route outbound private traffic securely, while EKS endpoints are routed internally.</li>
-</ul>
-        </div>
-      </div><div class="slide " id="slide-7">
-        <div class="slide-body">
-          <h1>Slide 7: Enterprise React Frontend Architecture &amp; UI Design</h1>
+          <h1>Part 2: Distributed Web Application &amp; API Design (Rubric Task 2)</h1>
 <p>The frontend is engineered as a responsive, high-concurrency Single Page Application (SPA) using React 19, TypeScript, Tailwind CSS v4, and Vite.</p>
 <h3>Key Visual &amp; Architectural Features</h3>
 <ul>
 <li><strong>Glassmorphic Theme System:</strong> Curated design system defined in <code>src/index.css</code> using custom tokens (<code>.glass-panel</code>, <code>.glow-blue</code>).</li>
-<li><strong>Dashboard Shell Layout:</strong> persistent sidebar + header content container. Polls gateway ready states (<code>/health/ready</code>) to show cluster health.</li>
+<li><strong>Dynamic Environment Routing:</strong> Resolves API URLs dynamically; targets EKS subdomains in production and falls back to <code>localhost:8000</code> in dev.</li>
 <li><strong>Demo Role Switcher:</strong> A grading-oriented dropdown in the top header allowing instant switching between Passenger, Ground Staff, Operator, and Admin roles without re-authenticating.</li>
 <li><strong>Passcode Shield:</strong> A high-impact security entrance gate (<code>src/app/DemoGate.tsx</code>) preventing unauthenticated users from inspecting internal pages.</li>
 </ul>
         </div>
+      </div><div class="slide " id="slide-7">
+        <div class="slide-body">
+          <h1>Part 2: API Gateway Routing &amp; Swagger UI (Rubric Task 2)</h1>
+<p>External clients interact with the platform through a single API Gateway that coordinates routing, security checks, and interactive API documentation.</p>
+<h3>API Gateway &amp; OpenAPI Specifications</h3>
+<ul>
+<li><strong>FastAPI Gateway Proxying:</strong> Handles path-based routing (e.g. <code>/api/v1/flights</code> routes to <code>flight-service:8001</code>).</li>
+<li><strong>Interactive Swagger UI Documentation:</strong> Self-documenting OpenAPI schemas exposed dynamically at <code>http://api.aerolink.transnova.shop/docs</code> for all 8 microservices.</li>
+<li><strong>Redis Rate Limiting:</strong> Token-Bucket algorithm (100 capacity, 10/sec refill) gates traffic at the proxy level, tracking requests by client IP address.</li>
+</ul>
+        </div>
       </div><div class="slide " id="slide-8">
         <div class="slide-body">
-          <h1>Slide 8: Polyglot Database Architecture &amp; Connection Pooling</h1>
-<p>The platform implements a multi-model database strategy to match specific microservice throughput and transactional constraints.</p>
-<h3>1. Amazon RDS PostgreSQL (Relational Transactional Layer)</h3>
+          <h1>Part 2: Secure Service-to-Service Communication (Rubric Task 2)</h1>
+<p>Downstream services communicate securely inside the Kubernetes cluster. Traffic is managed and secured using <strong>Istio Service Mesh</strong>.</p>
+<h3>Service Mesh Specifications</h3>
 <ul>
-<li>Handles stateful relational tables for flights, bookings, payments, and passenger credentials.</li>
-<li><strong>Resilient Connection Pooling:</strong><pre><code class="language-python">engine = create_async_engine(
-    database_url,
-    pool_size=20,          # Keeps 20 active connections hot in memory
-    max_overflow=10,       # Temporarily permits 10 overflow connections under high load
-    pool_pre_ping=True,    # Issues &#39;SELECT 1&#39; before checkout to drop dead connections
-    pool_recycle=3600      # Recycles database connections hourly to prevent server timeouts
-)
-</code></pre>
-</li>
-</ul>
-<h3>2. Amazon DynamoDB (High-Frequency NoSQL Layer)</h3>
-<ul>
-<li>Stores high-velocity baggage scans.</li>
-<li>Uses an On-Demand partition structure, allowing sub-second write execution speeds without database bottlenecks.</li>
+<li><strong>Istio Ingress Gateway:</strong> Manages entrance traffic to the EKS cluster, validating JWT signatures at the ingress controller boundary.</li>
+<li><strong>Envoy Sidecar Injection:</strong> Envoy proxies are automatically injected into all pods in the <code>aerolink</code> namespace to enforce strict mTLS encryption.</li>
+<li><strong>Strict mutual TLS (mTLS):</strong> Enforces encryption in transit for pod-to-pod communications, preventing packet sniffing inside node groups.</li>
+<li><strong>Traffic Control Routing:</strong> Istio virtual services orchestrate 90/10 canary releases (e.g. splitting traffic between flight service v1 and v2-canary).</li>
 </ul>
         </div>
       </div><div class="slide " id="slide-9">
         <div class="slide-body">
-          <h1>Slide 9: Distributed Transactions - Choreography Saga</h1>
+          <h1>Part 3: Data Security &amp; Regulatory Governance (Rubric Task 3)</h1>
+<p>AeroLink guarantees complete compliance with global data standards, protecting sensitive customer records and payment information.</p>
+<h3>1. GDPR Regulatory Compliance</h3>
+<ul>
+<li><strong>Right to Erasure (Article 17):</strong> <code>DELETE /api/v1/passengers/me</code> wipes passenger records and anonymizes PII.</li>
+<li><strong>Data Portability (Article 20):</strong> <code>GET /api/v1/passengers/me/export</code> compiles profile data, booking history, and baggage scans into structured JSON.</li>
+<li><strong>Container-Level Redaction:</strong> Structlog regex filters scrub emails and card tokens at the stdout level <em>before</em> they reach EKS host disks or CloudWatch logs.</li>
+</ul>
+<h3>2. Cryptographic Security &amp; Log Protection</h3>
+<ul>
+<li><strong>Bcrypt Password Cryptography:</strong> High-entropy password salting with a work factor of 12 protects user credential stores.</li>
+<li><strong>PCI-DSS Compliance:</strong> Card details are tokenized directly in the web browser. Raw primary card numbers are never stored on database disks.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-10">
+        <div class="slide-body">
+          <h1>Part 3: Distributed Data Consistency &amp; Saga Choreography (Rubric Task 3)</h1>
 <p>Because the platform implements a Database-per-Service design, standard multi-table SQL commits are impossible. Distributed transactions are coordinated using an event-driven <strong>Saga Pattern</strong>.</p>
 <pre><code class="language-mermaid">sequenceDiagram
     autonumber
@@ -1157,138 +1155,95 @@
     end
 </code></pre>
         </div>
-      </div><div class="slide " id="slide-10">
-        <div class="slide-body">
-          <h1>Slide 10: Middle-Layer Security &amp; API Governance</h1>
-<p>Downstream microservices are protected from external exploitation and resource exhaustion.</p>
-<h3>1. Redis Token-Bucket Rate Limiter</h3>
-<ul>
-<li>Gated at the API Gateway to prevent DDoS attacks and API abuse.</li>
-<li>Capacity limits: 100 requests per IP address, refilling at 10 requests per second.</li>
-<li>Throttles abusive traffic gracefully by responding with <code>HTTP 429 Too Many Requests</code>.</li>
-</ul>
-<h3>2. Circuit Breakers (<code>pybreaker</code>)</h3>
-<ul>
-<li>Inter-service HTTP calls are wrapped in active circuit breaker state machines.</li>
-<li>If a service (e.g. Payment Gateway) fails 5 consecutive times, the breaker shifts to <code>OPEN</code> state.</li>
-<li>Subsequent queries fail fast, avoiding thread starvation in EKS container nodes.</li>
-</ul>
-        </div>
       </div><div class="slide " id="slide-11">
         <div class="slide-body">
-          <h1>Slide 11: Data Security &amp; Regulatory Governance</h1>
-<p>AeroLink guarantees complete compliance with global GDPR and PCI-DSS data standards.</p>
-<h3>1. GDPR Regulatory Compliance</h3>
+          <h1>Part 3: Polyglot Database Engine Rationale (Rubric Task 3)</h1>
+<p>The platform implements a multi-model database strategy to match specific microservice throughput and transactional constraints.</p>
+<h3>1. Amazon RDS PostgreSQL (Relational Transactional Layer)</h3>
 <ul>
-<li><strong>Right to Erasure (Article 17):</strong> <code>DELETE /api/v1/passengers/me</code> wipes user profiles and anonymizes PII elements in PostgreSQL.</li>
-<li><strong>Data Portability (Article 20):</strong> <code>GET /api/v1/passengers/me/export</code> compiles seat, profile, and scan logs into standard JSON files.</li>
+<li>Handles stateful relational tables for flights, bookings, payments, and passenger credentials.</li>
+<li><strong>Resilient Connection Pooling:</strong><pre><code class="language-python">engine = create_async_engine(
+    database_url,
+    pool_size=20,          # Keeps 20 active connections hot in memory
+    max_overflow=10,       # Temporarily permits 10 overflow connections under high load
+    pool_pre_ping=True,    # Issues &#39;SELECT 1&#39; before checkout to drop dead connections
+    pool_recycle=3600      # Recycles database connections hourly to prevent server timeouts
+)
+</code></pre>
+</li>
 </ul>
-<h3>2. Cryptographic Security &amp; Log Protection</h3>
+<h3>2. Amazon DynamoDB (High-Frequency NoSQL Layer)</h3>
 <ul>
-<li><strong>Bcrypt Password Cryptography:</strong> High-entropy password salting with a work factor of 12 completely protects user credential stores.</li>
-<li><strong>PCI-DSS Compliance:</strong> Card details are tokenized directly in the web browser. Raw primary card numbers never pass EKS disks.</li>
-<li><strong>Stdout Log Redaction:</strong> Structlog regex filters scrub emails and card tokens into <code>[REDACTED_EMAIL]</code> tags before CloudWatch ingestion.</li>
+<li>Stores high-velocity baggage scans.</li>
+<li>Uses an On-Demand partition structure indexing scans on dynamic partition keys (<code>baggage_id</code>), allowing sub-second write execution speeds without database locks.</li>
 </ul>
         </div>
       </div><div class="slide " id="slide-12">
         <div class="slide-body">
-          <h1>Slide 12: Infrastructure Automation (Terraform Runbook)</h1>
-<p>Global infrastructure is provisioned dynamically via Infrastructure as Code (IaC) to eliminate configuration drift.</p>
-<h3>Step-by-Step EKS Restoring Runbook</h3>
-<pre><code class="language-powershell"># 1. Provision AWS core resources (VPC, EKS, RDS, DynamoDB)
-cd infrastructure/terraform
-terraform init
-terraform apply -auto-approve
-
-# 2. Establish cluster credentials
-aws eks update-kubeconfig --name aerolink-cluster-prod --region eu-west-1
-
-# 3. Deploy Istio Service Mesh &amp; ArgoCD Continuous Deployment
-istioctl install --set profile=demo -y
-kubectl label namespace default istio-injection=enabled
-kubectl apply -f k8s/argocd-application.yaml
-
-# 4. Initialize Database Schema &amp; Seed Active Flights
-kubectl exec -n aerolink flight-service-pod -- alembic upgrade head
-kubectl exec -n aerolink flight-service-pod -- python seed_flights.py
-</code></pre>
+          <h1>Part 4: Real-Time Data Synchronization (Rubric Task 4)</h1>
+<p>Asynchronous event choreographies use Apache Kafka to stream updates dynamically across database boundaries.</p>
+<h4>Figure 11.1: Asynchronous Kafka Streaming &amp; WebSockets Synchronization Bridge</h4>
+<p><img src="screenshots/event_driven_communication_flow.png" alt="Asynchronous Kafka Streaming &amp; WebSockets Synchronization Bridge"></p>
+<h3>Real-Time Synchronization Workflows</h3>
+<ul>
+<li><strong>Seat Lock Synchronization:</strong> On booking creation, seat lock events publish to Kafka, triggering the Realtime Service to update connected browsers via WebSockets in under 110ms.</li>
+<li><strong>WebSockets Client Registry:</strong> The WebSocket connection directory uses flight number filters to broadcast updates selectively, protecting memory.</li>
+<li><strong>Baggage Scanning Timeline:</strong> Baggage updates publish to the <code>baggage-events</code> topic, synchronizing DynamoDB records and React timelines.</li>
+<li><strong>Flight Schedules &amp; Delay Alerts:</strong> Delay logs publish to Kafka, triggering the Notification Service to dispatch template emails.</li>
+</ul>
         </div>
       </div><div class="slide " id="slide-13">
         <div class="slide-body">
-          <h1>Slide 13: Continuous Integration &amp; GitOps</h1>
-<p>Manual <code>kubectl</code> configurations are banned to guarantee audit compliance. The complete automated lifecycle is mapped in the workflow below:</p>
-<pre><code class="language-mermaid">flowchart TD
-    subgraph DevSpace [1. Developer Workspace - Local]
-        DevCode[&quot;Developer Writes Code&quot;]
-        GitCommit[&quot;git commit &amp; git push&quot;]
-        DevCode --&gt; GitCommit
-    end
-
-    subgraph CISpace [2. Continuous Integration - GitHub Actions]
-        Trigger[&quot;GitHub Actions Triggered&quot;]
-        subgraph QualityGate [Quality &amp; Security Gate]
-            RuffCheck[&quot;Ruff: Code Formatting&quot;]
-            MypyCheck[&quot;Mypy: Static Typing&quot;]
-            PytestRun[&quot;Pytest: Unit &amp; Integration Tests&quot;]
-        end
-        DockerBuild[&quot;Docker Multi-Stage Build&quot;]
-        
-        GitCommit --&gt;|Webhook Trigger| Trigger
-        Trigger --&gt; RuffCheck
-        RuffCheck --&gt; MypyCheck
-        MypyCheck --&gt; PytestRun
-        PytestRun --&gt;|All Checks Pass| DockerBuild
-    end
-
-    subgraph RegistrySpace [3. Cloud Artifact Registry - AWS]
-        ECR[Amazon ECR Container Registry]
-        DockerBuild --&gt;|Push Docker Image| ECR
-    end
-
-    subgraph GitOpsSpace [4. GitOps Configuration Control]
-        ManifestRepo[&quot;GitHub Manifest Repository (k8s/ folder)&quot;]
-        ArgoCD[&quot;ArgoCD Sync Engine (EKS Controller)&quot;]
-        
-        DockerBuild --&gt;|Update Spec Image Tag| ManifestRepo
-        ManifestRepo &lt;--&gt;|1. Continuous Polling / Drift Detection| ArgoCD
-    end
-
-    subgraph CDSpace [5. Continuous Deployment - Amazon EKS Cluster]
-        EKS[&quot;Kubernetes Control Plane&quot;]
-        subgraph PodReplicaGroup [High-Availability Pod Group]
-            Pod1[&quot;Flight Service Pod (AZ-A)&quot;]
-            Pod2[&quot;Flight Service Pod (AZ-B)&quot;]
-        end
-        DB[&quot;AWS RDS / DynamoDB&quot;]
-        
-        ArgoCD --&gt;|2. Pull Desired State Specifications| EKS
-        EKS --&gt;|3. Fetch Container Packages| ECR
-        EKS --&gt;|4. Rolling Zero-Downtime Upgrade| PodReplicaGroup
-        PodReplicaGroup --&gt;|5. Stateful Data Persistence| DB
-    end
-
-    style DevSpace fill:#1e293b,stroke:#cbd5e1,stroke-width:1px;
-    style CISpace fill:#0f172a,stroke:#38bdf8,stroke-width:1px;
-    style RegistrySpace fill:#1e1b4b,stroke:#fde68a,stroke-width:1px;
-    style GitOpsSpace fill:#064e3b,stroke:#bbf7d0,stroke-width:1px;
-    style CDSpace fill:#4c0519,stroke:#fbcfe8,stroke-width:1px;
-</code></pre>
-<h3>1. GitHub Actions Build Pipeline (<code>ci.yml</code>)</h3>
+          <h1>Part 5: Fault Tolerance &amp; Resilience (Rubric Task 5)</h1>
+<p>The platform integrates robust self-healing patterns at the application and infrastructure layer to ensure high resilience.</p>
+<h3>1. Retry Policies &amp; Timeout management</h3>
 <ul>
-<li><strong>Format Checks:</strong> Standardizes Python code formatting using Ruff.</li>
-<li><strong>Static Typing:</strong> Validates type parameters via Mypy compilers.</li>
-<li><strong>Docker Multi-Stage Build:</strong> Compiles light container images, tags release revisions, and pushes to Amazon ECR.</li>
+<li>Microservices handle transient failures by implementing exponential retry backoffs ($T_{backoff} = T_{base} \times 1.5^{retries}$).</li>
+<li>Active connection timeouts are enforced to prevent hanging threads.</li>
 </ul>
-<h3>2. GitOps Reconciliation (ArgoCD Synchronization)</h3>
+<h3>2. Circuit Breakers (<code>pybreaker</code>)</h3>
 <ul>
-<li>ArgoCD monitors the GitHub repository <code>k8s/</code> resource manifests folder.</li>
-<li>Compares state specifications against EKS worker nodes in real time.</li>
-<li>If a deployment configuration is modified, ArgoCD reconciles the cluster automatically with zero downtime.</li>
+<li>Inter-service HTTP calls are wrapped in circuit breaker state machines.</li>
+<li>If a downstream service fails 5 consecutive times, the breaker transitions from <code>CLOSED</code> to <code>OPEN</code> state, returning fail-fast errors. It transitions to <code>HALF-OPEN</code> after a cooldown to test service recovery.</li>
+</ul>
+<h3>3. Kubernetes Self-Healing Probes</h3>
+<ul>
+<li><strong>Liveness Probes:</strong> Automatically restart containers if their internal processes hang.</li>
+<li><strong>Readiness Probes:</strong> Prevent traffic routing to pods before database connection pools are fully initialized.</li>
 </ul>
         </div>
       </div><div class="slide " id="slide-14">
         <div class="slide-body">
-          <h1>Slide 14: Automated Testing Strategy &amp; Pytest Coverages</h1>
+          <h1>Part 6: Performance &amp; Scalability Testing (Rubric Task 6)</h1>
+<p>The cluster&#39;s horizontal elasticity was verified under stress load conditions.</p>
+<h3>Headless Locust Load Stress Scenario</h3>
+<ul>
+<li><strong>Concurrent Load:</strong> 200 concurrent user sessions performing flight search and reservation tasks.</li>
+<li><strong>Load Duration:</strong> 5 minutes, executing over 3,600 requests.</li>
+</ul>
+<h3>Stress Performance Metrics</h3>
+<ul>
+<li><strong>Average System Latency:</strong> <strong>114ms</strong> (well below the 200ms target).</li>
+<li><strong>95th Percentile Latency (p95):</strong> <strong>240ms</strong> (verifying sub-second limits).</li>
+<li><strong>Peak System Throughput:</strong> <strong>184 requests per second</strong>.</li>
+<li><strong>HPA vs. Cluster Autoscaler:</strong> Horizontal Pod Autoscalers (HPA) scale pod replicas (3 to 8) within node limits. Cluster Autoscaler manages EC2 worker node expansion when EKS requests saturate resources.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-15">
+        <div class="slide-body">
+          <h1>Part 7: Monitoring &amp; Observability (Rubric Task 7)</h1>
+<p>Observability is integrated natively using open-source telemetry tools.</p>
+<h3>Multi-Dimensional Telemetry Ingestion</h3>
+<ul>
+<li><strong>Prometheus &amp; Grafana:</strong> Prometheus scrapes metrics from EKS, while Grafana visualizes CPU scales, RAM baselines, and Gateway latency.</li>
+<li><strong>Istio &amp; Kiali:</strong> Kiali renders the active EKS network topology, validating virtual services and trace paths.</li>
+<li><strong>OpenTelemetry &amp; Jaeger:</strong> Jaeger logs end-to-end distributed traces, mapping inter-service request durations down to the millisecond.</li>
+<li><strong>Trace Context Propagation:</strong> OpenTelemetry context is injected directly into Kafka record headers, propagating the trace <code>correlation-id</code> across queues.</li>
+</ul>
+        </div>
+      </div><div class="slide " id="slide-16">
+        <div class="slide-body">
+          <h1>Part 8: Testing Strategy &amp; Pytest Coverages (Rubric Task 8)</h1>
 <p>Automated Python test scripts written under the <strong>Pytest</strong> framework ensure system consistency.</p>
 <h3>Pytest Coverage Telemetry Matrix</h3>
 <table>
@@ -1358,70 +1313,53 @@ kubectl exec -n aerolink flight-service-pod -- python seed_flights.py
 <td>WebSockets port mappings.</td>
 </tr>
 </tbody></table>
-        </div>
-      </div><div class="slide " id="slide-15">
-        <div class="slide-body">
-          <h1>Slide 15: Load Resiliency &amp; Autoscaling Results</h1>
-<p>The cluster&#39;s horizontal elasticity was verified under stress load conditions.</p>
-<h3>Headless Locust Load Stress Scenario</h3>
+<h3>Testing Isolations &amp; Mocks</h3>
 <ul>
-<li><strong>Concurrent Load:</strong> 200 concurrent user sessions performing flight search and reservation tasks.</li>
-<li><strong>Load Duration:</strong> 5 minutes, executing over 3,600 requests.</li>
+<li><strong>Transactional Mocks:</strong> Pytest leverages SQLAlchemy nested transactions (<code>begin_nested</code> rollbacks) to test database calls without persisting test data.</li>
 </ul>
-<h3>Stress Performance Metrics</h3>
+<h3>Testing Execution Runbook</h3>
 <ul>
-<li><strong>Average System Latency:</strong> <strong>114ms</strong> (well below the 200ms target).</li>
-<li><strong>95th Percentile Latency (p95):</strong> <strong>240ms</strong> (verifying sub-second limits).</li>
-<li><strong>Peak System Throughput:</strong> <strong>184 requests per second</strong>.</li>
-<li><strong>EKS Autoscaler Response:</strong> EKS Horizontal Pod Autoscalers detected CPU spikes and successfully scaled pod counts from <strong>3 to 8 active replicas</strong>.</li>
-<li><strong>Zero Container Failures:</strong> Zero out-of-memory crashes occurred.</li>
-</ul>
-        </div>
-      </div><div class="slide " id="slide-16">
-        <div class="slide-body">
-          <h1>Slide 16: Observability &amp; Telemetry Framework</h1>
-<p>Observability is integrated natively using open-source telemetry tools.</p>
-<h3>Multi-Dimensional Telemetry Ingestion</h3>
-<ul>
-<li><strong>Prometheus &amp; Grafana:</strong> Prometheus scrapes metrics from EKS, while Grafana visualizes CPU scales, RAM baselines, and Gateway latency.</li>
-<li><strong>Istio &amp; Kiali:</strong> Kiali renders the active EKS network topology, validating virtual services and trace paths.</li>
-<li><strong>OpenTelemetry &amp; Jaeger:</strong> Jaeger logs end-to-end distributed traces, mapping inter-service request durations down to the millisecond.</li>
-<li><strong>Structured CloudWatch Logs:</strong> CloudWatch handles long-term storage, providing structured queries for PCI transaction reviews.</li>
+<li><strong>Pytest (Unit &amp; Integration):</strong> Run <code>python run_all_tests.py</code> to aggregate the coverage gate checks.</li>
+<li><strong>Schemathesis (Contract):</strong> Run <code>schemathesis run {gateway_url}/openapi.json --checks all</code>.</li>
+<li><strong>Locust (Performance):</strong> Run <code>locust -f load_test.py --headless -u 200 -r 20 --run-time 5m</code>.</li>
+<li><strong>Postman (API Collection):</strong> Run <code>newman run AeroLink_API_Tests.postman_collection.json</code>.</li>
 </ul>
         </div>
       </div><div class="slide " id="slide-17">
         <div class="slide-body">
-          <h1>Slide 17: AWS Cost Optimizations (FinOps)</h1>
-<p>Maintaining an enterprise, multi-tier cloud environment incurs significant expenses, managed under a proactive FinOps plan.</p>
-<h3>Granular Baseline Cost Estimates ($820.34 Monthly)</h3>
-<ul>
-<li><strong>AWS EKS Control Plane Fee:</strong> $73.00 (Single shared cluster).</li>
-<li><strong>Amazon EC2 worker nodes:</strong> $138.24 (2 x <code>m5.large</code> instances).</li>
-<li><strong>Amazon RDS PostgreSQL Instance:</strong> $253.44 (Multi-AZ replication).</li>
-<li><strong>AWS NAT Gateways:</strong> $64.80 (VPC outbound private endpoints).</li>
-<li><strong>DR warm-standby region compute:</strong> $120.00 (Scaled-down Frankfurt reserve).</li>
-</ul>
-<h3>FinOps Cost-Reduction Strategies</h3>
-<ul>
-<li><strong>Compute Savings Plans:</strong> 3-year term commitments reduce worker instance fees by <strong>37%</strong>.</li>
-<li><strong>VPC Endpoints:</strong> Configuring endpoints for S3 and DynamoDB routes database traffic internally, bypassing NAT processing fees.</li>
-<li><strong>Result:</strong> Total monthly operational expenses reduced to <strong>$550.00 (33% savings!)</strong>.</li>
-</ul>
+          <h1>Infrastructure Automation (Terraform Runbook)</h1>
+<p>Global infrastructure is provisioned dynamically via Infrastructure as Code (IaC) to eliminate configuration drift.</p>
+<h3>Step-by-Step EKS Restoring Runbook</h3>
+<pre><code class="language-powershell"># 1. Provision AWS core resources (VPC, EKS, RDS, DynamoDB)
+cd infrastructure/terraform
+terraform init
+terraform apply -auto-approve
+
+# 2. Establish cluster credentials
+aws eks update-kubeconfig --name aerolink-cluster-prod --region eu-west-1
+
+# 3. Deploy Istio Service Mesh &amp; ArgoCD Continuous Deployment
+istioctl install --set profile=demo -y
+kubectl label namespace default istio-injection=enabled
+kubectl apply -f k8s/argocd-application.yaml
+</code></pre>
+<p><em>Database schema migrations and seeds are executed automatically via ArgoCD PreSync Job hooks during CD deployment.</em></p>
         </div>
       </div><div class="slide " id="slide-18">
         <div class="slide-body">
-          <h1>Slide 18: Operational Teardown &amp; Future Improvements</h1>
+          <h1>Operational Teardown &amp; Future Improvements</h1>
 <p>A safe decommissioning plan prevents the typical Kubernetes subnet deletion lock.</p>
 <h3>1. The Ingress Subnet Deletion Deadlock Trap</h3>
 <ul>
 <li>Active Kubernetes LoadBalancer services allocate external AWS ALBs and ENIs dynamically.</li>
 <li>Tearing down EKS before these are cleaned up blocks subnet deletion, leaving active billing orphans.</li>
+<li><strong>Reason:</strong> AWS provisions ENIs (Elastic Network Interfaces) in VPC subnets for load balancers. Terraform cannot delete subnets containing active ENIs.</li>
 <li><strong>Our Teardown Runbook:</strong> Delete the EKS namespaces first (<code>kubectl delete namespace aerolink istio-system argocd</code>), forcing dynamic load balancers to safely de-provision before executing <code>terraform destroy</code>.</li>
 </ul>
 <h3>2. Future Architectural Recommendations</h3>
 <ul>
 <li><strong>Helm Charts Package Manager:</strong> Template EKS manifests to manage dev-vs-prod environments via single <code>values.yaml</code> configs.</li>
-<li><strong>Amazon Aurora Global Database:</strong> Swap RDS PostgreSQL instances for serverless Aurora clusters to achieve sub-second active-active multi-region database failovers.</li>
+<li><strong>Amazon Aurora Serverless:</strong> Swap RDS PostgreSQL for Aurora serverless database clusters to achieve sub-second active-active multi-region database failovers.</li>
 </ul>
         </div>
       </div></div>

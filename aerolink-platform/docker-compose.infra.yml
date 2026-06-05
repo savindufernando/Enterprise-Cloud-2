@@ -16,6 +16,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+        aliases:
+          - postgres
 
   kafka:
     image: apache/kafka:3.7.0
@@ -34,6 +38,10 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     ports:
       - "9092:9092"
+    networks:
+      default:
+        aliases:
+          - kafka
 
   redis:
     image: redis:7-alpine
@@ -47,6 +55,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      default:
+        aliases:
+          - redis
 
   dynamodb-local:
     image: amazon/dynamodb-local:2.4.0
@@ -56,6 +68,10 @@ services:
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
     volumes:
       - dynamodb_data:/home/dynamodblocal/data
+    networks:
+      default:
+        aliases:
+          - dynamodb-local
 
   prometheus:
     image: prom/prometheus:v2.51.0

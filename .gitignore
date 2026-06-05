@@ -34,3 +34,7 @@ Thumbs.db
 
 # Large submission archives (>100MB GitHub limit)
 *.zip
+ *.html
+*.md
+final_report.html
+final_report.html

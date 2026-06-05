@@ -19,7 +19,11 @@ EXCLUDE_DIRS = {
     "__pycache__",
     "htmlcov",
     ".claude",
-    ".gemini"
+    ".gemini",
+    "Evidences",
+    "Evidences-2",
+    "Final-Report",
+    "istio-1.22.0"
 }
 
 EXCLUDE_FILES = {
