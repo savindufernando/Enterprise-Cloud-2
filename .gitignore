@@ -38,3 +38,7 @@ Thumbs.db
 *.md
 final_report.html
 final_report.html
+
+# Agent directories
+.claude/
+.gemini/
