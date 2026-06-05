@@ -42,3 +42,6 @@ final_report.html
 # Agent directories
 .claude/
 .gemini/
+scratch/
+Guides/
+guides/
