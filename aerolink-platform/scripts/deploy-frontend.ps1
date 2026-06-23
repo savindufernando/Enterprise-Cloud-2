@@ -8,10 +8,20 @@ $domain = "aerolink.transnova.shop"
 $rootDomain = "transnova.shop"
 $region = "eu-west-1"
 
-# Active AWS Load Balancer (Istio Ingress Gateway)
-$albDnsName = "a9f2826022b2f41998c68476b46ded18-750009889.eu-west-1.elb.amazonaws.com"
+# Active AWS Load Balancer (Istio Ingress Gateway) - dynamically resolved
+Write-Host "Resolving Istio Ingress Gateway Load Balancer DNS name..." -ForegroundColor Yellow
+$albDnsName = ""
+while (-not $albDnsName) {
+    $albDnsName = (kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>$null)
+    if (-not $albDnsName) {
+        Write-Host "Waiting for Load Balancer DNS name to be assigned... (Retrying in 10s)" -ForegroundColor Gray
+        Start-Sleep -Seconds 10
+    }
+}
+Write-Host "Resolved Load Balancer DNS Name: $albDnsName" -ForegroundColor Green
 $albHostedZoneId = "Z32O12XQLNTSW2" # Canonical Hosted Zone ID for ALBs in eu-west-1
 $s3HostedZoneId = "Z1BKCTXD74EZPE"  # Canonical Hosted Zone ID for S3 Web Hosting in eu-west-1
+
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "       AeroLink Frontend AWS Deployment & Route 53         " -ForegroundColor Cyan
