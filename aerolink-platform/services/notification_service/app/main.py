@@ -93,6 +93,11 @@ async def liveness_probe():
     from shared.health.liveness import check_liveness
     return await check_liveness()
 
+@app.get("/health/ready", tags=["Health"])
+async def readiness_probe():
+    from shared.health.liveness import check_liveness
+    return await check_liveness()
+
 
 if __name__ == "__main__":
     import uvicorn
