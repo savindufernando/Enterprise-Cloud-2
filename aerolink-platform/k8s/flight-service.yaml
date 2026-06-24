@@ -53,7 +53,7 @@ metadata:
     app: flight-service
     version: v2-canary
 spec:
-  replicas: 1  # 2:1 ratio for simplicity, in reality controlled by Istio/Ingress weights
+  replicas: 0  # Scaled down to free up EKS node pod slots for Kafka/Zookeeper
   selector:
     matchLabels:
       app: flight-service
